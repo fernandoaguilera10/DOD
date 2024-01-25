@@ -53,13 +53,13 @@ res.NoiseFloor = noise_Pa_per_20uPa;
 %% Plot
 figure;
 hold on;
-plot(res.freq*1e-3, db(abs(res.Resp)), 'linew', 3);
+plot(res.freq*1e-3, db(abs(res.Resp)), 'linew', 2, 'Color', 'green');
 ylabel('Response (dB SPL)', 'FontSize', 14, 'FontWeight', 'bold');
 uplim = max(db(abs(res.Resp)));
 hold on;
-semilogx(res.freq*1e-3, db(abs(res.NoiseFloor)),'k--' ,'linew', 2);
+semilogx(res.freq*1e-3, db(abs(res.NoiseFloor)),'--', 'linew', 2, 'Color', 'black');
 xlabel('Frequency (kHz)', 'FontSize', 14, 'FontWeight', 'bold');
-legend('TEOAE', 'NoiseFloor');
+legend('TEOAE', 'NF');
 xlim([0.4, 16]);
 ticks = [0.5, 1, 2, 4, 8, 16];
 set(gca, 'XTick', ticks, 'FontSize', 14, 'xscale', 'log');

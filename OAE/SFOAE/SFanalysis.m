@@ -13,7 +13,11 @@ npoints = 512;
 cwd = pwd;
 cd(datapath)
 datafile = {dir(fullfile(cd,'*sweptSFOAE.mat')).name};
-if length(datafile) > 1
+if length(datafile) < 1
+    fprintf('No files for this subject...Quitting.\n')
+    cd(cwd);
+    return
+elseif length(datafile) > 1
     fprintf('More than 1 data file. Check this is correct file!\n');
     datafile = {uigetfile('*sweptSFOAE.mat')}; 
 end
@@ -181,9 +185,9 @@ noise_complex = mean(noise2,2);
 res.multiplier = stim.VoltageToPascal.* stim.PascalToLinearSPL;
 %% Plot resulting figure
 figure;
-plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 1.75);
+plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 2, 'Color', 'blue');
 hold on;
-plot(testfreq/1000, db(abs(noise_complex).*res.multiplier), '--', 'linew', 1.5);
+plot(testfreq/1000, db(abs(noise_complex).*res.multiplier), '--', 'linew', 2, 'Color', 'black');
 title([subj, ' | SFOAE | ', condition], 'FontSize', 14 )
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
@@ -213,19 +217,19 @@ res.dbEPL_nf = db(abs(NF.P_epl));
 %                 res.f2_fpl = F2.f;
 
 % plot figure again
-figure;
-plot(testfreq/1000, res.dbEPL_sf, 'linew', 3, 'Color', '#4575b4');
-hold on;
-plot(testfreq/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
-title([subj ' | SFOAE | ' condition], 'FontSize', 14)
-set(gca, 'XScale', 'log', 'FontSize', 14)
-xlim([.5, 16])
-ylim([-50, 50])
-xticks([.5, 1, 2, 4, 8, 16])
-ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('SFOAE', 'NF')
-drawnow;
+% figure;
+% plot(testfreq/1000, res.dbEPL_sf, 'linew', 3, 'Color', '#4575b4');
+% hold on;
+% plot(testfreq/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
+% title([subj ' | SFOAE | ' condition], 'FontSize', 14)
+% set(gca, 'XScale', 'log', 'FontSize', 14)
+% xlim([.5, 16])
+% ylim([-50, 50])
+% xticks([.5, 1, 2, 4, 8, 16])
+% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
+% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
+% legend('SFOAE', 'NF')
+% drawnow;
 %% Save result function
 res.windowdur = windowdur;
 res.offsetwin = offsetwin;

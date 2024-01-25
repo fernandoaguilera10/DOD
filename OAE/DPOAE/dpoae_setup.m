@@ -9,11 +9,11 @@ clear;
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab/Users/Hannah');
 else %if using WINDOWS computer..
-    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-offline');
+    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
 end
 EXPname = 'OAE';
 EXPname2 = 'DPOAE';
-CODEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,EXPname,filesep,'Analysis',filesep,EXPname2);
+CODEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,EXPname,filesep,EXPname2);
 %% Subjects and Conditions
 Chins2Run={'Q434','Q435'};
 Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('post',filesep,'2_day')};
