@@ -14,10 +14,13 @@ cwd = pwd;
 cd(datapath)
 datafile = dir(fullfile(cd,('*sweptDPOAE*.mat')));
 if length(datafile) < 1
-    fprintf('No file...Quitting!\n');
+    fprintf('No files for this subject...Quitting.\n')
+    cd(cwd);
+    return
 elseif size(datafile,1) > 1
-    checkDIR =uigetfile('.mat');
-    load(checkDIR);
+    fprintf('More than 1 data file. Check this is correct file!\n');
+    checkDIR = {uigetfile('*sweptDPOAE.mat')};
+    load(checkDIR{1});
     file = checkDIR; 
 else
     load(datafile(1).name);
@@ -44,7 +47,7 @@ cd(cwd);
 stim.scale = 'log';
 stim.nearfreqs = [0.9,.88, .86,.84];
 trials = size(stim.resp,1);
-figure; plot(stim.resp(1,:))
+% figure; plot(stim.resp(1,:))
 delay_oops = 0; % 247; %128
 %% Set variables from the stim
 phi1_inst = 2 * pi * stim.phi1_inst;
@@ -184,9 +187,9 @@ VtoSPL = stim.VoltageToPascal .* stim.PascalToLinearSPL;
 res.VtoSPL = VtoSPL;
 %% Plot Results Figure
 figure;
-plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', [0 0.4470 0.7410]);
+plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', 'red');
 hold on;
-plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', [0.6350 0.0780 0.1840]);
+plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', 'black');
 plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);
 plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);
 title('DPOAE', 'FontSize', 14)
@@ -195,8 +198,8 @@ xlim([.5, 16])
 ylim([-50, 90])
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
-xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('OAE', 'NF', 'F2', 'F1')
+xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
+legend('DPOAE', 'NF', 'F_2', 'F_1')
 drawnow;
 %% Get EPL units
 [DP] = calc_EPL(freq_dp, oae_complex.*VtoSPL, calib, 1);
@@ -219,21 +222,21 @@ res.dbEPL_nf = db(abs(NF.P_epl));
 %                 res.complex_f2_fpl = F2.P_fpl;
 %                 res.f2_fpl = F2.f;
 % plot figure again
-figure;
-plot(freq_f2/1000, res.dbEPL_dp, 'linew', 3, 'Color', 'r');
-hold on;
-plot(freq_f2/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
-%plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-%plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-%title(sprintf('Subj: %s, Ear: %s', string(subj), string(ear)))
-title('DPOAE', 'FontSize', 14)
-set(gca, 'XScale', 'log', 'FontSize', 14)
-xlim([.5, 16])
-ylim([-50, 50])
-xticks([.5, 1, 2, 4, 8, 16])
-ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('DPOAE', 'NF')
+% figure;
+% plot(freq_f2/1000, res.dbEPL_dp, 'linew', 3, 'Color', 'r');
+% hold on;
+% plot(freq_f2/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
+% %plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
+% %plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
+% %title(sprintf('Subj: %s, Ear: %s', string(subj), string(ear)))
+% title('DPOAE', 'FontSize', 14)
+% set(gca, 'XScale', 'log', 'FontSize', 14)
+% xlim([.5, 16])
+% ylim([-50, 50])
+% xticks([.5, 1, 2, 4, 8, 16])
+% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
+% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
+% legend('DPOAE', 'NF')
 drawnow;
 res.f.f2 = freq_f2;         % frequency vectors
 res.f.f1 = freq_f1;
@@ -264,18 +267,18 @@ for z = 1:length(centerFreqs)
     dpoae_w(z,1) = sum(weight.*dpoae_full(band))/sum(weight);
     dpnf_w(z,1) = sum(weight.*dpnf_full(band))/sum(weight);
 end
-figure;
-hold on;
-semilogx(f2, dpoae_full, 'Color', [.8, .8, .8], 'linew', 2)
-semilogx(f2, dpnf_full, '--', 'linew', 1.5, 'Color', [.8, .8, .8])
-semilogx(centerFreqs, dpoae_w, 'o', 'linew', 4, 'MarkerSize', 10, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
-set(gca, 'XScale', 'log', 'FontSize', 14)
-xlim([.5, 16])
-ylim([-50, 50])
-xticks([.5, 1, 2, 4, 8, 16])
-ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-title('DPOAE', 'FontSize', 16); 
+% figure;
+% hold on;
+% semilogx(f2, dpoae_full, 'Color', [.8, .8, .8], 'linew', 2)
+% semilogx(f2, dpnf_full, '--', 'linew', 1.5, 'Color', [.8, .8, .8])
+% semilogx(centerFreqs, dpoae_w, 'o', 'linew', 4, 'MarkerSize', 10, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
+% set(gca, 'XScale', 'log', 'FontSize', 14)
+% xlim([.5, 16])
+% ylim([-50, 50])
+% xticks([.5, 1, 2, 4, 8, 16])
+% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
+% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
+% title('DPOAE', 'FontSize', 16); 
 result.f2 = f2; 
 result.oae_full = dpoae_full; 
 result.nf_full = dpnf_full; 
