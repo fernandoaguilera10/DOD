@@ -7,6 +7,7 @@ Version: 25 January 2024
 2. Envelope frequency response (EFR) analysis for RAM and AM/FM stimuli
 3. Otoacoustic emission analysis for distortion product (DP), stimulus frequency (SF), and transient evoked (TE) based on forward pressure level (FPL) calibration
 4. Wideband middle ear muscle reflex (WBMEMR) analysis
+5. Aircraft carrier noise generation (Komrower et al., 2019)
 
 
 
