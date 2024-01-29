@@ -27,7 +27,7 @@ stim = x.sweptSFOAEData.stim;
 clear x; 
 %% IMPORT CALIB DATA
 cd(calibpath)
-calibfile = {dir(fullfile(cd,'*calib_FPL_raw.mat')).name};
+calibfile = {dir(fullfile(cd,'*calib_FPL_inv*.mat')).name};
 if length(calibfile) > 1
     fprintf('Multiple calibration files found, select one.\n');
     calibfile = uigetfile('*calib_FPL_raw.mat'); 
@@ -250,9 +250,15 @@ res.multiplier = stim.VoltageToPascal.* stim.PascalToLinearSPL;
 res.complex.oae = oae_complex;
 res.complex.nf = noise_complex;
 res.complex.nf2 = noise_complex2;
+data.res = res;
+spl.oae = oae_complex;
+spl.noise = noise_complex;
+spl.f = testfreq/1000;
+spl.VtoSPL = res.multiplier;
+data.spl = spl;
 %% Export:
 cd(outpath);
 fname = [subj,'_SFOAEswept_',condition];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
-save(fname,'res')
+save(fname,'data')
 cd(cwd);

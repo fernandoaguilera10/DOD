@@ -53,7 +53,15 @@ plot(f2, dpnf_full, '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility
 %plot(centerFreqs, dpoae_w, '*', 'linew', 2, 'MarkerSize', 5, 'MarkerFaceColor', colors(CondIND), 'MarkerEdgeColor', colors(CondIND))
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
-ylim([-50, 90])
+if CondIND > 1
+    lim_temp = max(dpoae_full);
+    if lim_temp > uplim
+        uplim = lim_temp;
+    end
+else
+    uplim = max(dpoae_full);
+end
+ylim([-50, uplim + 5])
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
 xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
@@ -65,7 +73,15 @@ plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), 'linew', 2, 'Color', colors(CondIND));
 plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
-ylim([-50, 90])
+if CondIND > 1
+    lim_temp = max(db(abs(spl.oae).*spl.VtoSPL));
+    if lim_temp > uplim
+        uplim = lim_temp;
+    end
+else
+    uplim = max(db(abs(spl.oae).*spl.VtoSPL));
+end
+ylim([-50, uplim + 5])
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
