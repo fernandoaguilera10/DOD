@@ -286,6 +286,11 @@ result.centerFreqs = centerFreqs;
 result.oae_summary = dpoae_w; 
 data.result = result; 
 data.res = res; 
+spl.oae = oae_complex;
+spl.noise = noise_complex;
+spl.f = freq_f2/1000;
+spl.VtoSPL = VtoSPL;
+data.spl = spl;
 %% Export:
 cd(outpath);
 fname = [subj,'_DPOAEswept_',condition,'_',file(end-11:end-4)];
