@@ -6,8 +6,8 @@ close all;
 clear;
 %% User Defined:
 % Data and code directories
-Chins2Run={'Q434'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('post',filesep,'2_Day')};
+Chins2Run={'Q438','Q445','Q446','Q447'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('pre',filesep,'Baseline_2')};
 % Data and code directories
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
@@ -37,7 +37,6 @@ for ChinIND=1:length(Chins2Run)
             mkdir('Analysis')
             cd(strcat(OUTdir,filesep,'Analysis'))
             mkdir(EXPname)
-            outpath = pwd;
         end
         cd(outpath)
         Dlist=dir(Chins2Run{ChinIND});

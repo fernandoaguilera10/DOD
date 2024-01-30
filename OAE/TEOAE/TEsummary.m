@@ -16,7 +16,8 @@ tenf_full = spl.NoiseFloor;
 spl.freq = spl.freq/1000;
 %% PLOTTING - SPL
 colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
-figure(1); hold on;
+counter = 2*ChinIND-1;
+figure(counter); hold on;
 plot(spl.freq, db(abs(spl.oae)), 'linew', 2, 'Color', colors(CondIND));
 plot(spl.freq, db(abs(spl.noise)), '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
@@ -34,10 +35,10 @@ xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('Frequency (kHz)', 'FontWeight', 'bold')
 legend(Conds2Run)
-title('TEOAE', 'FontSize', 16)
+title(sprintf('TEOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% Export
 outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname,filesep,Chins2Run{ChinIND});
 cd(outpath);
 filename_SPL = [subj,'_TEOAE_Summary_SPL'];
-print(figure(1),[filename_SPL,'_figure'],'-dpng','-r300');
+print(figure(counter),[filename_SPL,'_figure'],'-dpng','-r300');
 cd(cwd);

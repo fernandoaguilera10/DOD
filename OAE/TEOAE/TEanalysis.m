@@ -71,7 +71,7 @@ spl.noise = spl.NoiseFloor;
 data.spl = spl;
 %% Save Variables and figure
 cd(outpath);
-fname = [subj,'_TEOAE_',condition];
+fname = [subj,'_TEOAE_',condition,'_',datafile{1}(20:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);

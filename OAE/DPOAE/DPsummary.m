@@ -47,7 +47,8 @@ for z = 1:length(centerFreqs)
 end
 %% PLOTTING - EPL
 colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
-figure(1); hold on;
+counter = 2*ChinIND-1;
+figure(counter); hold on;
 plot(f2, dpoae_full, 'Color', [.8, .8, .8], 'linew', 2, 'Color', colors(CondIND))
 plot(f2, dpnf_full, '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off')
 %plot(centerFreqs, dpoae_w, '*', 'linew', 2, 'MarkerSize', 5, 'MarkerFaceColor', colors(CondIND), 'MarkerEdgeColor', colors(CondIND))
@@ -66,9 +67,9 @@ xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
 xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
 legend(Conds2Run)
-title('DPOAE', 'FontSize', 16);
+title(sprintf('DPOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% PLOTTING - SPL
-figure(2); hold on;
+figure(counter+1); hold on;
 plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), 'linew', 2, 'Color', colors(CondIND));
 plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
@@ -86,12 +87,12 @@ xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
 legend(Conds2Run)
-title('DPOAE', 'FontSize', 16)
+title(sprintf('DPOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% Export
 outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname,filesep,Chins2Run{ChinIND});
 cd(outpath);
 filename_EPL = [subj,'_DPOAEswept_Summary_EPL'];
-print(figure(1),[filename_EPL,'_figure'],'-dpng','-r300');
+print(figure(counter),[filename_EPL,'_figure'],'-dpng','-r300');
 filename_SPL = [subj,'_DPOAEswept_Summary_SPL'];
-print(figure(2),[filename_SPL,'_figure'],'-dpng','-r300');
+print(figure(counter+1),[filename_SPL,'_figure'],'-dpng','-r300');
 cd(cwd);

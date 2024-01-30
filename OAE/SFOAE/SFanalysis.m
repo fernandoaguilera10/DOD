@@ -22,7 +22,6 @@ elseif length(datafile) > 1
     datafile = {uigetfile('*sweptSFOAE.mat')}; 
 end
 load(datafile{1});
-fname_out = [subj '_SFOAEswept_' datafile{1}(20:end-4) '.mat'];
 stim = x.sweptSFOAEData.stim;
 clear x; 
 %% IMPORT CALIB DATA
@@ -258,7 +257,7 @@ spl.VtoSPL = res.multiplier;
 data.spl = spl;
 %% Export:
 cd(outpath);
-fname = [subj,'_SFOAEswept_',condition];
+fname = [subj,'_SFOAEswept_',condition,'_',datafile{1}(20:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);
