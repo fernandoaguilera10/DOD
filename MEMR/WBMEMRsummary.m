@@ -29,7 +29,7 @@ xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 legend(Conds2Run)
-title('WBMEMR', 'FontSize', 16)
+title(sprintf('WBMEMR | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% Export
 outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname,filesep,Chins2Run{ChinIND});
 cd(outpath);
