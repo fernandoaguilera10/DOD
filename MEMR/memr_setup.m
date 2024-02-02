@@ -4,8 +4,8 @@ close all;
 clear;
 %% User Defined:
 % Data and code directories
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('pre',filesep,'Baseline_2')};
+Chins2Run={'Q438','Q445'};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2')};
 % Data and code directories
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
@@ -14,8 +14,8 @@ else %if using WINDOWS computer..
 end
 EXPname = 'MEMR';
 CODEdir = strcat(ROOTdir,filesep,EXPname,filesep);
-%DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
-DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
+%DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
 OUTdir = strcat(ROOTdir);
 %% Looping through subjects and conditions
 input1 = input('Would you like to perform TEOAE analysis (A) or summary (S): ','s');
