@@ -7,7 +7,7 @@ clear;
 %% User Defined:
 % Data and code directories
 Chins2Run={'Q438','Q445'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2')};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
 % Data and code directories
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
