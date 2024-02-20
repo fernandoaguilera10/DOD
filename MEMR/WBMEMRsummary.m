@@ -7,6 +7,8 @@ fname = ['*',subj,'_MEMR_WB_',condition,'*.mat'];
 datafile = {dir(fname).name};
 if length(datafile) > 1
     fprintf('More than 1 data file. Check this is correct file!\n');
+    checkDIR = {uigetfile(fname)};
+    datafile = checkDIR; 
 end
 load(datafile{1});
 cd(cwd);
