@@ -6,7 +6,7 @@ close all;
 clear;
 %% User Defined:
 % Data and code directories
-Chins2Run={'Q438','Q445'};
+Chins2Run={'Q446','Q447'};
 Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
 % Data and code directories
 if (ismac == 1) %MAC computer
