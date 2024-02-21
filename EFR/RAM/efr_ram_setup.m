@@ -5,18 +5,19 @@
 close all;
 clear;
 %% User Defined:
-Chins2Run={'Q446','Q447'};
+Chins2Run={'Q438','Q445','Q446','Q447'};
 Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D7')};
+EXPname = 'EFR';
+EXPname2 = 'RAM';
 % Data and code directories
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
+    DATAdir = strcat(ROOTdir);
 else %if using WINDOWS computer..
-    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
+    DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
 end
-EXPname = 'EFR';
-EXPname2 = 'RAM';
 CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
-DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
 OUTdir = strcat(ROOTdir);
 %% Subjects and Conditions
 for ChinIND=1:length(Chins2Run)
