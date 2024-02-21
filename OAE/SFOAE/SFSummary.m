@@ -38,11 +38,12 @@ for z = 1:length(centerFreqs)
     sfnf_w(z,1) = sum(weight.*sfnf_full(band))/sum(weight); 
 end
 %% PLOTTING - EPL
-colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
+%colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
+colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47]/255;
 counter = 2*ChinIND-1;
 figure(counter); hold on;
-plot(f2, sfoae_full, 'Color', [.8, .8, .8], 'linew', 2, 'Color', colors(CondIND))
-plot(f2, sfnf_full, '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off')
+plot(f2, sfoae_full, 'linew', 2, 'Color', colors(CondIND,:))
+plot(f2, sfnf_full, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.5],'HandleVisibility','off')
 %plot(centerFreqs, sfoae_w, '*', 'linew', 2, 'MarkerSize', 5, 'MarkerFaceColor', colors(CondIND), 'MarkerEdgeColor', colors(CondIND))
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
@@ -58,12 +59,13 @@ ylim([-50, uplim + 5])
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
 xlabel('Frequency (kHz)', 'FontWeight', 'bold')
-legend(Conds2Run)
+legend(Conds2Run,'Location','southoutside','Orientation','horizontal','FontSize',8)
+legend boxoff  
 title(sprintf('SFOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% PLOTTING - SPL
 figure(counter+1); hold on;
-plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), 'linew', 2, 'Color', colors(CondIND));
-plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', colors(CondIND),'HandleVisibility','off');
+plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), 'linew', 2, 'Color', colors(CondIND,:));
+plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(CondIND,:),0.5],'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 if CondIND > 1
@@ -78,7 +80,8 @@ ylim([-50, uplim + 5])
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('Frequency (kHz)', 'FontWeight', 'bold')
-legend(Conds2Run)
+legend(Conds2Run,'Location','southoutside','Orientation','horizontal','FontSize',8)
+legend boxoff  
 title(sprintf('SFOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 %% Export
 outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname,filesep,Chins2Run{ChinIND});

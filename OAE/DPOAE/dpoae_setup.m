@@ -1,5 +1,5 @@
 %% Set up to run DPOAE analysis
-% Updated: 7 December 2023 - Fernando Aguilera de Alba
+% Updated: 20 February 2024 - Fernando Aguilera de Alba
 % Define the following variables according to your project
 % ROOTdir = directory with your project
 % CODEdir = directory with MATLAB files (Github)
@@ -14,22 +14,23 @@
 close all;
 clear;
 %% User Defined:
-Chins2Run={'Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
+Chins2Run={'Q438','Q445','Q446','Q447'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
 % Data and code directories
-if (ismac == 1) %MAC computer
-    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-else %if using WINDOWS computer..
-    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
-end
 EXPname = 'OAE';
 EXPname2 = 'DPOAE';
+if (ismac == 1) %MAC computer
+    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
+    DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
+else %if using WINDOWS computer..
+    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
+    DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+end
 CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
-DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
-%DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
 OUTdir = strcat(ROOTdir);
 %% Subjects and Conditions
-input1 = input('Would you like to perform DPOAE analysis (A) or summary (S): ','s');
+%input1 = input('Would you like to perform DPOAE analysis (A) or summary (S): ','s');
+input1 = 's';
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
