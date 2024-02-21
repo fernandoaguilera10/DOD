@@ -26,11 +26,12 @@ stim = x.sweptSFOAEData.stim;
 clear x; 
 %% IMPORT CALIB DATA
 cd(calibpath)
-calibfile = {dir(fullfile(cd,'*calib_FPL_inv*.mat')).name};
+calibfile = {dir(fullfile(cd,'*calib_FPL_raw*.mat')).name};
 if length(calibfile) > 1
     fprintf('Multiple calibration files found, select one.\n');
-    calibfile = uigetfile('*calib_FPL_raw.mat'); 
-    load(calibfile); 
+    calibfile = uigetfile('*calib_FPL_raw.mat');
+    calibfile = {calibfile};
+    load(calibfile{1}); 
 elseif isempty(calibfile)
     fprintf('No calibration file found...Quitting!\n'); 
 else
@@ -187,7 +188,7 @@ figure;
 plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 2, 'Color', 'blue');
 hold on;
 plot(testfreq/1000, db(abs(noise_complex).*res.multiplier), '--', 'linew', 2, 'Color', 'black');
-title([subj, ' | SFOAE | ', condition], 'FontSize', 14 )
+title([subj, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14 )
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 xticks([.5, 1, 2, 4, 8, 16])
@@ -257,7 +258,7 @@ spl.VtoSPL = res.multiplier;
 data.spl = spl;
 %% Export:
 cd(outpath);
-fname = [subj,'_SFOAEswept_',condition,'_',datafile{1}(20:end-4)];
+fname = [subj,'_SFOAEswept_',condition,'_',datafile{1}(1:end-4),'_',calibfile{1}(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);

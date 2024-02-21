@@ -1,24 +1,33 @@
 % Set up to run SFOAE analysis
-% Updated: 8 December 2023 - Fernando Aguilera de Alba
-%Here's where you can define your own parameters for input/output
-%directories.
+% Updated: 20 February 2024 - Fernando Aguilera de Alba
+% Define the following variables according to your project
+% ROOTdir = directory with your project
+% CODEdir = directory with MATLAB files (Github)
+% DATAdir = directory with data to analyze
+% Chins2Run = list of subjects to analyze data
+% Conds2Run = list of conditions to analyze data (baseline vs post)
+% 
+% 
+% Output: 
+% DPanalysis - analyzes RAW data to plot DPgram for Chins2Run and Conds2Run
+% DPsummary - combines analyzed data to compare DPgrams between Cond2Run
 close all;
 clear;
 %% User Defined:
 % Data and code directories
-Chins2Run={'Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
+Chins2Run={'Q438','Q445','Q446','Q447'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
 % Data and code directories
-if (ismac == 1) %MAC computer
-    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-else %if using WINDOWS computer..
-    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
-end
 EXPname = 'OAE';
 EXPname2 = 'SFOAE';
+if (ismac == 1) %MAC computer
+    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
+    DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
+else %if using WINDOWS computer..
+    ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
+    DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+end
 CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
-DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
-%DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
 OUTdir = strcat(ROOTdir);
 %% Subjects and Conditions
 input1 = input('Would you like to perform SFOAE analysis (A) or summary (S): ','s');

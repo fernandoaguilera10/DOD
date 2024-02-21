@@ -29,12 +29,12 @@ end
 stim = x.sweptDPOAEData.stim;
 % SET CALIB FILE HERE
 cd(calibpath)
-calibfile = dir(fullfile(cd,('*calib_FPL_inv*.mat')));
+calibfile = dir(fullfile(cd,('*calib_FPL_raw*.mat')));
 if length(calibfile) < 1
     fprintf('No calibration file found...Quitting!\n'); 
 elseif size(calibfile,1) > 1
     fprintf('Multiple calibration files found, select one.\n');
-    checkDIR =uigetfile('*calib_FPL_inv*.mat');
+    checkDIR =uigetfile('*calib_FPL_raw*.mat');
     load(checkDIR);
     file = checkDIR; 
 else
@@ -186,13 +186,14 @@ phasor_dp = exp(-1j * phi_dp * 2 * pi);
 VtoSPL = stim.VoltageToPascal .* stim.PascalToLinearSPL;
 res.VtoSPL = VtoSPL;
 %% Plot Results Figure
+numOfTrials = floor(trials/2)*2; % need even number of trials
 figure;
 plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', 'red');
 hold on;
 plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', 'black');
 plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);
 plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);
-title('DPOAE', 'FontSize', 14)
+title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14 )
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 ylim([-50, 90])
@@ -293,7 +294,7 @@ spl.VtoSPL = VtoSPL;
 data.spl = spl;
 %% Export:
 cd(outpath);
-fname = [subj,'_DPOAEswept_',condition,'_',file(end-11:end-4)];
+fname = [subj,'_DPOAEswept_',condition,'_',datafile(1).name(1:end-4),'_',file(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);

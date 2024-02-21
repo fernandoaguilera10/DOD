@@ -64,14 +64,14 @@ xlim([0.5, 16]);
 ticks = [0.5, 1, 2, 4, 8, 16];
 set(gca, 'XTick', ticks, 'FontSize', 14, 'xscale', 'log');
 ylim([-60, uplim + 5]);
-title([subj ' | TEOAE | ' condition], 'FontSize', 14)
+title([subj, ' | TEOAE | ', condition], 'FontSize', 14 )
 drawnow; 
 spl.oae = spl.Resp; 
 spl.noise = spl.NoiseFloor;
 data.spl = spl;
 %% Save Variables and figure
 cd(outpath);
-fname = [subj,'_TEOAE_',condition,'_',datafile{1}(20:end-4)];
+fname = [subj,'_TEOAE_',condition,'_',datafile{1}(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);
