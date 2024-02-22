@@ -332,6 +332,7 @@ elseif strcmp(command_str,'print')
 elseif strcmp(command_str,'file')
         save_file2_HG;
         data.save_chk = 1;
+        replot_data;
 elseif strcmp(command_str,'edit') % added by GE 15Apr2004 %NEED THIS? -HG
     
 elseif strcmp(command_str,'close')
