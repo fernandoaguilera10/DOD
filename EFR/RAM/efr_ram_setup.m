@@ -13,12 +13,14 @@ EXPname2 = 'RAM';
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
     DATAdir = strcat(ROOTdir);
+    OUTdir = strcat(ROOTdir);
+    CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
     DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 end
-CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
-OUTdir = strcat(ROOTdir);
 %% Subjects and Conditions
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
@@ -28,7 +30,7 @@ for ChinIND=1:length(Chins2Run)
         str = strsplit(Conds2Run{CondIND}, filesep);
         condition = strcat(str{1},'-',str{2});
         % Check if MEMR analyzed data folder exist for selected chins and time points
-        outpath = strcat(ROOTdir,filesep,'Analysis',filesep,EXPname);
+        outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname);
         Outlist = dir(outpath);
         if isempty(Outlist) %create directory if it doesn't exist
             cd(OUTdir)

@@ -22,13 +22,15 @@ EXPname = 'OAE';
 EXPname2 = 'SFOAE';
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-    DATAdir = strcat(filesep,'Volumes',filesep,'FEFE',filesep,'DOD');
+    DATAdir = strcat(ROOTdir);
+    OUTdir = strcat(ROOTdir);
+    CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
     DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 end
-CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
-OUTdir = strcat(ROOTdir);
 %% Subjects and Conditions
 input1 = input('Would you like to perform SFOAE analysis (A) or summary (S): ','s');
 for ChinIND=1:length(Chins2Run)
