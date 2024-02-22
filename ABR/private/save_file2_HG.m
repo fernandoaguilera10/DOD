@@ -14,13 +14,6 @@ else
     file_check = dir(sprintf('*Q%s_%s_%s_click*.mat',num2str(animal),ChinCondition,ChinFile));
 end
 filename = {file_check.name};
-%HG ADDED 9/30/19
-%Make sure saving is done in correct folder
-if freq~=0 %HG EDITED 9/30/19
-    filename2= strrep(horzcat(ChinID,'_',num2str(freq), 'Hz','_',ChinFile,'_',today_date), '-', '_');
-else
-    filename2= strrep(horzcat(ChinID,'_','Click','_',ChinFile,'_',today_date), '-', '_');
-end
 freq2=ones(1,num)*freq; replaced=0;
 if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file contents if file exists and is active
     check = find(ismember(filename,abr_FIG.parm_txt(9).String) == 1);
@@ -120,20 +113,21 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
             abrs.plot.freq = abrs.x(1,1);
             abrs.plot.threshold = data.threshold;
             abrs.plot.levels = spl';
-            file_check = dir(sprintf('*%s_v*.mat',filename2));
+            [~, fname, ~] = fileparts(filename);
+            file_check = dir(sprintf('*%s*.mat',fname(1:end-1)));
             [~,c] = size({file_check.name});
             if ~isempty(file_check)
                 file_num = c + 1;
-                filename3 = sprintf('%s_v%d',filename2,file_num);
-                while exist(sprintf('*%s_v*.mat',filename2),'file')
-                    filename3 = strcat(filename2, '_v', file_num);
+                filename3 = sprintf('%s%d',fname(1:end-1),file_num);
+                while exist(filename3,'file')
+                    filename3 = sprintf('%s%d',fname(1:end-1),file_num);
                     file_num = file_num + 1;
                 end
                 filename_out = filename3;
                 save(filename_out,'abrs');
                 filename_out = filename3;
-            elseif ~exist(strcat(filename2, '.mat'),'file')
-                filename_out = [filename2 '_v1'];
+            elseif isempty(file_check)
+                filename_out = [ sprintf('%s',fname(1:end-1)) '1'];
                 save(filename_out, 'abrs');
             end
             %HG ADDED 2/11/20
