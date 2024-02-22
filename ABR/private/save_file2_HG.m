@@ -8,6 +8,7 @@ today_date = datestr(today);
 today_date = [today_date(1:2), today_date(4:6), today_date(8:11)];
 ChinDir = abr_out_dir;
 cd(ChinDir)
+% check if previous files have been saved
 if freq~=0
     file_check = dir(sprintf('*Q%s_%s_%s_%dHz*.mat',num2str(animal),ChinCondition,ChinFile,freq));
 else
@@ -22,7 +23,11 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
             'Save Peak File', 'Yes', 'No','I dont know');
         answer = {overwrite_msg};
         if contains(answer, 'Yes') %Replaces file if file already exists
-            prompt_peak_save = sprintf('\nReplacing File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+            if freq~=0
+                prompt_peak_save = sprintf('\nReplacing File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+            else
+                prompt_peak_save = sprintf('\nReplacing File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
+            end
             load(abr_FIG.parm_txt(9).String)
             if exist('abrs','var')
                 waitbar(0,prompt_peak_save);
@@ -92,7 +97,11 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
                 save(filename2, 'abrs','-append'); clear abrs;
             end
         elseif  contains(answer, 'No') || isempty(filename) || isempty(abr_FIG.parm_txt(9).String)%Creates new version file
-            prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+            if freq~=0
+                prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+            else
+                prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
+            end
             waitbar(0,prompt_peak_save);
             pause(.5);
             close;
@@ -113,22 +122,17 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
             abrs.plot.freq = abrs.x(1,1);
             abrs.plot.threshold = data.threshold;
             abrs.plot.levels = spl';
-            [~, fname, ~] = fileparts(filename);
-            file_check = dir(sprintf('*%s*.mat',fname(1:end-1)));
-            [~,c] = size({file_check.name});
-            if ~isempty(file_check)
+            [~,c] = size(filename);
+            if ~isempty(filename)
                 file_num = c + 1;
-                filename3 = sprintf('%s%d',fname(1:end-1),file_num);
-                while exist(filename3,'file')
-                    filename3 = sprintf('%s%d',fname(1:end-1),file_num);
+                filename3 = sprintf('%s%d',file_check(c).name(1:end-5),file_num);
+                while exist(sprintf('%s%d',file_check(c).name(1:end-5),file_num),'file')
                     file_num = file_num + 1;
+                    filename3 = strcat(file_check(c).name(1:end-5), file_num);
                 end
                 filename_out = filename3;
                 save(filename_out,'abrs');
                 filename_out = filename3;
-            elseif isempty(file_check)
-                filename_out = [ sprintf('%s',fname(1:end-1)) '1'];
-                save(filename_out, 'abrs');
             end
             %HG ADDED 2/11/20
             abrs.AR_marker = AR_marker;
@@ -138,7 +142,11 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
         end
     end
 elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file if prior files exist
-    prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+    if freq~=0
+        prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+    else
+        prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
+    end
     waitbar(0,prompt_peak_save);
     pause(.5);
     close;
@@ -159,21 +167,17 @@ elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file 
     abrs.plot.freq = abrs.x(1,1);
     abrs.plot.threshold = data.threshold;
     abrs.plot.levels = spl';
-    file_check = dir(sprintf('*%s_v*.mat',filename2));
-    [~,c] = size({file_check.name});
-    if ~isempty(file_check)
+    [~,c] = size(filename);
+    if ~isempty(filename)
         file_num = c + 1;
-        filename3 = sprintf('%s_v%d',filename2,file_num);
-        while exist(sprintf('*%s_v*.mat',filename2),'file')
-            filename3 = strcat(filename2, '_v', file_num);
+        filename3 = sprintf('%s%d',file_check(c).name(1:end-5),file_num);
+        while exist(sprintf('%s%d',file_check(c).name(1:end-5),file_num),'file')
             file_num = file_num + 1;
+            filename3 = strcat(file_check(c).name(1:end-5), file_num);
         end
         filename_out = filename3;
         save(filename_out,'abrs');
         filename_out = filename3;
-    elseif ~exist(strcat(filename2, '.mat'),'file')
-        filename_out = [filename2 '_v1'];
-        save(filename_out, 'abrs');
     end
     %HG ADDED 2/11/20
     abrs.AR_marker = AR_marker;
@@ -181,7 +185,13 @@ elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file 
     pause(.5);
     close;
 else    %Save first file if no prior files exist
-    prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+    if freq~=0
+        prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
+        filename2 = sprintf('Q%s_%s_%s_%dHz_%s',num2str(animal),ChinCondition,ChinFile,freq,today_date);
+    else
+        prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
+        filename2 = sprintf('Q%s_%s_%s_click_%s',num2str(animal),ChinCondition,ChinFile,today_date);
+    end
     waitbar(0,prompt_peak_save);
     pause(.5);
     close;
