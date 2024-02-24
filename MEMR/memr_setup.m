@@ -20,7 +20,7 @@ else %if using WINDOWS computer..
     CODEdir = strcat(ROOTdir,filesep,EXPname);
 end
 %% Looping through subjects and conditions
-input1 = input('Would you like to perform MEMR analysis (A) or summary (S): ','s');
+input1 = input('Would you like to perform MEMR analysis (A), or summary (S): ','s');
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
@@ -46,7 +46,7 @@ for ChinIND=1:length(Chins2Run)
             mkdir('pre')
             mkdir('post')
         end
-        if input1 == 'A' || input1 == 'a'
+        if input1 == 'A' | input1 == 'a'
             cd(strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1}))
             list=dir(str{2});
             if isempty(list) %create directory if it doesn't exist
@@ -59,12 +59,12 @@ for ChinIND=1:length(Chins2Run)
             cd(CODEdir)
             WBMEMRanalysis;
         end
-        if input1 == 'S' || input1 == 's'
+        if input1 == 'S' | input1 == 's'
             outpath = strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1},filesep,str{2});
             fprintf('\nSubject: %s\nConditions: ',Chins2Run{ChinIND});
-            fprintf('%s, ',Conds2Run{:}); fprintf('\n');
+            fprintf('%s ',Conds2Run{CondIND}); fprintf('\n');
             cd(CODEdir)
-            WBMEMRsummary;            
+            WBMEMRsummary;      
         end
     end  % Chin loop
 end
