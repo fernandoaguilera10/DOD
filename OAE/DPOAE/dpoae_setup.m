@@ -1,5 +1,5 @@
 %% Set up to run DPOAE analysis
-% Updated: 20 February 2024 - Fernando Aguilera de Alba
+% Updated: 26 February 2024 - Fernando Aguilera de Alba
 % Define the following variables according to your project
 % ROOTdir = directory with your project
 % CODEdir = directory with MATLAB files (Github)
@@ -73,7 +73,7 @@ for ChinIND=1:length(Chins2Run)
         if input1 == 'S' || input1 == 's'
             outpath = strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1},filesep,str{2});
             fprintf('\nSubject: %s\nConditions: ',Chins2Run{ChinIND});
-            fprintf('%s, ',Conds2Run{:}); fprintf('\n');
+            fprintf('%s',Conds2Run{CondIND}); fprintf('\n');
             cd(CODEdir)
             DPsummary;
         end

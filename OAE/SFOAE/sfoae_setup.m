@@ -74,9 +74,13 @@ for ChinIND=1:length(Chins2Run)
         if input1 == 'S' || input1 == 's'
             outpath = strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1},filesep,str{2});
             fprintf('\nSubject: %s\nConditions: ',Chins2Run{ChinIND});
-            fprintf('%s, ',Conds2Run{:}); fprintf('\n');
+            fprintf('%s',Conds2Run{CondIND}); fprintf('\n');
             cd(CODEdir)
             SFSummary;
         end
     end  % Chin loop
 end
+%% TO DO
+% 1. Add average plotting loop in SFsummary
+% 2. Ask to select file when multiple are present
+% 3. Save loaded data in structure to be averaged later

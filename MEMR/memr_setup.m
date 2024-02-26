@@ -1,5 +1,5 @@
 %% Set up to run MEMR analysis
-% Updated: 6 Dec 2023 by Fernando Aguilera de Alba
+% Updated: 26 February 2024 by Fernando Aguilera de Alba
 close all;
 clear;
 %% User Defined:
@@ -62,7 +62,7 @@ for ChinIND=1:length(Chins2Run)
         if input1 == 'S' | input1 == 's'
             outpath = strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1},filesep,str{2});
             fprintf('\nSubject: %s\nConditions: ',Chins2Run{ChinIND});
-            fprintf('%s ',Conds2Run{CondIND}); fprintf('\n');
+            fprintf('%s',Conds2Run{CondIND}); fprintf('\n');
             cd(CODEdir)
             WBMEMRsummary;      
         end
