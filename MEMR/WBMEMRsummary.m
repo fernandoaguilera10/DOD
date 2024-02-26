@@ -6,17 +6,16 @@ fname = ['*',subj,'_MEMR_WB_',condition,'*.mat'];
 datafile = {dir(fname).name};
 if length(datafile) > 1
     fprintf('More than 1 data file. Check this is correct file!\n');
-    checkDIR = {uigetfile(fname)};
-    datafile = checkDIR;
+    datafile = {uigetfile(fname)};
 end
 load(datafile{1});
 cd(cwd);
 elicitor{ChinIND,CondIND} = res.elicitor;
 deltapow{ChinIND,CondIND} = res.deltapow';
-% Plot individual subjects
+%% Plot individual subjects
 %colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47]/255;
-shapes = ["o";"^";"x";"v";"*";"diamond"];
+shapes = ["o";"^";"square";"diamond";"v";"*"];
 figure(ChinIND); hold on;
 plot(res.elicitor, res.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),1], 'MarkerFaceColor', colors(CondIND,:));
 if CondIND > 1
@@ -47,7 +46,7 @@ plot(res.elicitor, res.deltapow,'LineStyle','-','linew', 2, 'Color', [colors(Con
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
-title('WBMEMR | Average', 'FontSize', 16); hold off;
+title(sprintf('WBMEMR | Average (n = %.0f)',length(Chins2Run)), 'FontSize', 16); hold off;
 if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     for j = 1:length(Conds2Run)
         avg_elicitor{1,j} = mean(cat(1, elicitor{:, j}));
