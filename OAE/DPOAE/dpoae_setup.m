@@ -14,9 +14,8 @@
 close all;
 clear;
 %% User Defined:
-Chins2Run={'Q438'};
-%Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'), strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7')};
+Chins2Run={'Q438','Q445','Q446','Q447'};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7'), strcat('post',filesep,'D14')};
 % Data and code directories
 EXPname = 'OAE';
 EXPname2 = 'DPOAE';
