@@ -1,4 +1,4 @@
-%% WBMEMRaverage data
+%% WBMEMRsummary
 % Load Data
 cwd = pwd;
 cd(outpath)
@@ -15,7 +15,7 @@ deltapow{ChinIND,CondIND} = res.deltapow';
 %% Plot individual subjects
 %colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47]/255;
-shapes = ["o";"^";"square";"diamond";"v";"*"];
+shapes = ["*";"^";"v";"diamond"];
 figure(ChinIND); hold on;
 plot(res.elicitor, res.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),1], 'MarkerFaceColor', colors(CondIND,:));
 if CondIND > 1
@@ -26,7 +26,8 @@ if CondIND > 1
 else
     uplim = max(res.deltapow);
 end
-ylim([0, uplim + 0.05])
+ylim([0, uplim + 0.05]);
+xlim([50, 105]);
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
 set(gca, 'XScale', 'log', 'FontSize', 14)
@@ -42,7 +43,7 @@ cd(cwd);
 % Plot average
 figure(length(Chins2Run)+1); hold on;
 %plot(res.elicitor, res.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),0.25], 'MarkerFaceColor', colors(CondIND,:),'MarkerFaceAlpha',0.25,'MarkerEdgeAlpha',0.25);
-plot(res.elicitor, res.deltapow,'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+%plot(res.elicitor, res.deltapow,'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
@@ -53,8 +54,9 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         avg_deltapow{1,j} = mean(cat(1, deltapow{:, j}));
         figure(length(Chins2Run)+1); hold on;
         plot(avg_elicitor{j}, avg_deltapow{j},'Marker',shapes(j,:),'LineStyle','-','linew', 2, 'Color', [colors(j,:),1],'MarkerFaceColor', colors(j,:))
-        uplim = max(cellfun(@max, deltapow), [], 'all');
-        ylim([0, uplim + 0.05])
+        uplim = max(cellfun(@max, avg_deltapow), [], 'all');
+        ylim([0, uplim + 0.05]);
+        xlim([50, 105]); 
         legend(Conds2Run,'Location','southoutside','Orientation','horizontal','FontSize',8)
         legend boxoff
         hold off;
