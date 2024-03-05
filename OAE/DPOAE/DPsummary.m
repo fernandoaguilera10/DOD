@@ -1,4 +1,4 @@
-%% DPsummary data
+%% DPsummary
 % Load Data
 cwd = pwd;
 cd(outpath)
@@ -7,6 +7,9 @@ datafile = {dir(fname).name};
 if length(datafile) > 1
     fprintf('More than 1 data file. Check this is correct file!\n');
     datafile = {uigetfile(fname)};
+end
+if isempty(datafile)
+    fprintf('No file found. Please analyze raw data first.\n');
 end
 load(datafile{1});
 cd(cwd);
@@ -88,8 +91,8 @@ cd(cwd);
 %% PLOTTING - AVERAGE EPL
 counter_avg = 2*length(Chins2Run);
 figure(counter_avg+1); hold on;
-plot(f2, dpoae_full, '-', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
-plot(f2, dpnf_full, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+%plot(f2, dpoae_full, '-', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+%plot(f2, dpnf_full, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
@@ -103,8 +106,8 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         figure(2*length(Chins2Run)+1); hold on;
         plot(avg_f_epl{j}, avg_dp_epl{j},'-', 'linew', 2, 'Color', colors(j,:))
         plot(avg_f_epl{j}, avg_nf_epl{j},'--', 'linew', 2, 'Color', colors(j,:),'HandleVisibility','off')
-        uplim = max(cellfun(@max, dp_amp_epl), [], 'all');
-        lowlim = max(cellfun(@min, dp_nf_epl), [], 'all');
+        uplim = max(cellfun(@max, avg_dp_epl), [], 'all');
+        lowlim = max(cellfun(@min, avg_nf_epl), [], 'all');
         ylim([lowlim - 5, uplim + 5])
         legend(Conds2Run,'Location','southoutside','Orientation','horizontal','FontSize',8)
         legend boxoff
@@ -120,8 +123,8 @@ end
 %% PLOTTING - AVERAGE SPL
 counter_avg = 2*length(Chins2Run);
 figure(counter_avg+2); hold on;
-plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), '-', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
-plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+%plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), '-', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+%plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
@@ -135,8 +138,8 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         figure(2*length(Chins2Run)+2); hold on;
         plot(avg_f_spl{j}, db(avg_dp_spl{j}.*spl.VtoSPL),'-', 'linew', 2, 'Color', colors(j,:))
         plot(avg_f_spl{j}, db(avg_nf_spl{j}.*spl.VtoSPL),'--', 'linew', 2, 'Color', colors(j,:),'HandleVisibility','off')
-        uplim = db(max(cellfun(@max, dp_amp_spl), [], 'all').*spl.VtoSPL);
-        lowlim = db(max(cellfun(@min, dp_nf_spl), [], 'all').*spl.VtoSPL);
+        uplim = db(max(cellfun(@max, avg_dp_spl), [], 'all').*spl.VtoSPL);
+        lowlim = db(max(cellfun(@min, avg_nf_spl), [], 'all').*spl.VtoSPL);
         ylim([lowlim - 5, uplim + 5])
         legend(Conds2Run,'Location','southoutside','Orientation','horizontal','FontSize',8)
         legend boxoff
