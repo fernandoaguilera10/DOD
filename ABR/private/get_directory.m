@@ -1,6 +1,6 @@
 function dirname = get_directory
 
-global abr_data_dir abr_Stimuli han latcomp dataFolderpath abr_out_dir han viewraw dimcheck freqUsed abr_FIG
+global abr_data_dir abr_Stimuli han latcomp dataFolderpath abr_out_dir han viewraw dimcheck freqUsed abr_FIG ChinFile ChinID ChinCondition PROJdir
 
 %% Reset checkbox to unchecked when loading new directory
 dimcheck = 0;
@@ -36,6 +36,8 @@ str = {d.name};
     'CancelString',   'Exit', ...
     'InitialValue',    1, ...
     'ListString',      str);
+ChinFile = cell2mat(str(selection));
+abr_out_dir = [PROJdir strcat(filesep,'Analysis',filesep,'ABR',filesep,ChinID,filesep,ChinCondition,filesep,ChinFile)];
 drawnow; %updates figures/graphics immediately
 if (ok==0 || isempty(selection))
     dirname = abr_Stimuli.dir;
