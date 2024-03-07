@@ -29,7 +29,7 @@ if nargin < 1
     
     abr_gui_initiate; %% Makes the GUI visible
     temp_view = get(han.temp,'Value'); % should become equal to 1
-    uiwait(warndlg(sprintf('\nLeft-click: Select Peak\nRight-click: Exit Selection Mode\n\nPlease, make sure to adjust left and right template limits (red box) to fit ABR waveform for acurate threshold detection'),'Peak Instructions','modal'));
+    uiwait(warndlg(sprintf('\nLeft-click: Select Peak\nRight-click: Exit Selection Mode\n\nPlease, make sure to adjust left and right template limits (red box) to fit ABR waveform for accurate threshold detection'),'Peak Instructions','modal'));
     cur_data = [];
 
     abr_Stimuli.dir = get_directory;
