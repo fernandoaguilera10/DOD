@@ -11,7 +11,7 @@ endsamps = ceil(stim.clickwin*stim.Fs*1e-3);
 % before all 32 trials are completed)
 goodTrials = any(squeeze(stim.resp(:, :, 1, 1)),1);
 stim.Averages = length(goodTrials(goodTrials==1));
-fprintf(1, '(n = %d)\n',stim.Averages);
+fprintf(1, ' (n = %d)\n',stim.Averages);
 for k = 1:stim.nLevels
     fprintf(1, 'Analyzing level # %d / %d ...\n', k, stim.nLevels);
     temp = reshape(squeeze(stim.resp(k, 1:stim.Averages, 2:end, 1:endsamps)),...

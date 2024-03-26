@@ -61,7 +61,7 @@ for i = 1:numOfFiles
     figure;
     set(gcf,figure_prop_name,figure_prop_val);
     if stim.fc == 7000
-        sgtitle([subj ' | MEMR - HP | ' condition], 'FontSize', 14)
+        sgtitle([subj ' | MEMR - HP | ' condition], 'FontSize', 14, 'FontWeight', 'bold')
     else
         sgtitle([subj ' | MEMR - WB | ' condition ' (n = ' num2str(res.trials) ')'], 'FontSize', 14)
     end
@@ -74,6 +74,7 @@ for i = 1:numOfFiles
     legend(num2str(res.elicitor'), 'FontSize', 10, 'NumColumns', 2, 'location', 'best');
     xlabel('Frequency (kHz)', 'FontSize', 14, 'FontWeight', 'bold');
     ylabel('Ear canal pressure (dB re: Baseline)', 'FontSize', 14, 'FontWeight', 'bold');
+    box off;
     
     power = mean(abs(res.MEM(:, res.ind)), 2); 
     deltapow = power - min(power); 
@@ -87,7 +88,7 @@ for i = 1:numOfFiles
     ylim([0,ymax])
     set(gca, 'XScale', 'log', 'FontSize', 14)
     drawnow;
-    
+    box off;
     res.threshold = interp1(deltapow, res.elicitor, 0.1);
     res.deltapow = deltapow;
     %% Export:

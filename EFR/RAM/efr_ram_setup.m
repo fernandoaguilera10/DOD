@@ -3,23 +3,36 @@
 %Here's where you can define your own parameters for input/output
 %directories.
 close all;
-clear;
+clear; clc;
 %% User Defined:
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D7')};
+Chins2Run={'Q445'};
+Conds2Run = {strcat('pre',filesep,'Baseline_2')};
+%Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'), strcat('post',filesep,'D14'), strcat('post',filesep,'D21')};
 EXPname = 'EFR';
 EXPname2 = 'RAM';
 % Data and code directories
 if (ismac == 1) %MAC computer
-    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-    DATAdir = strcat(ROOTdir);
-    OUTdir = strcat(ROOTdir);
+    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
+    DATAdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
+    OUTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+    
+    %Synology:
+    %ROOTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
     DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+    
+    %Synology:
+    %ROOTdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 end
 %% Subjects and Conditions
 for ChinIND=1:length(Chins2Run)

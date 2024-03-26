@@ -15,7 +15,7 @@ deltapow{ChinIND,CondIND} = res.deltapow';
 %% Plot individual subjects
 %colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47]/255;
-shapes = ["*";"^";"v";"diamond"];
+shapes = ["x";"^";"v";"diamond";"o"];
 figure(ChinIND); hold on;
 plot(res.elicitor, res.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),1], 'MarkerFaceColor', colors(CondIND,:));
 if CondIND > 1
