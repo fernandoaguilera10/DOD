@@ -3,10 +3,13 @@
 % Analysis - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
 % Code Archive - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
 % Data - individual data folders with subject ID (e.g. Q123)
+close all;
+clear; clc;
+global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
 %% Animal ID
-ChinID = 'Q448';
+ChinID = 'Q445';
 ChinCondition = 'pre';
-ChinFile = 'Baseline_1'; 
+ChinFile = 'Baseline_2'; 
 %% Directories
 % PROJdir = directory containing project folder
 % abr_data_dir = directory containing data folder
@@ -23,7 +26,6 @@ else %if using WINDOWS computer..
     abr_data_dir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
 end
 %% Function
-global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
 rmpath(genpath('Trash'));
 animal = ChinID(2:end);
 addpath(genpath(PROJdir))

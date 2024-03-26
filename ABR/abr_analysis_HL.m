@@ -319,6 +319,9 @@ elseif strcmp(command_str,'print')
     end
     
     %Save tiff figure
+    if isempty(dir(abr_out_dir)) %create directory if it doesn't exis
+        mkdir(abr_out_dir)
+    end
     cd(abr_out_dir)
     print_out_dir = strcat(abr_out_dir,filesep,'Print');
     if ~exist(print_out_dir,'dir')

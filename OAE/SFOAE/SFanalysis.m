@@ -1,4 +1,4 @@
-% SFOAE swept Analysis
+ % SFOAE swept Analysis
 % Author: Samantha Hauser
 % Created: May 2023
 % Last Updated: August 1, 2023
@@ -22,6 +22,7 @@ elseif length(datafile) > 1
     datafile = {uigetfile('*sweptSFOAE.mat')}; 
 end
 load(datafile{1});
+fprintf('Data file: %s\n',cell2mat(datafile));
 stim = x.sweptSFOAEData.stim;
 clear x; 
 %% IMPORT CALIB DATA
@@ -37,6 +38,8 @@ elseif isempty(calibfile)
 else
     load(calibfile{1});
 end
+file = cell2mat(calibfile);
+fprintf('\nCalibration file: %s\n',file);
 res.calib = x.FPLearData; 
 cd(cwd);
 %% Set variables needed from stim.
@@ -188,13 +191,14 @@ figure;
 plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 2, 'Color', 'blue');
 hold on;
 plot(testfreq/1000, db(abs(noise_complex).*res.multiplier), '--', 'linew', 2, 'Color', 'black');
-title([subj, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14 )
+title([subj, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 xticks([.5, 1, 2, 4, 8, 16])
 xlabel('Frequency (kHz)','FontWeight','bold')
 ylabel('Amplitude (dB SPL)','FontWeight','bold')
 legend('SFOAE', 'NF')
+box off;
 %% Get EPL units
 [SF] = calc_EPL(testfreq, oae_complex.*res.multiplier, res.calib, 1);
 res.complex.dp_epl = SF.P_epl;

@@ -24,6 +24,9 @@ end
 for i=1:numOfFiles
     cd(datapath)
     load(datafile{i});
+    fprintf('\nData file: %s\n', datafile{i});
+    calib_file = dir(sprintf('p*%d_calib*.m',data.invfilterdata.CalibPICnum2use));
+    fprintf('Calibration file: %s\n', calib_file.name);
     %fname_out = [datafile{i}(1:end-4),'_matlab.mat'];
     level_spl = round(data.Stimuli.calib_dBSPLout-data.Stimuli.atten_dB);
     cd(cwd);
@@ -53,7 +56,7 @@ for i=1:numOfFiles
     figure;
     %Spectral Domain
     hold on;
-    title([subj,' | ', num2str(fmod),' Hz RAM - 25% Duty Cycle | ',condition, ' | ',num2str(level_spl), ' dB SPL'],'FontSize',14);
+    title([subj,' | ', num2str(fmod),' Hz RAM - 25% Duty Cycle | ',condition, ' | ',num2str(level_spl), ' dB SPL (n = 200)'],'FontSize',14);
     plot(f,PLV_env,'Color',blck,'linewidth',1.5);
     plot(LOCS,PKS,'*','Color',rd,'MarkerSize',10,'LineWidth',2);
     hold off;
