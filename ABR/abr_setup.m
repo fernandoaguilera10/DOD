@@ -8,20 +8,22 @@ clear; clc;
 global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
 %% Animal ID
 ChinID = 'Q445';
-ChinCondition = 'pre';
-ChinFile = 'Baseline_2'; 
+ChinCondition = 'post';
+ChinFile = 'D14';
 %% Directories
 % PROJdir = directory containing project folder
 % abr_data_dir = directory containing data folder
 if (ismac == 1) %MAC computer
+    %Synology:
     %PROJdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
     %abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     PROJdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     abr_data_dir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     
 else %if using WINDOWS computer..
-%     PROJdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
-%     abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
+    %Synology:
+    %PROJdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     PROJdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     abr_data_dir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
 end
