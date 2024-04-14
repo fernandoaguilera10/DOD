@@ -14,9 +14,8 @@
 close all;
 clear; clc;
 %% User Defined:
-Chins2Run={'Q438','Q445'};
-%Conds2Run = {strcat('post',filesep,'D14')};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D2'), strcat('post',filesep,'D7'), strcat('post',filesep,'D14')};
+Chins2Run={'Q438','Q445','Q446','Q447'};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D2'), strcat('post',filesep,'D7'), strcat('post',filesep,'D14'),strcat('post',filesep,'D21')};
 % Data and code directories
 EXPname = 'OAE';
 EXPname2 = 'TEOAE';
@@ -45,6 +44,7 @@ else %if using WINDOWS computer..
 end
 %% Subjects and Conditions
 input1 = input('Would you like to perform TEOAE analysis (A) or summary (S): ','s');
+count = 0;
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});

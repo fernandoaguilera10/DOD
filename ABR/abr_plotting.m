@@ -1,20 +1,19 @@
 %% abr_plotting
 % This function is used to plot ABR waveforms, thresholds, and peaks (amplitude + latency)
 % after they have been analyzed
-close all;
+%close all;
 clear; clc;
 %% Animal ID
 freq = 0; % use 0 for click
 ChinID = 'Q438';
-ChinCondition = 'pre';
-ChinFile = 'Baseline_2';
+ChinCondition = 'post';
+ChinFile = 'D7';
 if (ismac == 1) %MAC computer
     %Synology:
     %PROJdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
     %abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     PROJdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     abr_data_dir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
-    
 else %if using WINDOWS computer..
     %Synology:
     %PROJdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
@@ -30,7 +29,7 @@ cd(out_dir);
 if freq == 0, freq = 'click'; end
 datafile = dir(sprintf('*%s*.mat',num2str(freq)));
 if length(datafile) < 1
-    fprintf('\nNo ABR peak files found for %s under current directory.\n',ChinID)
+    fprintf('No ABR peak files found for %s under current directory:\n%s',ChinID,abr_data_dir)
     cd(cwd);
     return
 elseif size(datafile,1) > 1
@@ -71,8 +70,7 @@ title(sprintf('%s | %s | ABR - %s',ChinID,ChinFile,freq), 'FontSize', 14, 'FontW
 set(gca, 'XScale', 'linear', 'FontSize', 14)
 ylabel('Response ({\mu}V)', 'FontWeight', 'bold');
 xlabel('Time (ms)', 'FontWeight', 'bold');
-xlim([0,30]); ylim([-round(shift)-0.5,round(max(abrs.plot.waveforms(1,:)))]); yticks([]); box off;
-
-% save filec
+xlim([0,30]); ylim([-round(shift)-0.5,round(max(abrs.plot.waveforms(1,:)))+0.5]); yticks([]); box off;
+% save file
 print(1,[file(1:end-4),'_figure'],'-dpng','-r300');
 cd(cwd);
