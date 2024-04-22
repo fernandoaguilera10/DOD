@@ -5,9 +5,9 @@
 close all;
 clear; clc;
 %% User Defined:
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'), strcat('post',filesep,'D14'),strcat('post',filesep,'D21'),strcat('post',filesep,'D30')};
-level_spl = 65;
+Chins2Run={'Q456'};
+Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D5'), strcat('post',filesep,'D14')};
+level_spl = 80;
 EXPname = 'EFR';
 EXPname2 = 'RAM';
 % Data and code directories

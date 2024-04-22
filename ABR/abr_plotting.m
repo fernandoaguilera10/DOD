@@ -5,9 +5,9 @@
 clear; clc;
 %% Animal ID
 freq = 0; % use 0 for click
-ChinID = 'Q438';
+ChinID = 'Q456';
 ChinCondition = 'post';
-ChinFile = 'D7';
+ChinFile = 'D14';
 if (ismac == 1) %MAC computer
     %Synology:
     %PROJdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');

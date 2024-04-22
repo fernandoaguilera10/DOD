@@ -24,7 +24,7 @@ if exist(outpath,"dir")
     title(sprintf('%s | EFR 223 Hz - 25%% Duty Cycle | %.0f dB SPL', subj, level_spl), 'FontSize', 16);
     xlabel('Frequency (Hz)', 'FontWeight', 'bold');
     ylabel('PLV','FontWeight', 'bold');
-    if contains(Conds2Run{CondIND},'pre/Baseline_2')
+    if contains(str{1},'pre')
         plot(f,PLV{CondIND},'k','linewidth',2,'HandleVisibility','off');
         plot(peak_freq{CondIND},peak_amp{CondIND},'*k','linew', 2);
     else

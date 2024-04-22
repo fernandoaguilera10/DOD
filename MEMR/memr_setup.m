@@ -4,9 +4,8 @@ close all;
 clear; clc;
 %% User Defined:
 % Data and code directories
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D2'), strcat('post',filesep,'D7'), strcat('post',filesep,'D14'), strcat('post',filesep,'D21')};
-% Data and code directories
+Chins2Run={'Q456'};
+Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D4'), strcat('post',filesep,'D12'), strcat('post',filesep,'D30')};
 EXPname = 'MEMR';
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');

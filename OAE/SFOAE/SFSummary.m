@@ -103,7 +103,7 @@ if exist(outpath,"dir")
     legend_string = {};
     if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         for j = 1:length(Conds2Run)
-            idx = cellfun(@isempty,dp_amp_epl);
+            idx = cellfun(@isempty,sf_amp_epl);
             idx2 = find(sum(~idx) == 1);
             if j == idx2
                 avg_f_epl{1,j} = sf_f2{:, j};
@@ -146,7 +146,7 @@ if exist(outpath,"dir")
     legend_string = {};
     if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         for j = 1:length(Conds2Run)
-            idx = cellfun(@isempty,dp_amp_epl);
+            idx = cellfun(@isempty,sf_amp_epl);
             idx2 = find(sum(~idx) == 1);
             if j == idx2
                 avg_f_spl{1,j} = sf_f_spl{:, j};

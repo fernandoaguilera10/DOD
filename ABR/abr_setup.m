@@ -7,9 +7,9 @@ close all;
 clear; clc;
 global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
 %% Animal ID
-ChinID = 'Q438';
+ChinID = 'Q456';
 ChinCondition = 'post';
-ChinFile = 'D7';
+ChinFile = 'D5';
 %% Directories
 % PROJdir = directory containing project folder
 % abr_data_dir = directory containing data folder
