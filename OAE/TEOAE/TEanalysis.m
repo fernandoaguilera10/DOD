@@ -20,6 +20,7 @@ else
     datafile = datafile;
 end
 load(datafile{1});
+fprintf('Data file: %s',cell2mat(datafile));
 cd(cwd);
 click = x.TEOAEData.stim; 
 %% Analysis loop
@@ -64,7 +65,7 @@ xlim([0.5, 16]);
 ticks = [0.5, 1, 2, 4, 8, 16];
 set(gca, 'XTick', ticks, 'FontSize', 14, 'xscale', 'log');
 ylim([-60, uplim + 5]);
-title([subj, ' | TEOAE | ', condition], 'FontSize', 14 )
+title([subj, ' | TEOAE | ', condition, ' (n = 2056)'], 'FontSize', 14, 'FontWeight', 'bold');
 drawnow; 
 spl.oae = spl.Resp; 
 spl.noise = spl.NoiseFloor;

@@ -12,10 +12,10 @@
 % DPanalysis - analyzes RAW data to plot DPgram for Chins2Run and Conds2Run
 % DPsummary - combines analyzed data to compare DPgrams between Cond2Run
 close all;
-clear;
+clear; clc;
 %% User Defined:
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D2'), strcat('post',filesep,'D7'), strcat('post',filesep,'D14')};
+Chins2Run={'Q456'};
+Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D4'), strcat('post',filesep,'D12'), strcat('post',filesep,'D30')};
 % Data and code directories
 EXPname = 'OAE';
 EXPname2 = 'TEOAE';
@@ -24,14 +24,27 @@ if (ismac == 1) %MAC computer
     DATAdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     OUTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+    
+    %Synology:
+    %ROOTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
     DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+    
+    %Synology:
+    %ROOTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 end
 %% Subjects and Conditions
 input1 = input('Would you like to perform TEOAE analysis (A) or summary (S): ','s');
+count = 0;
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
@@ -79,7 +92,3 @@ for ChinIND=1:length(Chins2Run)
         end
     end  % Chin loop
 end
-%% TO DO
-% 1. Add average plotting loop in TEsummary
-% 2. Ask to select file when multiple are present
-% 3. Save loaded data in structure to be averaged later

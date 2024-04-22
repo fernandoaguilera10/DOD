@@ -21,11 +21,12 @@ elseif size(datafile,1) > 1
     fprintf('More than 1 data file. Check this is correct file!\n');
     checkDIR = {uigetfile('*sweptDPOAE.mat')};
     load(checkDIR{1});
-    file = checkDIR; 
+    file = cell2mat(checkDIR); 
 else
     load(datafile(1).name);
     file = datafile(1).name; 
 end
+fprintf('Data file: %s\n',file);
 stim = x.sweptDPOAEData.stim;
 % SET CALIB FILE HERE
 cd(calibpath)
@@ -41,6 +42,7 @@ else
     load(calibfile(1).name);
     file = calibfile(1).name; 
 end
+fprintf('\nCalibration file: %s\n',file);
 calib = x.FPLearData;
 res.calib = calib; 
 cd(cwd);
@@ -193,7 +195,7 @@ hold on;
 plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', 'black');
 plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);
 plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);
-title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14 )
+title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 ylim([-50, 90])
@@ -202,6 +204,7 @@ ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
 legend('DPOAE', 'NF', 'F_2', 'F_1')
 drawnow;
+box off;
 %% Get EPL units
 [DP] = calc_EPL(freq_dp, oae_complex.*VtoSPL, calib, 1);
 res.complex.dp_epl = DP.P_epl;

@@ -3,27 +3,31 @@
 % Analysis - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
 % Code Archive - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
 % Data - individual data folders with subject ID (e.g. Q123)
+close all;
+clear; clc;
+global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
 %% Animal ID
-ChinID = 'Q438';
-ChinCondition = 'pre';
-ChinFile = 'Baseline_2'; 
+ChinID = 'Q456';
+ChinCondition = 'post';
+ChinFile = 'D5';
 %% Directories
 % PROJdir = directory containing project folder
 % abr_data_dir = directory containing data folder
 if (ismac == 1) %MAC computer
+    %Synology:
     %PROJdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
     %abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
-    PROJdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-    abr_data_dir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
+    PROJdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
+    abr_data_dir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     
 else %if using WINDOWS computer..
-%     PROJdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
-%     abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
+    %Synology:
+    %PROJdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %abr_data_dir = strcat(PROJdir,filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
     PROJdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     abr_data_dir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data',filesep,ChinID,filesep,'ABR',filesep,ChinCondition);
 end
 %% Function
-global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID
 rmpath(genpath('Trash'));
 animal = ChinID(2:end);
 addpath(genpath(PROJdir))

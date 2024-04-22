@@ -3,26 +3,43 @@
 %Here's where you can define your own parameters for input/output
 %directories.
 close all;
-clear;
+clear; clc;
 %% User Defined:
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'), strcat('post',filesep,'D7')};
+Chins2Run={'Q456'};
+Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D5'), strcat('post',filesep,'D14')};
+level_spl = 80;
 EXPname = 'EFR';
 EXPname2 = 'RAM';
 % Data and code directories
 if (ismac == 1) %MAC computer
-    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD');
-    DATAdir = strcat(ROOTdir);
-    OUTdir = strcat(ROOTdir);
+    ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
+    DATAdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
+    OUTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+
+    %Synology:
+    %ROOTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
     DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+
+    %Synology:
+    %ROOTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %OUTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
+
 end
 %% Subjects and Conditions
+input1 = input('Would you like to perform MEMR analysis (A), or summary (S): ','s');
+legend_string = {};
 for ChinIND=1:length(Chins2Run)
+    count = 0;
     for CondIND=1:length(Conds2Run)
         datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
         calibpath = datapath;
@@ -47,16 +64,25 @@ for ChinIND=1:length(Chins2Run)
             mkdir('pre')
             mkdir('post')
         end
-        cd(strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1}))
-        list=dir(str{2});
-        if isempty(list) %create directory if it doesn't exist
-            fprintf('Creating analysis folder for %s...\n',Chins2Run{ChinIND})
-            mkdir(str{2});
+        if input1 == 'A' | input1 == 'a'
+            cd(strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1}))
+            list=dir(str{2});
+            if isempty(list) %create directory if it doesn't exist
+                fprintf('Creating analysis folder for %s...\n',Chins2Run{ChinIND})
+                mkdir(str{2});
+            end
+            cd(str{2})
+            outpath = pwd;
+            fprintf('\nSubject: %s (%s - %s)\n',Chins2Run{ChinIND},str{1},str{2});
+            cd(CODEdir)
+            EFRanalysis;
         end
-        cd(str{2})
-        outpath = pwd;
-        fprintf('\nSubject: %s (%s - %s)\n',Chins2Run{ChinIND},str{1},str{2});
-        cd(CODEdir)
-        processChin;
+        if input1 == 'S' | input1 == 's'
+            outpath = strcat(outpath,filesep,Chins2Run{ChinIND},filesep,str{1},filesep,str{2});
+            fprintf('\nSubject: %s\nConditions: ',Chins2Run{ChinIND});
+            fprintf('%s',Conds2Run{CondIND}); fprintf('\n');
+            cd(CODEdir)
+            EFRsummary;
+        end
     end  % Chin loop
 end

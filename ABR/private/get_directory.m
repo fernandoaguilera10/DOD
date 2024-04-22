@@ -1,6 +1,6 @@
 function dirname = get_directory
 
-global abr_data_dir abr_Stimuli han latcomp dataFolderpath abr_out_dir han viewraw dimcheck freqUsed abr_FIG
+global abr_data_dir abr_Stimuli han latcomp dataFolderpath abr_out_dir han viewraw dimcheck freqUsed abr_FIG ChinFile ChinID ChinCondition PROJdir
 
 %% Reset checkbox to unchecked when loading new directory
 dimcheck = 0;
@@ -36,6 +36,8 @@ str = {d.name};
     'CancelString',   'Exit', ...
     'InitialValue',    1, ...
     'ListString',      str);
+ChinFile = cell2mat(str(selection));
+abr_out_dir = [PROJdir strcat(filesep,'Analysis',filesep,'ABR',filesep,ChinID,filesep,ChinCondition,filesep,ChinFile)];
 drawnow; %updates figures/graphics immediately
 if (ok==0 || isempty(selection))
     dirname = abr_Stimuli.dir;
@@ -157,42 +159,42 @@ end
 % Determine which freqs are present in the data
 % If freq is present, it is added to freqUsed
 freqUsed = [];
-TEMPdir=dir('*ABR_click.mat');
+TEMPdir=dir('*ABR_click*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = NaN;
     set(abr_FIG.push.freqClick,'Enable','on');
 else
     set(abr_FIG.push.freqClick,'Enable','off');
 end
-TEMPdir=dir('*ABR_500.mat');
+TEMPdir=dir('*ABR_500*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = 500;
     set(abr_FIG.push.freq500,'Enable','on');
 else
     set(abr_FIG.push.freq500,'Enable','off');
 end
-TEMPdir=dir('*ABR_1000.mat');
+TEMPdir=dir('*ABR_1000*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = 1000;
     set(abr_FIG.push.freq1k,'Enable','on');
 else
     set(abr_FIG.push.freq1k,'Enable','off');
 end
-TEMPdir=dir('*ABR_2000.mat');
+TEMPdir=dir('*ABR_2000*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = 2000;
     set(abr_FIG.push.freq2k,'Enable','on');
 else
     set(abr_FIG.push.freq2k,'Enable','off');
 end
-TEMPdir=dir('*ABR_4000.mat');
+TEMPdir=dir('*ABR_4000*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = 4000;
     set(abr_FIG.push.freq4k,'Enable','on');
 else
     set(abr_FIG.push.freq4k,'Enable','off');
 end
-TEMPdir=dir('*ABR_8000.mat');
+TEMPdir=dir('*ABR_8000*.mat');
 if ~isempty(TEMPdir)
     freqUsed(end + 1) = 8000;
     set(abr_FIG.push.freq8k,'Enable','on');
