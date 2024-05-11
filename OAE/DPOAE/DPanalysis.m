@@ -192,17 +192,15 @@ numOfTrials = floor(trials/2)*2; % need even number of trials
 figure;
 plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', 'red');
 hold on;
-plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', 'black');
+plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', [0 0 0 0.25]);
 plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);
 plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);
 title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
-xlim([.5, 16])
-ylim([-50, 90])
-xticks([.5, 1, 2, 4, 8, 16])
+xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('DPOAE', 'NF', 'F_2', 'F_1')
+legend('DP', 'NF', 'F_2', 'F_1')
 drawnow;
 box off;
 %% Get EPL units
@@ -214,39 +212,11 @@ res.dbEPL_dp = db(abs(DP.P_epl));
 res.complex.nf_epl = NF.P_epl;
 res.f_epl = NF.f;
 res.dbEPL_nf = db(abs(NF.P_epl));
-
-%                 [F1] = calc_FPL(res.f.f1, res.complex_f1, res.calib.Ph1);
-%                 res.complex_f1_fpl = F1.P_fpl;
-%                 res.f1_fpl = F1.f;
-%                 if exist('res.calib.Ph2', 'var')
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph2);
-%                 else
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph1);
-%                 end
-%                 res.complex_f2_fpl = F2.P_fpl;
-%                 res.f2_fpl = F2.f;
-% plot figure again
-% figure;
-% plot(freq_f2/1000, res.dbEPL_dp, 'linew', 3, 'Color', 'r');
-% hold on;
-% plot(freq_f2/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
-% %plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-% %plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-% %title(sprintf('Subj: %s, Ear: %s', string(subj), string(ear)))
-% title('DPOAE', 'FontSize', 14)
-% set(gca, 'XScale', 'log', 'FontSize', 14)
-% xlim([.5, 16])
-% ylim([-50, 50])
-% xticks([.5, 1, 2, 4, 8, 16])
-% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-% legend('DPOAE', 'NF')
-drawnow;
 res.f.f2 = freq_f2;         % frequency vectors
 res.f.f1 = freq_f1;
 res.f.dp = freq_dp;
-dpoae_full = res.dbEPL_dp;
-dpnf_full = res.dbEPL_nf;
+dpoae_full_epl = res.dbEPL_dp;
+dpnf_full_epl = res.dbEPL_nf;
 f2 = res.f.f2/1000;
 % SEt params
 fmin = 0.5;
@@ -256,46 +226,57 @@ bandEdges = edges(2:2:end-1);
 centerFreqs = edges(3:2:end-2);
 dpoae = zeros(length(centerFreqs),1);
 dpnf = zeros(length(centerFreqs),1);
-dpoae_w = zeros(length(centerFreqs),1);
-dpnf_w = zeros(length(centerFreqs),1);
+dpoae_w_spl = zeros(length(centerFreqs),1);
+dpnf_w_spl = zeros(length(centerFreqs),1);
+dpoae_full_spl = db(abs(oae_complex).*VtoSPL);
+dpnf_full_spl = db(abs(noise_complex).*VtoSPL);
 % resample / average to 9 center frequencies
 for z = 1:length(centerFreqs)
     band = find( f2 >= bandEdges(z) & f2 < bandEdges(z+1));
     % Do some weighting by SNR
     % TO DO: NF from which SNR was calculated included median of 7 points
-    % nearest the target frequency.
-    SNR = dpoae_full(band) - dpnf_full(band);
-    weight = (10.^(SNR./10)).^2;  
-    dpoae(z, 1) = mean(dpoae_full(band));
-    dpnf(z,1) = mean(dpnf_full(band));
-    dpoae_w(z,1) = sum(weight.*dpoae_full(band))/sum(weight);
-    dpnf_w(z,1) = sum(weight.*dpnf_full(band))/sum(weight);
+    % nearest the target frequency
+    %EPL
+    SNR_epl = dpoae_full_epl(band) - dpnf_full_epl(band);
+    weight_epl = (10.^(SNR_epl./10)).^2;  
+    dpoae_epl(z, 1) = mean(dpoae_full_epl(band));
+    dpnf_epl(z,1) = mean(dpnf_full_epl(band));
+    dpoae_w_epl(z,1) = sum(weight_epl.*dpoae_full_epl(band))/sum(weight_epl);
+    dpnf_w_epl(z,1) = sum(weight_epl.*dpnf_full_epl(band))/sum(weight_epl);
+    %SPL
+    SNR_spl = dpoae_full_spl(band) - dpnf_full_spl(band);
+    weight_spl = (10.^(SNR_spl./10)).^2;  
+    dpoae_spl(z, 1) = mean(dpoae_full_spl(band));
+    dpnf_spl(z,1) = mean(dpnf_full_spl(band));
+    dpoae_w_spl(z,1) = sum(weight_spl.*dpoae_full_spl(band))/sum(weight_spl);
+    dpnf_w_spl(z,1) = sum(weight_spl.*dpnf_full_spl(band))/sum(weight_spl);
+
 end
-% figure;
-% hold on;
-% semilogx(f2, dpoae_full, 'Color', [.8, .8, .8], 'linew', 2)
-% semilogx(f2, dpnf_full, '--', 'linew', 1.5, 'Color', [.8, .8, .8])
-% semilogx(centerFreqs, dpoae_w, 'o', 'linew', 4, 'MarkerSize', 10, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
-% set(gca, 'XScale', 'log', 'FontSize', 14)
-% xlim([.5, 16])
-% ylim([-50, 50])
-% xticks([.5, 1, 2, 4, 8, 16])
-% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-% title('DPOAE', 'FontSize', 16); 
-result.f2 = f2; 
-result.oae_full = dpoae_full; 
-result.nf_full = dpnf_full; 
-result.centerFreqs = centerFreqs; 
-result.oae_summary = dpoae_w; 
-data.result = result; 
+hold on;
+plot(centerFreqs, dpoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off')
+plot(centerFreqs, dpnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off')
+lowlim = min(dpnf_full_spl);
+uplim = max(db(abs(complex(a_f1, b_f1)).*VtoSPL));
+ylim([round(lowlim - 5,1), round(uplim + 5,1)])
+%% Export:
+% EPL
+epl.f2 = f2; 
+epl.oae_full = dpoae_full_epl; 
+epl.nf_full = dpnf_full_epl; 
+epl.centerFreq = centerFreqs;
+epl.bandOAE = dpoae_w_epl;
+epl.bandNF = dpnf_w_epl;
+data.epl = epl; 
 data.res = res; 
+% SPL
 spl.oae = oae_complex;
 spl.noise = noise_complex;
 spl.f = freq_f2/1000;
 spl.VtoSPL = VtoSPL;
+spl.centerFreq = centerFreqs;
+spl.bandOAE = dpoae_w_spl;
+spl.bandNF = dpnf_w_spl;
 data.spl = spl;
-%% Export:
 cd(outpath);
 fname = [subj,'_DPOAEswept_',condition,'_',datafile(1).name(1:end-4),'_',file(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
