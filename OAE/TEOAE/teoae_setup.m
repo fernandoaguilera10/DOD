@@ -9,13 +9,13 @@
 % 
 % 
 % Output: 
-% DPanalysis - analyzes RAW data to plot DPgram for Chins2Run and Conds2Run
-% DPsummary - combines analyzed data to compare DPgrams between Cond2Run
+% TEanalysis - analyzes RAW data to plot TEgram for Chins2Run and Conds2Run
+% TEsummary - combines analyzed data to compare TEgrams between Cond2Run
 close all;
 clear; clc;
 %% User Defined:
-Chins2Run={'Q456'};
-Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D4'), strcat('post',filesep,'D12'), strcat('post',filesep,'D30')};
+Chins2Run={'Q465'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1')};
 % Data and code directories
 EXPname = 'OAE';
 EXPname2 = 'TEOAE';
