@@ -1,17 +1,19 @@
-%% SFsummary
-% Load Data
+% SFOAE swept summary
+% Author: Fernando Aguilera de Alba
+% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
 cwd = pwd;
 if exist(outpath,"dir")
     cd(outpath)
     fname = ['*',subj,'_SFOAEswept_',condition,'*.mat'];
-    datafile = {dir(fname).name};
+    datafile = dir(fname).name;
     if length(datafile) > 1
         fprintf('More than 1 data file. Check this is correct file!\n');
+        datafile = uigetfile(fname);
     end
     if isempty(datafile)
         fprintf('No file found. Please analyze raw data first.\n');
     end
-    load(datafile{1});
+    load(datafile);
     cd(cwd);
     res = data.res;
     spl = data.spl;
