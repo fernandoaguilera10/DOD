@@ -1,5 +1,6 @@
-%% DPsummary
-% Load Data
+% DPOAE swept summary
+% Author: Fernando Aguilera de Alba
+% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
 uplim = 0;
 lowlim = 0;
 cwd = pwd;
@@ -10,39 +11,34 @@ shapes = ["x";"^";"v";"diamond";"o";"*"];
 if exist(outpath,"dir")
     cd(outpath)
     fname = ['*',subj,'_DPOAEswept_',condition,'*.mat'];
-    datafile = {dir(fname).name};
+    datafile = dir(fname).name;
     if length(datafile) > 1
         fprintf('More than 1 data file. Check this is correct file!\n');
-        datafile = {uigetfile(fname)};
+        datafile = uigetfile(fname);
     end
     if isempty(datafile)
         fprintf('No file found. Please analyze raw data first.\n');
     end
-    load(datafile{1});
+    load(datafile);
+    fprintf('Data file: %s\n',datafile);
     cd(cwd);
-    res = data.res;
-    spl = data.spl;
-    dpoae_full = res.dbEPL_dp;
-    dpnf_full = res.dbEPL_nf;
-    f2 = res.f.f2/1000;
-
     % PLOTTING EPL
-    dp_f_epl{ChinIND,CondIND} = f2;
-    dp_amp_epl{ChinIND,CondIND} = dpoae_full';
-    dp_nf_epl{ChinIND,CondIND} = dpnf_full';
+    dp_f_epl{ChinIND,CondIND} = data.epl.f2;
+    dp_amp_epl{ChinIND,CondIND} = data.epl.oae';
+    dp_nf_epl{ChinIND,CondIND} = data.epl.nf';
     dp_amp_summ_epl{ChinIND,CondIND} = data.epl.bandOAE';
     dp_nf_summ_epl{ChinIND,CondIND} = data.epl.bandNF';
     counter = 2*ChinIND-1;
     figure(counter); hold on;
-    plot(f2, dpoae_full,'-', 'linew', 2, 'Color', colors(CondIND,:))
-    plot(f2, dpnf_full, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
+    plot(data.epl.f2, data.epl.oae,'-', 'linew', 2, 'Color', colors(CondIND,:))
+    plot(data.epl.f2, data.epl.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
     plot(data.epl.centerFreq, data.epl.bandOAE, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
     plot(data.epl.centerFreq, data.epl.bandNF, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
     set(gca, 'XScale', 'log', 'FontSize', 14)
     xlim([.5, 16])
     if CondIND > 1
-        upperlim_temp = max(dpoae_full);
-        lowerlim_temp = min(dpnf_full);
+        upperlim_temp = max(data.epl.oae);
+        lowerlim_temp = min(data.epl.nf);
         if upperlim_temp > uplim
             uplim = upperlim_temp;
         end
@@ -50,8 +46,8 @@ if exist(outpath,"dir")
             lowlim = lowerlim_temp;
         end
     else
-        lowlim = min(dpnf_full);
-        uplim = max(dpoae_full);
+        lowlim = min(data.epl.nf);
+        uplim = max(data.epl.oae);
     end
     ylim([round(lowlim - 5,1), round(uplim + 5,1)])
     xticks([.5, 1, 2, 4, 8, 16])
@@ -62,21 +58,21 @@ if exist(outpath,"dir")
     title(sprintf('DPOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
 
     % PLOTTING SPL
-    dp_f_spl{ChinIND,CondIND} = spl.f;
-    dp_amp_spl{ChinIND,CondIND} = abs(spl.oae)';
-    dp_nf_spl{ChinIND,CondIND} = abs(spl.noise)';
+    dp_f_spl{ChinIND,CondIND} = data.spl.f2;
+    dp_amp_spl{ChinIND,CondIND} = abs(data.spl.oae)';
+    dp_nf_spl{ChinIND,CondIND} = abs(data.spl.nf)';
     dp_amp_summ_spl{ChinIND,CondIND} = data.spl.bandOAE';
     dp_nf_summ_spl{ChinIND,CondIND} = data.spl.bandNF';
     figure(counter+1); hold on;
-    plot(spl.f, db(abs(spl.oae).*spl.VtoSPL), '-', 'linew', 2, 'Color', colors(CondIND,:));
-    plot(spl.f, db(abs(spl.noise).*spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
+    plot(data.spl.f2, db(abs(data.spl.oae).*data.spl.VtoSPL), '-', 'linew', 2, 'Color', colors(CondIND,:));
+    plot(data.spl.f2, db(abs(data.spl.nf).*data.spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off');
     plot(data.spl.centerFreq, data.spl.bandOAE, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
     plot(data.spl.centerFreq, data.spl.bandNF, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
     set(gca, 'XScale', 'log', 'FontSize', 14)
     xlim([.5, 16])
     if CondIND > 1
-        upperlim_temp = max(db(abs(spl.oae).*spl.VtoSPL));
-        lowerlim_temp = min(db(abs(spl.noise).*spl.VtoSPL));
+        upperlim_temp = max(db(abs(data.spl.oae).*data.spl.VtoSPL));
+        lowerlim_temp = min(db(abs(data.spl.nf).*data.spl.VtoSPL));
         if upperlim_temp > uplim
             uplim = upperlim_temp;
         end
@@ -84,8 +80,8 @@ if exist(outpath,"dir")
             lowlim = lowerlim_temp;
         end
     else
-        lowlim = min(db(abs(spl.noise).*spl.VtoSPL));
-        uplim = max(db(abs(spl.oae).*spl.VtoSPL));
+        lowlim = min(db(abs(data.spl.nf).*data.spl.VtoSPL));
+        uplim = max(db(abs(data.spl.oae).*data.spl.VtoSPL));
     end
     ylim([round(lowlim - 5,1), round(uplim + 5,1)])
     xticks([.5, 1, 2, 4, 8, 16])
@@ -95,7 +91,7 @@ if exist(outpath,"dir")
     legend boxoff
     title(sprintf('DPOAE | %s',Chins2Run{ChinIND}), 'FontSize', 16)
     % Export
-    outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname,filesep,Chins2Run{ChinIND});
+    outpath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND});
     cd(outpath);
     filename_EPL = [subj,'_DPOAEswept_Summary_EPL'];
     print(figure(counter),[filename_EPL,'_figure'],'-dpng','-r300');
@@ -149,8 +145,8 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
                 % PLOT SPL
                 % Individual DP + NF
                 figure(counter_avg+2); hold on;
-                plot(dp_f_spl{rows, cols}, db(abs(dp_amp_spl{rows, cols}).*spl.VtoSPL), '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
-                %plot(dp_f_spl{rows, cols}, db(abs(dp_nf_spl{rows, cols}).*spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                plot(dp_f_spl{rows, cols}, db(abs(dp_amp_spl{rows, cols}).*data.spl.VtoSPL), '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                %plot(dp_f_spl{rows, cols}, db(abs(dp_nf_spl{rows, cols}).*data.spl.VtoSPL), '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
             end
         end
     end
@@ -176,12 +172,12 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
         legend boxoff; hold off;
         % SPL Average DP + NF
         figure(counter_avg+2); hold on;
-        plot(avg_f_spl{1,cols}, db(avg_dp_spl{1,cols}.*spl.VtoSPL),'-', 'linew', 2, 'Color', colors(cols,:))
-        plot(avg_f_spl{1,cols}, db(avg_nf_spl{1,cols}.*spl.VtoSPL),'--', 'linew', 2, 'Color', [colors(cols,:),0.50],'HandleVisibility','off')
+        plot(avg_f_spl{1,cols}, db(avg_dp_spl{1,cols}.*data.spl.VtoSPL),'-', 'linew', 2, 'Color', colors(cols,:))
+        plot(avg_f_spl{1,cols}, db(avg_nf_spl{1,cols}.*data.spl.VtoSPL),'--', 'linew', 2, 'Color', [colors(cols,:),0.50],'HandleVisibility','off')
         plot(data.spl.centerFreq, avg_dp_summ_spl{1,cols}, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off')
         plot(data.spl.centerFreq, avg_nf_summ_spl{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off')
-        uplim = db(max(avg_dp_spl{1,cols}).*spl.VtoSPL);
-        lowlim = db(min(avg_nf_spl{1,cols}).*spl.VtoSPL);
+        uplim = db(max(avg_dp_spl{1,cols}).*data.spl.VtoSPL);
+        lowlim = db(min(avg_nf_spl{1,cols}).*data.spl.VtoSPL);
         set(gca, 'XScale', 'log', 'FontSize', 14)
         ylim([round(lowlim - 5,1), round(uplim + 10,1)])
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
@@ -193,13 +189,13 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     end
     % NOTE: PLOT AVERAGE USING A SEPARATE LOOP
     %% Export EPL
-    outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname);
+    outpath = strcat(OUTdir,filesep,EXPname);
     cd(outpath);
     filename = 'DPOAEswept_Average_EPL';
     print(counter_avg+1,[filename,'_figure'],'-dpng','-r300');
     cd(cwd);
     %% Export SPL
-    outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname);
+    outpath = strcat(OUTdir,filesep,EXPname);
     cd(outpath);
     filename = 'DPOAEswept_Average_SPL';
     print(counter_avg+2,[filename,'_figure'],'-dpng','-r300');

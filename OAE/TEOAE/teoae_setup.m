@@ -14,32 +14,32 @@
 close all;
 clear; clc;
 %% User Defined:
-Chins2Run={'Q465'};
+Chins2Run={'Q465','Q464'};
 Conds2Run = {strcat('pre',filesep,'Baseline_1')};
 % Data and code directories
 EXPname = 'OAE';
 EXPname2 = 'TEOAE';
 if (ismac == 1) %MAC computer
     ROOTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
-    DATAdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
-    OUTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis');
+    DATAdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data');
+    OUTdir = strcat(filesep,'Users',filesep,'fernandoaguileradealba',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
     
     %Synology:
     %ROOTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
-    %DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
-    %OUTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %DATAdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Data');
+    %OUTdir = strcat(filesep,'Volumes',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Analysis');
     %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 else %if using WINDOWS computer..
     ROOTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Code Archive');
-    DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
-    OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis');
+    DATAdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Data');
+    OUTdir = strcat('C:',filesep,'Users',filesep,'aguilerl',filesep,'OneDrive - purdue.edu',filesep,'Desktop',filesep,'DOD-Analysis',filesep,'Analysis');
     CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
     
     %Synology:
-    %ROOTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
-    %DATAdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
-    %OUTdir = strcat('Y:',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study');
+    %ROOTdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Code Archive');
+    %DATAdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Data');
+    %OUTdir = strcat('Y:',filesep,'Heinz-Lab',filesep,'Projects',filesep,'DOD',filesep,'Pilot Study',filesep,'Analysis');
     %CODEdir = strcat(ROOTdir,filesep,EXPname,filesep,EXPname2);
 end
 %% Subjects and Conditions
@@ -47,20 +47,12 @@ input1 = input('Would you like to perform TEOAE analysis (A) or summary (S): ','
 count = 0;
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
-        datapath = strcat(DATAdir,filesep,'Data',filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
+        datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
         calibpath = datapath;
         subj = Chins2Run{ChinIND};
         str = strsplit(Conds2Run{CondIND}, filesep);
         condition = strcat(str{1},'-',str{2});
-        % Check if MEMR analyzed data folder exist for selected chins and time points
-        outpath = strcat(OUTdir,filesep,'Analysis',filesep,EXPname);
-        Outlist = dir(outpath);
-        if isempty(Outlist) %create directory if it doesn't exist
-            cd(OUTdir)
-            mkdir('Analysis')
-            cd(strcat(OUTdir,filesep,'Analysis'))
-            mkdir(EXPname)
-        end
+        outpath = strcat(OUTdir,filesep,EXPname);
         cd(outpath)
         Dlist=dir(Chins2Run{ChinIND});
         if isempty(Dlist) %create directory if it doesn't exist
