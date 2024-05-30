@@ -1,4 +1,4 @@
-% DPOAE swept analysis
+function DPanalysis(datapath,calibpath,outpath,subject,condition)% DPOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -8,35 +8,16 @@ offsetwin = 0.0; % not finding additional delay
 npoints = 512;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Import data file
+search_file = '*sweptDPOAE*.mat';
+datafile = load_files(datapath,search_file);
 cwd = pwd;
 cd(datapath)
-datafile = dir(fullfile(cd,('*sweptDPOAE*.mat')));
-if length(datafile) < 1 || isempty(datafile)
-    fprintf('No files for this subject...Quitting.\n')
-    cd(cwd);
-    return
-elseif size(datafile,1) > 1
-    fprintf('More than 1 data file. Check this is correct file!\n');
-    datafile = uigetfile('*sweptDPOAE.mat');
-elseif size(datafile,1) == 1
-    datafile = datafile.name;
-end
-load(datafile)
-fprintf('Data file: %s\n',datafile);
+load(datafile);
 stim = x.sweptDPOAEData.stim;
 %% Import calibration file
-cd(calibpath)
-calibfile = dir(fullfile(cd,('*calib_FPL_raw*.mat')));
-if length(calibfile) < 1 || isempty(calibfile)
-    fprintf('No calibration file found...Quitting!\n'); 
-elseif size(calibfile,1) > 1
-    fprintf('Multiple calibration files found, select one.\n');
-    calibfile =uigetfile('*calib_FPL_raw*.mat');
-elseif size(calibfile,1) == 1
-    calibfile = calibfile.name;
-end
+search_calib = '*calib_FPL_raw*.mat';
+calibfile = load_files(datapath,search_calib);
 load(calibfile);
-fprintf('\nCalibration file: %s\n',calibfile);
 calib = x.FPLearData; clear x;
 cd(cwd);
 %% Analysis Parameters
@@ -187,12 +168,12 @@ hold on;
 plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', [0 0 0 0.25]);    % Noise floor
 plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);   % stimulus f2
 plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);  % stimulus f1
-title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
+title([subject, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('DP', 'NF', 'F_2', 'F_1')
+legend('DP', 'NF', 'F_2', 'F_1','Location','southoutside','Orientation','horizontal')
 box off;
 %% Convert SPL to EPL
 [DP] = calc_EPL(freq_dp, oae_complex.*VtoSPL, calib, 1);
@@ -259,17 +240,17 @@ epl.bandOAE = dpoae_w_epl;
 epl.bandNF = dpnf_w_epl;
 data.epl = epl; 
 % SPL
-spl.oae = oae_complex;
-spl.nf = noise_complex;
+spl.oae = db(abs(oae_complex).*VtoSPL);
+spl.nf = db(abs(noise_complex).*VtoSPL);
 spl.f2 = freq_f2/1000;
 spl.VtoSPL = VtoSPL;
 spl.centerFreq = centerFreqs;
 spl.bandOAE = dpoae_w_spl;
 spl.bandNF = dpnf_w_spl;
 data.spl = spl;
-
 cd(outpath);
-fname = [subj,'_DPOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
+fname = [subject,'_DPOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);
+end
