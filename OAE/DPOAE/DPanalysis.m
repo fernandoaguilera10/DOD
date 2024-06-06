@@ -1,4 +1,4 @@
-function DPanalysis(datapath,calibpath,outpath,subject,condition)% DPOAE swept analysis
+function DPanalysis(datapath,outpath,subject,condition)% DPOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -196,8 +196,6 @@ fmax = 16;
 edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
 bandEdges = edges(2:2:end-1);
 centerFreqs = edges(3:2:end-2);
-dpoae = zeros(length(centerFreqs),1);
-dpnf = zeros(length(centerFreqs),1);
 dpoae_w_spl = zeros(length(centerFreqs),1);
 dpnf_w_spl = zeros(length(centerFreqs),1);
 dpoae_full_spl = db(abs(oae_complex).*VtoSPL);
@@ -228,11 +226,11 @@ end
 plot(centerFreqs, dpoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
 plot(centerFreqs, dpnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
 lowlim = min(dpnf_full_spl);
-uplim = max(db(abs(complex(a_f1, b_f1)).*VtoSPL));
+uplim = max(db(abs(oae_complex).*VtoSPL));
 ylim([round(lowlim - 5,1), round(uplim + 5,1)])
 %% Export:
 % EPL
-epl.f2 = f2; 
+epl.f = f2; 
 epl.oae = dpoae_full_epl; 
 epl.nf = dpnf_full_epl; 
 epl.centerFreq = centerFreqs;
@@ -242,7 +240,7 @@ data.epl = epl;
 % SPL
 spl.oae = db(abs(oae_complex).*VtoSPL);
 spl.nf = db(abs(noise_complex).*VtoSPL);
-spl.f2 = freq_f2/1000;
+spl.f = freq_f2/1000;
 spl.VtoSPL = VtoSPL;
 spl.centerFreq = centerFreqs;
 spl.bandOAE = dpoae_w_spl;
