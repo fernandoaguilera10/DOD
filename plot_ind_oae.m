@@ -10,7 +10,6 @@ elseif strcmp(plot_type,'EPL')
     y_units = 'Amplitude (dB EPL)';
     filename = cell2mat([Chins2Run(ChinIND),'_DPOAEswept_',condition{2},'_EPL_']);
 end
-
 if strcmp(EXPname,'DPOAE')
     x_units = 'F2 Frequency (kHz)';
 else
