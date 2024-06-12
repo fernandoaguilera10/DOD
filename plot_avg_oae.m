@@ -6,7 +6,6 @@ if strcmp(EXPname,'DPOAE')
 else
     x_units = 'Frequency (kHz)';
 end
-
 if isempty(idx_plot_relative)
     if strcmp(plot_type,'SPL')
         y_units = 'Amplitude (dB SPL)';
