@@ -1,4 +1,4 @@
-function WBMEMRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits,ylimits)% WBMEMR Analysis
+function WBMEMRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits)% WBMEMR Analysis
 global elicitor deltapow
 % Author: Fernando Aguilera de Alba
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -18,7 +18,7 @@ if exist(outpath,"dir")
     % PLOTTING FPL
     elicitor{ChinIND,CondIND} = memr.elicitor;
     deltapow{ChinIND,CondIND} = memr.deltapow';
-    plot_ind_memr(memr,'MEMR',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,xlimits,ylimits,shapes)
+    plot_ind_memr(memr,'MEMR',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,xlimits,shapes)
     cd(cwd);
 else
     fprintf('No directory found.\n');
@@ -30,7 +30,7 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'MEMR');
     filename = 'WBMEMR_Average';
-    plot_avg_memr(average,'MEMR',colors,idx,Chins2Run,Conds2Run,outpath,filename,xlimits,ylimits,idx_plot_relative,shapes)
+    plot_avg_memr(average,'MEMR',colors,idx,Chins2Run,Conds2Run,outpath,filename,xlimits,idx_plot_relative,shapes)
 end
 cd(cwd);
 end

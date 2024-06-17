@@ -35,7 +35,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
 elseif ~isempty(idx_plot_relative)
     for cols = 1:length(Conds2Run)
         for rows = 1:length(Chins2Run)
-            if cols ~= idx_plot_relative
+            if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_f{1,cols-1} = mean([avg_f{1,cols-1}; f{rows, cols}],1);
                 avg_amp{1,cols-1} = mean([avg_amp{1,cols-1}; oae_amp{rows, cols}-oae_amp{rows, idx_plot_relative}],1);
                 avg_nf{1,cols-1} = mean([avg_nf{1,cols-1}; oae_nf{rows, cols}-oae_nf{rows, idx_plot_relative}],1);

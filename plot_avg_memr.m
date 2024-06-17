@@ -1,4 +1,4 @@
-function plot_avg_memr(average,EXPname,colors,idx,Chins2Run,Conds2Run,outpath,filename,xlimits,ylimits,idx_plot_relative,shapes)
+function plot_avg_memr(average,EXPname,colors,idx,Chins2Run,Conds2Run,outpath,filename,xlimits,idx_plot_relative,shapes)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 if isempty(idx_plot_relative)
@@ -6,7 +6,7 @@ if isempty(idx_plot_relative)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
         plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'Color', [colors(cols,:),1],'MarkerFaceColor', colors(cols,:));
-        xlim(xlimits); ylim(ylimits);
+        xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
         set(gca, 'XScale', 'log', 'FontSize', 14);
@@ -23,7 +23,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
         plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'Color', [colors(cols+1,:),1],'MarkerFaceColor', colors(cols+1,:));
-        xlim(xlimits); ylim(ylimits);
+        xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel(y_units,'FontWeight', 'bold');
         set(gca, 'XScale', 'log', 'FontSize', 14);

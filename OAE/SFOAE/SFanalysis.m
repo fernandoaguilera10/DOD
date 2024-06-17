@@ -10,6 +10,9 @@ npoints = 512;
 %% Import data file
 search_file = '*sweptSFOAE*.mat';
 datafile = load_files(datapath,search_file);
+if isempty(datafile)
+    return
+end
 cwd = pwd;
 cd(datapath)
 load(datafile);

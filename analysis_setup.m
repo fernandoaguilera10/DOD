@@ -2,12 +2,11 @@ clc; close all;
 %% User Input:
 % Chins2Run = list of subjects to analyze data
 % Conds2Run = list of conditions to analyze data (baseline vs post)
-Chins2Run={'Q438','Q445'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'),strcat('post',filesep,'D2')};
+Chins2Run={'Q460','Q461','Q462','Q464'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
 plot_relative = {strcat('pre',filesep,'Baseline_1')};
 %% Analysis
 ylimits_oae = [-80,60];
-ylimts_memr = [0,2];
 xlimits_memr = [50,100];
 cwd = pwd;
 if ~isempty(plot_relative)
@@ -74,7 +73,7 @@ for ChinIND=1:length(Chins2Run)
                             TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_oae);
                     end
                 case 'MEMR'
-                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,ylimts_memr)
+                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr)
             end
 
         end

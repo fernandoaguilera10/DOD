@@ -1,9 +1,9 @@
-function plot_ind_memr(data,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,xlimits,ylimits,shapes)
+function plot_ind_memr(data,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,xlimits,shapes)
 global legend_string
 condition = strsplit(Conds2Run{CondIND}, filesep);
 figure(ChinIND); hold on;
 plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),1], 'MarkerFaceColor', colors(CondIND,:));
-xlim(xlimits); ylim(ylimits);
+xlim(xlimits);
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
 set(gca, 'XScale', 'log', 'FontSize', 14);
