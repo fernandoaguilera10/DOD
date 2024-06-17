@@ -29,7 +29,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
 elseif ~isempty(idx_plot_relative)
     for cols = 1:length(Conds2Run)
         for rows = 1:length(Chins2Run)
-            if cols ~= idx_plot_relative
+            if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_elicitor{1,cols-1} = mean([avg_elicitor{1,cols-1}; elicitor{rows, cols}],1);
                 avg_deltapow{1,cols-1} = mean([avg_deltapow{1,cols-1}; deltapow{rows, cols}-deltapow{rows, idx_plot_relative}],1);
                 % check if data is present for a given timepoint and subject

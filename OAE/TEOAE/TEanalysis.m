@@ -7,6 +7,9 @@ function TEanalysis(datapath,outpath,subject,condition)% TEOAE Analysis
 %% Import data file
 search_file = '*TEOAE*.mat';
 datafile = load_files(datapath,search_file);
+if isempty(datafile)
+    return
+end
 cwd = pwd;
 cd(datapath)
 load(datafile);
@@ -44,7 +47,7 @@ res.NoiseFloor = noise_Pa_per_20uPa;
 figure;
 hold on;
 plot(res.freq*1e-3, db(abs(res.Resp)), 'linew', 2, 'Color', 'green');
-ylabel('Response (dB res)', 'FontSize', 14, 'FontWeight', 'bold');
+ylabel('Response (dB SPL)', 'FontSize', 14, 'FontWeight', 'bold');
 uplim = max(db(abs(res.Resp)));
 hold on;
 semilogx(res.freq*1e-3, db(abs(res.NoiseFloor)),'--', 'linew', 2, 'Color', 'black');
