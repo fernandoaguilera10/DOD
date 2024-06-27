@@ -3,12 +3,13 @@ clc; close all;
 % Chins2Run = list of subjects to analyze data
 % Conds2Run = list of conditions to analyze data (baseline vs post)
 Chins2Run={'Q460','Q461','Q462','Q464'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+Conds2Run = {strcat('pre',filesep,'Baseline_1'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14')};
 plot_relative = {strcat('pre',filesep,'Baseline_1')};
+%plot_relative = [];
+%% Analysis
 ylimits_oae = [-80,60];
 xlimits_memr = [50,100];
 ylimits_efr = [-1,1];
-%% Analysis
 cwd = pwd;
 if ~isempty(plot_relative)
     idx_plot_relative = ismember(plot_relative,Conds2Run);
@@ -43,7 +44,6 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-                    cd([CODEdir,filesep,'Thresholds'])
                     abr_plotting;
                 case 'EFR'
                     cd([CODEdir,filesep,'RAM'])

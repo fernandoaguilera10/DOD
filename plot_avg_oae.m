@@ -9,10 +9,8 @@ end
 if isempty(idx_plot_relative)
     if strcmp(plot_type,'SPL')
         y_units = 'Amplitude (dB SPL)';
-        filename = 'DPOAEswept_Average_SPL';
     elseif strcmp(plot_type,'EPL')
         y_units = 'Amplitude (dB EPL)';
-        filename = 'DPOAEswept_Average_EPL';
     end
     for cols = 1:length(average.oae)
         % Average DP + NF
@@ -25,7 +23,7 @@ if isempty(idx_plot_relative)
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,cols))), 'FontSize', 16);
+        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
         legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols)));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
         legend boxoff; hold off;
@@ -36,10 +34,8 @@ end
 if ~isempty(idx_plot_relative)  %plot relative to
     if strcmp(plot_type,'SPL')
         y_units = sprintf('Amplitude (dB re. %s)',str_plot_relative{2});
-        filename = 'DPOAEswept_Average_SPL';
     elseif strcmp(plot_type,'EPL')
         y_units = sprintf('Amplitude (dB re. %s)',str_plot_relative{2});
-        filename = 'DPOAEswept_Average_EPL';
     end
     for cols = 1:length(average.oae)
         % Average DP + NF
@@ -52,7 +48,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,cols+1))), 'FontSize', 16);
+        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
         legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols+1)));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
         legend boxoff; hold off;
