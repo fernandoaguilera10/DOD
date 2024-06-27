@@ -16,9 +16,9 @@ if exist(outpath,"dir")
     load(datafile);
     cd(cwd);
     % PLOTTING SPL
-    te_f_spl{ChinIND,CondIND} = data.spl.f;
-    te_amp_spl{ChinIND,CondIND} = data.spl.oae';
-    te_nf_spl{ChinIND,CondIND} = data.spl.nf';
+    te_f_spl{ChinIND,CondIND} = data.spl.f';
+    te_amp_spl{ChinIND,CondIND} = data.spl.oae;
+    te_nf_spl{ChinIND,CondIND} = data.spl.nf;
     te_f_band_spl = data.spl.centerFreq';
     te_amp_band_spl{ChinIND,CondIND} = data.spl.bandOAE';
     te_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
