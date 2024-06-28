@@ -14,7 +14,7 @@ mode = 0; %0 - Process single chin, 1 - plot single chin pre/post, 2 - batch pro
 prefix = '/Users/fernandoaguileradealba/Desktop/DOD-Analysis/Data';
 
 %if processing click, put a 0 in freqs
-freqs = [500,1e3,2e3,4e3,8e3];
+
 % freqs = [500,4e3,0]; 
 
 switch mode 

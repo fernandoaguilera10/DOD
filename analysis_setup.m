@@ -2,8 +2,8 @@ clc; close all;
 %% User Input:
 % Chins2Run = list of subjects to analyze data
 % Conds2Run = list of conditions to analyze data (baseline vs post)
-Chins2Run={'Q460','Q461','Q462','Q464'};
-Conds2Run = {strcat('pre',filesep,'Baseline_1'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+Chins2Run={'Q473'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1')};
 plot_relative = {strcat('pre',filesep,'Baseline_1')};
 ylimits_oae = [-80,60];
 xlimits_memr = [50,100];
@@ -43,8 +43,18 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-                    cd([CODEdir,filesep,'Thresholds'])
-                    abr_plotting;
+                    abr_type = questdlg('Select ABR analysis:', ...
+                        'ABR Analysis', ...
+                        'Thresholds','Peaks','Peaks');
+                    % Handle response
+                    switch abr_type
+                        case 'Thresholds'
+                            cd([CODEdir,filesep,'Thresholds'])
+                            abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
+                        case 'Peaks'
+                            cd([CODEdir,filesep,'Peaks'])
+                            %% TBD FUNCTION
+                    end
                 case 'EFR'
                     cd([CODEdir,filesep,'RAM'])
                     EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
@@ -65,13 +75,13 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-
+                    %% TBD FUNCTION
                 case 'EFR'
                     cd([CODEdir,filesep,'RAM'])
                     if flag == 0
                         answer = questdlg('Select EFR level:', ...
-                        	'EFR Level', ...
-                        	'65 dB SPL','80 dB SPL','80 dB SPL');
+                            'EFR Level', ...
+                            '65 dB SPL','80 dB SPL','80 dB SPL');
                         % Handle response
                         switch answer
                             case '65 dB SPL'
@@ -94,7 +104,6 @@ for ChinIND=1:length(Chins2Run)
                 case 'MEMR'
                     WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr)
             end
-
         end
     end
 end
