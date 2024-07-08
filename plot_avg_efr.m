@@ -1,7 +1,7 @@
 function plot_avg_efr(average,plot_type,level_spl,colors,shapes,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
-x_units = 'Frequency (kHz)';
+x_units = 'Frequency (Hz)';
 y_units = 'PLV';
 if strcmp(plot_type,'RAM')
     title_str = 'RAM 223 Hz';

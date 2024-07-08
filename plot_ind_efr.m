@@ -1,6 +1,6 @@
 function plot_ind_efr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath)
 global legend_string
-x_units = 'Frequency (kHz)';
+x_units = 'Frequency (Hz)';
 y_units = 'PLV';
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'RAM')
