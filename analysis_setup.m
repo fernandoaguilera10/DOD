@@ -3,7 +3,7 @@ clc; close all;
 % Chins2Run = list of subjects to analyze data
 % Conds2Run = list of conditions to analyze data (baseline vs post)
 Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14')};
 plot_relative = {strcat('pre',filesep,'Baseline_2')};
 ylimits_oae = [-80,60];
 xlimits_memr = [50,100];
