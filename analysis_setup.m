@@ -43,22 +43,20 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-                    abr_type = questdlg('Select ABR analysis:', ...
-                        'ABR Analysis', ...
-                        'Thresholds','Peaks','Peaks');
-                    % Handle response
-                    switch abr_type
+                    switch EXPname2
                         case 'Thresholds'
-                            cd([CODEdir,filesep,'Thresholds'])
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
                         case 'Peaks'
-                            cd([CODEdir,filesep,'Peaks'])
-                            %% TBD FUNCTION
+                            abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
                     end
                 case 'EFR'
-                    cd([CODEdir,filesep,'RAM'])
-                    EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-                    cd(CODEdir)
+                    switch EXPname2
+                        case 'AM/FM'
+                            %% TBD
+                        case 'RAM'
+                            EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            cd(CODEdir)
+                    end
                 case 'OAE'
                     switch EXPname2
                         case 'DPOAE'

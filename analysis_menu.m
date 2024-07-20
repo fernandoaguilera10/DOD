@@ -6,10 +6,14 @@ choice = listdlg('PromptString','Select analysis type: ','ListString',analysis_o
 switch choice
     case 1
         EXPname = 'ABR';
-        EXPname2 = [];
+        EXPname2 = questdlg('Select ABR analysis:', ...
+                        'ABR Analysis', ...
+                        'Thresholds','Peaks','Peaks');
     case 2
         EXPname = 'EFR';
-        EXPname2 = [];
+        EXPname2 = questdlg('Select EFR analysis:', ...
+                        'EFR Analysis', ...
+                        'AM/FM','RAM','RAM');
     case 3
         EXPname = 'OAE';
         OAEanalysis_options = {'DPOAE', 'SFOAE', 'TEOAE'};

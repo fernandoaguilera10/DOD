@@ -9,10 +9,7 @@ function abr_analysis_HL(command_str,parm_num)
 global paramsIN abr_FIG abr_Stimuli abr_root_dir abr_data_dir hearingStatus animal data ...
     han invert abr_out_dir freq date dataFolderpath viewraw temp_view cur_data q_fldr check_files ...
     replot_check ChinCondition ChinFile ChinID date_abr
-disp('in abr_analysis_HL.m')
 
-% abr_root_dir, abr_data_dir, abr_out_dir must be set in abr_setup, and
-% made global
 paramsIN.abr_root_dir= abr_root_dir;
 
 if nargin < 1
@@ -361,7 +358,6 @@ elseif strcmp(command_str,'close')
         closereq;
         close all;
         data.save_chk = 1;
-        cd(fileparts(abr_root_dir(1:end-1)));
         exit_msg = sprintf('\nGood Bye n.n\n');
         waitbar(1,exit_msg);
         pause(1); close;

@@ -1,138 +1,21 @@
 function dirname = get_directory
-
 global abr_data_dir abr_Stimuli han latcomp dataFolderpath abr_out_dir han viewraw dimcheck freqUsed abr_FIG ChinFile ChinID ChinCondition PROJdir
-
 %% Reset checkbox to unchecked when loading new directory
 dimcheck = 0;
 set(han.viewraw,'Enable','on');
 set(han.viewraw,'Value',0);
-
-%% List of folders from DATA folder
-%HG added 10/17 -- grab data from DATA folder
-%d = dir(abr_data_dir);
-cd(abr_data_dir)
-folderNum = 1;
-formatCorrect = false;
-%         set(abr_FIG.push.peaks,'Enable','off');
-folders = dir;
-for num = 1:length(folders)
-    FolderofInterest{folderNum} = folders(num).name;
-    folderNum = folderNum + 1;
-end
-str = FolderofInterest;
-
-%HG added 2/4/20 -- removes duplicate folders, if any
-%str = unique(str);
-
-%% User chooses folder from list
-d = dir(abr_data_dir);
-d = d([d.isdir]==1 & strncmp('.',{d.name},1)==0); % Only directories which are not '.' nor '..'
-str = {d.name};
-[selection, ok] = listdlg('Name', 'File Manager', ...
-    'PromptString',   'Select an Existing Data Directory:',...
-    'SelectionMode',  'single',...
-    'ListSize',       [300,300], ...
-    'OKString',       'Re-Activate', ...
-    'CancelString',   'Exit', ...
-    'InitialValue',    1, ...
-    'ListString',      str);
-ChinFile = cell2mat(str(selection));
-abr_out_dir = [PROJdir strcat(filesep,'Analysis',filesep,'ABR',filesep,ChinID,filesep,ChinCondition,filesep,ChinFile)];
-drawnow; %updates figures/graphics immediately
-if (ok==0 || isempty(selection))
-    dirname = abr_Stimuli.dir;
+if ~exist(abr_data_dir,'dir')
+    dirname = [];
 else
-    dirname = str{selection};
+    dirname = abr_data_dir;
     %clear out contents of all axes
     set([han.abr_panel han.amp_panel han.lat_panel han.text_panel han.xcor_panel han.z_panel han.peak_panel],'NextPlot','replacechildren')
     plot(han.abr_panel,0,0,'-w'); plot(han.amp_panel,0,0,'-w'); plot(han.lat_panel,0,0,'-w');
     plot(han.xcor_panel,0,0,'-w'); plot(han.z_panel,0,0,'-w'); plot(han.text_panel,0,0,'-w'); plot(han.peak_panel,0,0,'-w');
     %	axis([han.abr_panel han.amp_panel han.lat_panel han.xcor_panel han.z_panel han.peak_panel],'off')
     latcomp=NaN(1,4);
+    cd(abr_data_dir)
 end
-
-%% Now go back and find dirname
-if (formatCorrect == 1)
-    %First determine animal number
-    Qlocation_start = strfind(dirname,'Q');
-    
-    %Assuming number is 3 digits
-    Qlocation_end = Qlocation_start+3;
-    Qnumber = dirname(Qlocation_start:Qlocation_end);
-    
-    Qfolders_pwd = pwd;
-    cd(Qnumber);
-    %cd('Q403');
-    %cd('dummy');
-    
-    %Run through both pre and post folders to find folder of Interest
-    marker = 0;
-    for num3 = 1:2
-        if (num3 == 1) %PRE FIRST
-            cd('ABR');
-            cd('pre')
-            preFolders = dir;
-            foldersDIR_pre = pwd;
-            for pre2 = 1:length(preFolders)
-                if ~contains(preFolders(pre2).name, '.')
-                    cd(preFolders(pre2).name);
-                    %HG ADDED 1/17/20
-                    checkforFolder = dir;
-                    for ppp = 1:length(checkforFolder)
-                        if contains(checkforFolder(ppp).name,dirname)
-                            %if exist(dirname)
-                            %Load data from here!!!!
-                            %fprintf('DATA FOUND\n');
-                            marker = 1;
-                            cd(dirname);
-                            dataFolderpath = pwd;
-                            break; %exit loops because location was found
-                        end
-                    end
-                    cd(foldersDIR_pre);
-                end
-            end
-            if (marker == 1)
-                break; %exits main loop too, doesn't check post
-            end
-        else %NEXT POST
-            cd(Qfolders_pwd);
-            cd(Qnumber);
-            cd('ABR');
-            cd('post');
-            postFolders = dir;
-            foldersDIR_post = pwd;
-            for post2 = 1:length(postFolders)
-                if ~contains(postFolders(post2).name, '.')
-                    cd(postFolders(post2).name);
-                    %HG ADDED 1/17/20
-                    checkforFolder = dir;
-                    for ppp = 1:length(checkforFolder)
-                        if contains(checkforFolder(ppp).name,dirname)
-                            %if exist(dirname)
-                            %Load data from here!!!!
-                            %fprintf('DATA FOUND\n');
-                            marker = 1;
-                            cd(dirname);
-                            dataFolderpath = pwd;
-                            break; %exit loops because location was found
-                        end
-                    end
-                    cd(foldersDIR_post);
-                end
-            end
-        end
-    end
-    CURdir=pwd;
-else
-    dataFolderpath = [pwd filesep dirname];
-end
-
-%% Go back to data directory to: 1) check for extra calibs, 2) do artifact correction
-if exist(dataFolderpath,'dir')
-    cd (dataFolderpath)
-end
-
 %% Warn if more than one calib file, if so list pics (Commented out 10/5/21 due to missing findPics, will comment back later)
 calibPICs = dir('*calib_inv*.m');
 fn = {calibPICs.name};

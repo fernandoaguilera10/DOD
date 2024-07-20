@@ -1,11 +1,5 @@
-%% Data formatting - see Y:\Projects\___Project_Name_TEMPLATE
-% 3 folders in project directory
-% Analysis - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
-% Code Archive - 3 subfolders with experiment type (e.g. ABR, EFR, MEMR, OAE)
-% Data - individual data folders with subject ID (e.g. Q123)
-close all;
-clear; clc;
-global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID PROJdir
+function abr_peaks_setup(ROOTdir)
+global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinFile ChinID
 %% Animal ID
 ChinID = 'Q456';
 ChinCondition = 'post';
@@ -38,3 +32,4 @@ if ~exist(abr_out_dir,'dir')
     mkdir(abr_out_dir);
 end
 abr_analysis_HL;
+end
