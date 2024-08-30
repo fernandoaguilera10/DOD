@@ -5,7 +5,7 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.elicitor)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
-        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'Color', [colors(cols,:),1],'MarkerFaceColor', colors(cols,:));
+        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
         xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
@@ -22,7 +22,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
     for cols = 1:length(average.elicitor)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
-        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'Color', [colors(cols+1,:),1],'MarkerFaceColor', colors(cols+1,:));
+        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:));
         xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel(y_units,'FontWeight', 'bold');

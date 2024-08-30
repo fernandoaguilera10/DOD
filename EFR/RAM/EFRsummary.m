@@ -1,9 +1,6 @@
-function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl)% EFR summary
+function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,colors,shapes)% EFR summary
 global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq
 cwd = pwd;
-%colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"; "#FF33FF"];
-colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47; 255,51,255]/255;
-shapes = ["x";"^";"v";"diamond";"o";"*"];
 %% INDIVIDUAL PLOTS
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")

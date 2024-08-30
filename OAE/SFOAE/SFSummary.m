@@ -1,12 +1,9 @@
-function SFsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits)% SFOAE swept summary
+function SFsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors)% SFOAE swept summary
 global sf_f_epl sf_amp_epl sf_nf_epl sf_f_band_epl sf_amp_band_epl sf_nf_band_epl
 global sf_f_spl sf_amp_spl sf_nf_spl sf_f_band_spl sf_amp_band_spl sf_nf_band_spl
 % Author: Fernando Aguilera de Alba
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
 cwd = pwd;
-%colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"; "#FF33FF"];
-colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47; 255,51,255]/255;
-shapes = ["x";"^";"v";"diamond";"o";"*"];
 %% INDIVIDUAL PLOTS
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
@@ -23,7 +20,7 @@ if exist(outpath,"dir")
     sf_amp_band_epl{ChinIND,CondIND} = data.epl.bandOAE';
     sf_nf_band_epl{ChinIND,CondIND} = data.epl.bandNF';
     fig_num_ind = 2*ChinIND-1;
-    plot_ind_oae(data,'EPL','SFOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits)
+    plot_ind_oae(data,'EPL','SFOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits_ind,shapes)
     % PLOTTING SPL
     sf_f_spl{ChinIND,CondIND} = data.spl.f;
     sf_amp_spl{ChinIND,CondIND} = data.spl.oae';
@@ -31,7 +28,7 @@ if exist(outpath,"dir")
     sf_f_band_spl = data.spl.centerFreq';
     sf_amp_band_spl{ChinIND,CondIND} = data.spl.bandOAE';
     sf_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
-    plot_ind_oae(data,'SPL','SFOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind+1,ylimits)
+    plot_ind_oae(data,'SPL','SFOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind+1,ylimits_ind,shapes)
     cd(cwd);
 else
     fprintf('No directory found.\n');
@@ -45,9 +42,9 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'OAE');
     filename_epl = 'SFOAEswept_Average_EPL';
-    plot_avg_oae(average_epl,'EPL','SFOAE',colors,idx,Conds2Run,outpath,filename_epl,fig_num_avg+1,ylimits,idx_plot_relative)
+    plot_avg_oae(average_epl,'EPL','SFOAE',colors,idx,Conds2Run,outpath,filename_epl,fig_num_avg+1,ylimits_avg,idx_plot_relative,shapes)
     filename_spl = 'SFOAEswept_Average_SPL';
-    plot_avg_oae(average_spl,'SPL','SFOAE',colors,idx,Conds2Run,outpath,filename_spl,fig_num_avg+2,ylimits,idx_plot_relative);
+    plot_avg_oae(average_spl,'SPL','SFOAE',colors,idx,Conds2Run,outpath,filename_spl,fig_num_avg+2,ylimits_avg,idx_plot_relative,shapes);
 end
 cd(cwd);
 end
