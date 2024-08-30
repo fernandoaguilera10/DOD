@@ -1,4 +1,4 @@
-function plot_ind_efr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath)
+function plot_ind_efr(data,plot_type,shapes,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath)
 global legend_string
 x_units = 'Frequency (Hz)';
 y_units = 'PLV';
@@ -11,7 +11,7 @@ elseif strcmp(plot_type,'AM/FM')
     title_str = 'AM/FM 4 kHz';
 end
 figure(ChinIND); hold on;
-plot(data.peaks_locs, data.peaks, shapes(CondIND,:), 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
 ylim([0,1]); hold off;
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')

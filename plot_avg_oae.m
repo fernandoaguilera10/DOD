@@ -1,4 +1,4 @@
-function plot_avg_oae(average,plot_type,EXPname,colors,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative)
+function plot_avg_oae(average,plot_type,EXPname,colors,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,shapes)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 if strcmp(EXPname,'DPOAE')
@@ -15,10 +15,10 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.oae)
         % Average DP + NF
         figure(counter); hold on;
-        plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols,:),0.75]);
+        %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols,:),0.75]);
         %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols,:),0.75],'HandleVisibility','off');
-        plot(average.bandF, average.bandOAE{1,cols}, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-        plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+        errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+        %plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
         set(gca, 'XScale', 'log', 'FontSize', 14);
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
@@ -40,9 +40,9 @@ if ~isempty(idx_plot_relative)  %plot relative to
     for cols = 1:length(average.oae)
         % Average DP + NF
         figure(counter); hold on;
-        plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols+1,:),0.75]);
+        %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols+1,:),0.75]);
         %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols+1,:),0.75],'HandleVisibility','off');
-        plot(average.bandF, average.bandOAE{1,cols}, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+        errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
         %plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
         set(gca, 'XScale', 'log', 'FontSize', 14);
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);

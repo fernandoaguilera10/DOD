@@ -1,4 +1,4 @@
-function plot_ind_oae(data,plot_type,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num,ylimits)
+function plot_ind_oae(data,plot_type,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num,ylimits,shapes)
 global legend_string
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'SPL')

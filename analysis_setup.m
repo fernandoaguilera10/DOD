@@ -2,12 +2,16 @@ clc; close all;
 %% User Input:
 % Chins2Run = list of subjects to analyze data
 % Conds2Run = list of conditions to analyze data (baseline vs post)
-Chins2Run={'Q438','Q445','Q446','Q447'};
-Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14')};
-plot_relative = {strcat('pre',filesep,'Baseline_2')};
-ylimits_oae = [-80,60];
+Chins2Run={'Q438','Q445','Q446','Q447','Q473','Q474','Q475','Q476','Q461','Q462','Q464','Q481','Q482','Q460'}; %,'Q438','Q445','Q446','Q447'   'Q473','Q474','Q475','Q476',    'Q460','Q461','Q462','Q464',     'Q481','Q482'
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+plot_relative = {strcat('pre',filesep,'Baseline')};
+ylimits_avg_oae = [-40,20];
+ylimits_ind_oae = [-80,60];
 xlimits_memr = [50,100];
 ylimits_efr = [-1,1];
+shapes = ["o";"square";"diamond";"^";"pentagram"];
+%colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"; "#FF33FF"];
+colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47; 255,51,255]/255;
 %% Analysis
 cwd = pwd;
 if ~isempty(plot_relative)
@@ -48,6 +52,8 @@ for ChinIND=1:length(Chins2Run)
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
                         case 'Peaks'
                             abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
+                        case 'Peaks+Thresholds'
+                            %% TBD (see Hannah's code)
                     end
                 case 'EFR'
                     switch EXPname2
@@ -73,9 +79,9 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-                    %% TBD FUNCTION
+                    %% TBD FUNCTION 
+                    % ABR Audiogram filename: 
                 case 'EFR'
-                    cd([CODEdir,filesep,'RAM'])
                     if flag == 0
                         answer = questdlg('Select EFR level:', ...
                             'EFR Level', ...
@@ -89,18 +95,18 @@ for ChinIND=1:length(Chins2Run)
                         end
                         flag = 1;
                     end
-                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level);
+                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors);
                 case 'OAE'
                     switch EXPname2
                         case 'DPOAE'
-                            DPsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_oae);
+                            DPsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors);
                         case 'SFOAE'
-                            SFsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_oae);
+                            SFsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors);
                         case 'TEOAE'
-                            TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_oae);
+                            TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors);
                     end
                 case 'MEMR'
-                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr)
+                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,shapes,colors)
             end
         end
     end

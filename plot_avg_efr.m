@@ -1,4 +1,4 @@
-function plot_avg_efr(average,plot_type,level_spl,colors,shapes,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative)
+function plot_avg_efr(average,plot_type,level_spl,shapes,colors,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 x_units = 'Frequency (Hz)';
@@ -9,10 +9,11 @@ elseif strcmp(plot_type,'AM/FM')
     title_str = 'AM/FM 4 kHz';
 end
 if isempty(idx_plot_relative)
-    for cols = 1:length(average.efr)
+    for cols = 1:length(average.peaks_locs)
         % Average DP + NF
         figure(counter); hold on;
-        plot(average.peaks_locs{1,cols},average.peaks{1,cols},shapes(cols,:),'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+        plot(average.peaks_locs{1,cols},average.peaks{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+        errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
         title(sprintf('EFR (%s) | Average (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
@@ -28,7 +29,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
     for cols = 1:length(average.peaks_locs)
         % Average DP + NF
         figure(counter); hold on;
-        plot(average.peaks_locs{1,cols},average.peaks{1,cols},shapes(cols+1,:),'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+        errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
         title(sprintf('EFR (%s) | Average (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);

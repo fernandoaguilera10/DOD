@@ -2,7 +2,7 @@ function plot_ind_memr(data,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,o
 global legend_string
 condition = strsplit(Conds2Run{CondIND}, filesep);
 figure(ChinIND); hold on;
-plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'Color', [colors(CondIND,:),1], 'MarkerFaceColor', colors(CondIND,:));
+plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(CondIND,:), 'MarkerFaceColor', colors(CondIND,:));
 xlim(xlimits);
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');

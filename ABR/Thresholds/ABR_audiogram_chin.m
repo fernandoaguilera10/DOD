@@ -51,6 +51,11 @@ if exist(datapath,"dir")
             datafiles = {dir(fullfile(cd,['p*',num2str(freqs(f)),'*.mat'])).name};
         end
 
+        if isempty(datafiles)
+            fprintf('ERROR: p-files cannot be found for %d Hz\n',freqs(f));
+            return;
+        end
+
         lev = [];
         wforms=[];
         cor_temp = [];
@@ -180,18 +185,18 @@ if exist(datapath,"dir")
         ylim([min(min(wform_plot)),max(max(wform_plot))])
         ylabel('Sound Level (dB SPL)');
         if freqs(f)==0
-            title('Frequency = Click');
+            title('Click');
         else
-            title(['Frequency = ', num2str(freqs(f)), ' Hz']);
+            title([num2str(freqs(f)), ' Hz']);
         end
 
         figure(fit_vis);
         subplot(ceil(length(freqs)/3),3,f);
         hold on
         if freqs(f)==0
-            title('Frequency = Click');
+            title('Click');
         else
-            title(['Frequency = ', num2str(freqs(f)), ' Hz']);
+            title([num2str(freqs(f)), ' Hz']);
         end
         plot(1:80,cor_fit(1:80),'--k','linewidth',2);
         errorbar(lev,cor_temp,cor_err_temp,'.b','linewidth',1.5,'markersize',10);
