@@ -1,0 +1,35 @@
+close all; clc;
+Chins2Run={'Q438'};
+Conds2Run = {strcat('pre',filesep,'Baseline_2'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14')};
+searchConds = {'B2','7D','14D'};
+%% Organize RAW data into respective directories
+uiwait(msgbox('Press OK to select ROOT directory', 'ROOT Directory', 'help'));
+ROOTdir = uigetdir('', 'Select RAW directory');
+RAWdir = strcat(ROOTdir,filesep,'Data',filesep,'RAW');
+DATAdir = strcat(ROOTdir,filesep,'Data');
+[EXPname, EXPname2] = analysis_menu;
+
+for ChinIND = 1:length(Chins2Run)
+    for CondIND = 1:length(Conds2Run)
+        searchPattern = ['*', Chins2Run{ChinIND}, '*'];
+        cd(RAWdir)
+        files = dir(searchPattern);
+        if isempty(files)
+            fprintf('No RAW files found for %s (%s)\n', Chins2Run{ChinIND});
+        else
+            if ~isempty(strfind(files(1).name,searchConds(CondIND)))    % check if Cond2Run is present for given Chins2Run
+                destDir = fullfile(DATAdir,Chins2Run{ChinIND},EXPname,Conds2Run{CondIND});
+                if ~isfolder(destDir)
+                    mkdir(destDir);
+                end
+                cd(destDir);
+                searchPattern = ['*', EXPname, '*'];
+                files = dir(searchPattern);
+                sourceFile = fullfile(RAWdir, files(fileIdx).name);
+                destFile = fullfile(destDir, files(fileIdx).name);
+                movefile(sourceFile, destFile);
+                fprintf('Moved data files from %s to %s\n', sourceFile, destFile);
+            end
+        end
+    end
+end

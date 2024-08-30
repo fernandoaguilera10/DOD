@@ -1,66 +1,42 @@
-% DPOAE swept Analysis
+function DPanalysis(datapath,outpath,subject,condition)% DPOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
-% Last Updated: August 27, 2023
-% Purpose:
-% Helpful info:
+% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
 %%%%%%%%% Set these parameters %%%%%%%%%%%%%%%%%%
 windowdur = .25;  %0.25;
 offsetwin = 0.0; % not finding additional delay
 npoints = 512;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Import data
+%% Import data file
+search_file = '*sweptDPOAE*.mat';
+datafile = load_files(datapath,search_file);
+if isempty(datafile)
+    return
+end
 cwd = pwd;
 cd(datapath)
-datafile = dir(fullfile(cd,('*sweptDPOAE*.mat')));
-if length(datafile) < 1
-    fprintf('No files for this subject...Quitting.\n')
-    cd(cwd);
-    return
-elseif size(datafile,1) > 1
-    fprintf('More than 1 data file. Check this is correct file!\n');
-    checkDIR = {uigetfile('*sweptDPOAE.mat')};
-    load(checkDIR{1});
-    file = cell2mat(checkDIR); 
-else
-    load(datafile(1).name);
-    file = datafile(1).name; 
-end
-fprintf('Data file: %s\n',file);
+load(datafile);
 stim = x.sweptDPOAEData.stim;
-% SET CALIB FILE HERE
-cd(calibpath)
-calibfile = dir(fullfile(cd,('*calib_FPL_raw*.mat')));
-if length(calibfile) < 1
-    fprintf('No calibration file found...Quitting!\n'); 
-elseif size(calibfile,1) > 1
-    fprintf('Multiple calibration files found, select one.\n');
-    checkDIR =uigetfile('*calib_FPL_raw*.mat');
-    load(checkDIR);
-    file = checkDIR; 
-else
-    load(calibfile(1).name);
-    file = calibfile(1).name; 
-end
-fprintf('\nCalibration file: %s\n',file);
-calib = x.FPLearData;
-res.calib = calib; 
+%% Import calibration file
+search_calib = '*calib_FPL_raw*.mat';
+calibfile = load_files(datapath,search_calib);
+load(calibfile);
+calib = x.FPLearData; clear x;
 cd(cwd);
+%% Analysis Parameters
 stim.scale = 'log';
 stim.nearfreqs = [0.9,.88, .86,.84];
 trials = size(stim.resp,1);
-% figure; plot(stim.resp(1,:))
 delay_oops = 0; % 247; %128
-%% Set variables from the stim
 phi1_inst = 2 * pi * stim.phi1_inst;
 phi2_inst = 2 * pi * stim.phi2_inst;
 phi_dp_inst = (2.*stim.phi1_inst - stim.phi2_inst) * 2 * pi;
 rdp = 2 / stim.ratio - 1;    % f_dp = f2 * rdp
 t = stim.t;
-if stim.speed < 0 % downsweep
+if stim.speed < 0   % downsweep
     f_start = stim.fmax;
     f_end = stim.fmin;
-else
+else                % upsweep
     f_start = stim.fmin;
     f_end = stim.fmax;
 end
@@ -114,7 +90,7 @@ for j = 1:trials
     end
 end
 DPOAE = mean(resp_AR, 1, 'omitNaN');
-%% LSF analysis
+%% LSF Analysis
 % Set empty matricies for next steps
 maxoffset = ceil(stim.Fs * offsetwin);
 coeffs = zeros(npoints, 2);
@@ -167,7 +143,7 @@ for k = 1:npoints
         -sin(nfreqs(4)*phi_dp_inst(win)) .* taper];
     coeffs_noise(k,:) = model_noise' \ resp';
 end
-%% Amplitude and Delay calculations
+%% Amplitude and Delay Calculations
 a_dp = coeffs(:, 1);
 b_dp = coeffs(:, 2);
 a_f1 = coeffs(:, 3);
@@ -187,25 +163,22 @@ phi_dp = tau_dp.*freq_dp'; % cycles (from delay/offset)
 phasor_dp = exp(-1j * phi_dp * 2 * pi);
 VtoSPL = stim.VoltageToPascal .* stim.PascalToLinearSPL;
 res.VtoSPL = VtoSPL;
-%% Plot Results Figure
+%% Plot DP - SPL
 numOfTrials = floor(trials/2)*2; % need even number of trials
 figure;
-plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', 'red');
+plot(freq_f2/1000, db(abs(oae_complex).*VtoSPL), 'linew', 2, 'Color', 'red');   % DP
 hold on;
-plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', 'black');
-plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);
-plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);
-title([subj, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
+plot(freq_f2/1000, db(abs(noise_complex).*VtoSPL), '--', 'linew', 2, 'Color', [0 0 0 0.25]);    % Noise floor
+plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*VtoSPL), 'linew', 2, 'Color', [0.4940 0.1840 0.5560]);   % stimulus f2
+plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*VtoSPL), 'linew', 2, 'Color', [0.9290 0.6940 0.1250]);  % stimulus f1
+title([subject, ' | DPOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
-xlim([.5, 16])
-ylim([-50, 90])
-xticks([.5, 1, 2, 4, 8, 16])
+xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16])
 ylabel('Amplitude (dB SPL)', 'FontWeight', 'bold')
 xlabel('F_2 Frequency (kHz)', 'FontWeight', 'bold')
-legend('DPOAE', 'NF', 'F_2', 'F_1')
-drawnow;
+legend('DP', 'NF', 'F_2', 'F_1','Location','southoutside','Orientation','horizontal')
 box off;
-%% Get EPL units
+%% Convert SPL to EPL
 [DP] = calc_EPL(freq_dp, oae_complex.*VtoSPL, calib, 1);
 res.complex.dp_epl = DP.P_epl;
 res.f_epl = DP.f;
@@ -214,90 +187,71 @@ res.dbEPL_dp = db(abs(DP.P_epl));
 res.complex.nf_epl = NF.P_epl;
 res.f_epl = NF.f;
 res.dbEPL_nf = db(abs(NF.P_epl));
-
-%                 [F1] = calc_FPL(res.f.f1, res.complex_f1, res.calib.Ph1);
-%                 res.complex_f1_fpl = F1.P_fpl;
-%                 res.f1_fpl = F1.f;
-%                 if exist('res.calib.Ph2', 'var')
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph2);
-%                 else
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph1);
-%                 end
-%                 res.complex_f2_fpl = F2.P_fpl;
-%                 res.f2_fpl = F2.f;
-% plot figure again
-% figure;
-% plot(freq_f2/1000, res.dbEPL_dp, 'linew', 3, 'Color', 'r');
-% hold on;
-% plot(freq_f2/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
-% %plot(freq_f2/1000, db(abs(complex(a_f2,b_f2)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-% %plot(freq_f1/1000, db(abs(complex(a_f1, b_f1)).*stim.VoltageToPascal.*stim.PascalToLinearSPL));
-% %title(sprintf('Subj: %s, Ear: %s', string(subj), string(ear)))
-% title('DPOAE', 'FontSize', 14)
-% set(gca, 'XScale', 'log', 'FontSize', 14)
-% xlim([.5, 16])
-% ylim([-50, 50])
-% xticks([.5, 1, 2, 4, 8, 16])
-% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-% legend('DPOAE', 'NF')
-drawnow;
 res.f.f2 = freq_f2;         % frequency vectors
 res.f.f1 = freq_f1;
 res.f.dp = freq_dp;
-dpoae_full = res.dbEPL_dp;
-dpnf_full = res.dbEPL_nf;
+dpoae_full_epl = res.dbEPL_dp;
+dpnf_full_epl = res.dbEPL_nf;
 f2 = res.f.f2/1000;
-% SEt params
+%% Calculate band-average DP
 fmin = 0.5;
 fmax = 16;
 edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
 bandEdges = edges(2:2:end-1);
 centerFreqs = edges(3:2:end-2);
-dpoae = zeros(length(centerFreqs),1);
-dpnf = zeros(length(centerFreqs),1);
-dpoae_w = zeros(length(centerFreqs),1);
-dpnf_w = zeros(length(centerFreqs),1);
+dpoae_w_spl = zeros(length(centerFreqs),1);
+dpnf_w_spl = zeros(length(centerFreqs),1);
+dpoae_full_spl = db(abs(oae_complex).*VtoSPL);
+dpnf_full_spl = db(abs(noise_complex).*VtoSPL);
 % resample / average to 9 center frequencies
 for z = 1:length(centerFreqs)
     band = find( f2 >= bandEdges(z) & f2 < bandEdges(z+1));
     % Do some weighting by SNR
     % TO DO: NF from which SNR was calculated included median of 7 points
-    % nearest the target frequency.
-    SNR = dpoae_full(band) - dpnf_full(band);
-    weight = (10.^(SNR./10)).^2;  
-    dpoae(z, 1) = mean(dpoae_full(band));
-    dpnf(z,1) = mean(dpnf_full(band));
-    dpoae_w(z,1) = sum(weight.*dpoae_full(band))/sum(weight);
-    dpnf_w(z,1) = sum(weight.*dpnf_full(band))/sum(weight);
+    % nearest the target frequency
+    %EPL
+    SNR_epl = dpoae_full_epl(band) - dpnf_full_epl(band);
+    weight_epl = (10.^(SNR_epl./10)).^2;  
+    dpoae_epl(z, 1) = mean(dpoae_full_epl(band));
+    dpnf_epl(z,1) = mean(dpnf_full_epl(band));
+    dpoae_w_epl(z,1) = sum(weight_epl.*dpoae_full_epl(band))/sum(weight_epl);
+    dpnf_w_epl(z,1) = sum(weight_epl.*dpnf_full_epl(band))/sum(weight_epl);
+    %SPL
+    SNR_spl = dpoae_full_spl(band) - dpnf_full_spl(band);
+    weight_spl = (10.^(SNR_spl./10)).^2;  
+    dpoae_spl(z, 1) = mean(dpoae_full_spl(band));
+    dpnf_spl(z,1) = mean(dpnf_full_spl(band));
+    dpoae_w_spl(z,1) = sum(weight_spl.*dpoae_full_spl(band))/sum(weight_spl);
+    dpnf_w_spl(z,1) = sum(weight_spl.*dpnf_full_spl(band))/sum(weight_spl);
+
 end
-% figure;
-% hold on;
-% semilogx(f2, dpoae_full, 'Color', [.8, .8, .8], 'linew', 2)
-% semilogx(f2, dpnf_full, '--', 'linew', 1.5, 'Color', [.8, .8, .8])
-% semilogx(centerFreqs, dpoae_w, 'o', 'linew', 4, 'MarkerSize', 10, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
-% set(gca, 'XScale', 'log', 'FontSize', 14)
-% xlim([.5, 16])
-% ylim([-50, 50])
-% xticks([.5, 1, 2, 4, 8, 16])
-% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
-% title('DPOAE', 'FontSize', 16); 
-result.f2 = f2; 
-result.oae_full = dpoae_full; 
-result.nf_full = dpnf_full; 
-result.centerFreqs = centerFreqs; 
-result.oae_summary = dpoae_w; 
-data.result = result; 
-data.res = res; 
-spl.oae = oae_complex;
-spl.noise = noise_complex;
+%% Plot band-average DP - SPL
+plot(centerFreqs, dpoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
+plot(centerFreqs, dpnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
+lowlim = min(dpnf_full_spl);
+uplim = max(db(abs(oae_complex).*VtoSPL));
+ylim([round(lowlim - 5,1), round(uplim + 5,1)])
+%% Export:
+% EPL
+epl.f = f2; 
+epl.oae = dpoae_full_epl; 
+epl.nf = dpnf_full_epl; 
+epl.centerFreq = centerFreqs;
+epl.bandOAE = dpoae_w_epl;
+epl.bandNF = dpnf_w_epl;
+data.epl = epl; 
+% SPL
+spl.oae = db(abs(oae_complex).*VtoSPL);
+spl.nf = db(abs(noise_complex).*VtoSPL);
 spl.f = freq_f2/1000;
 spl.VtoSPL = VtoSPL;
+spl.centerFreq = centerFreqs;
+spl.bandOAE = dpoae_w_spl;
+spl.bandNF = dpnf_w_spl;
 data.spl = spl;
-%% Export:
 cd(outpath);
-fname = [subj,'_DPOAEswept_',condition,'_',datafile(1).name(1:end-4),'_',file(1:end-4)];
+fname = [subject,'_DPOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);
+end

@@ -1,55 +1,35 @@
- % SFOAE swept Analysis
+function SFanalysis(datapath,outpath,subject,condition)% SFOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
-% Last Updated: August 1, 2023
-% Purpose:
-% Helpful info:
+% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
 %%% Set these parameters %%%%%%%%%%%%%
 windowdur = 0.040; % 40ms in paper
 offsetwin = 0.0; % 20ms in paper
 npoints = 512;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Import data
+%% Import data file
+search_file = '*sweptSFOAE*.mat';
+datafile = load_files(datapath,search_file);
+if isempty(datafile)
+    return
+end
 cwd = pwd;
 cd(datapath)
-datafile = {dir(fullfile(cd,'*sweptSFOAE.mat')).name};
-if length(datafile) < 1
-    fprintf('No files for this subject...Quitting.\n')
-    cd(cwd);
-    return
-elseif length(datafile) > 1
-    fprintf('More than 1 data file. Check this is correct file!\n');
-    datafile = {uigetfile('*sweptSFOAE.mat')}; 
-end
-load(datafile{1});
-fprintf('Data file: %s\n',cell2mat(datafile));
+load(datafile);
 stim = x.sweptSFOAEData.stim;
-clear x; 
-%% IMPORT CALIB DATA
-cd(calibpath)
-calibfile = {dir(fullfile(cd,'*calib_FPL_raw*.mat')).name};
-if length(calibfile) > 1
-    fprintf('Multiple calibration files found, select one.\n');
-    calibfile = uigetfile('*calib_FPL_raw.mat');
-    calibfile = {calibfile};
-    load(calibfile{1}); 
-elseif isempty(calibfile)
-    fprintf('No calibration file found...Quitting!\n'); 
-else
-    load(calibfile{1});
-end
-file = cell2mat(calibfile);
-fprintf('\nCalibration file: %s\n',file);
-res.calib = x.FPLearData; 
+%% Import calibration file
+search_calib = '*calib_FPL_raw*.mat';
+calibfile = load_files(datapath,search_calib);
+load(calibfile);
+calib = x.FPLearData; clear x;
 cd(cwd);
-%% Set variables needed from stim.
+%% Analysis Parameters
 phiProbe_inst = 2*pi*stim.phiProbe_inst;
 t = stim.t;
-% downward vs upward sweeps
-if stim.speed < 0
+if stim.speed < 0   % downsweep
     f1 = stim.fmax;
     f2 = stim.fmin;
-else
+else                % upsweep
     f1 = stim.fmin;
     f2 = stim.fmax;
 end
@@ -63,7 +43,7 @@ else % log sweep
 end
 %duration changes w/ frequency
 durs = .038*(2.^(-0.3*t_freq)-1)/ (-0.3*log(2)) + 0.038;
-%% Artifact rejection
+%% Artifact Rejection
 % Cancel out stimulus
 SFOAEtrials = stim.ProbeBuffs + stim.SuppBuffs - stim.BothBuffs;
 trials = size(SFOAEtrials,1);
@@ -106,7 +86,7 @@ for j = 1:trials
         end
     end
 end
-%% Calculate the Noise Floor (two ways)
+%% Calculate Noise Floor (two ways)
 numOfTrials = floor(trials/2)*2; % need even number of trials
 % first method, subtraction
 for y = 1:2:numOfTrials
@@ -122,7 +102,7 @@ for x = 1:2:numTrials2
 end
 noise = [pos_noise; neg_noise];
 SFOAE = mean(resp_AR, "omitNaN"); % mean SFOAE after artifact rejection
-NOISE = mean(noise, "omitNaN"); % mean SFOAE after artifact rejection
+NOISE = mean(noise, "omitNaN"); % mean noise after artifact rejection
 %% LSF Analysis
 % Set empty matricies for next steps
 maxoffset = ceil(stim.Fs * offsetwin);
@@ -170,7 +150,7 @@ for k = 1:npoints
     coeffs_noise(k,:) = coeff_noise(ind,:);
     tau(k) = (ind - 1) * (1/stim.Fs); % delay in sec
 end
-%% Amplitude and delay calculations
+%% Amplitude and Delay Calculations
 a = coeffs(:, 1);
 b = coeffs(:, 2);
 a_n = coeffs_n(:, 1); % subtraction nf
@@ -186,12 +166,11 @@ oae_complex = complex(a, b).*phasor;
 noise_complex2 = complex(a_n, b_n);
 noise_complex = mean(noise2,2);
 res.multiplier = stim.VoltageToPascal.* stim.PascalToLinearSPL;
-%% Plot resulting figure
+%% Plot SF - SPL
 figure;
-plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 2, 'Color', 'blue');
-hold on;
+plot(testfreq/1000, db(abs(oae_complex).*res.multiplier), 'linew', 2, 'Color', 'blue'); hold on;
 plot(testfreq/1000, db(abs(noise_complex).*res.multiplier), '--', 'linew', 2, 'Color', 'black');
-title([subj, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
+title([subject, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 set(gca, 'XScale', 'log', 'FontSize', 14)
 xlim([.5, 16])
 xticks([.5, 1, 2, 4, 8, 16])
@@ -199,70 +178,88 @@ xlabel('Frequency (kHz)','FontWeight','bold')
 ylabel('Amplitude (dB SPL)','FontWeight','bold')
 legend('SFOAE', 'NF')
 box off;
-%% Get EPL units
-[SF] = calc_EPL(testfreq, oae_complex.*res.multiplier, res.calib, 1);
+%% Convert SPL to EPL
+[SF] = calc_EPL(testfreq, oae_complex.*res.multiplier, calib, 1);
 res.complex.dp_epl = SF.P_epl;
 res.f_epl = SF.f;
 res.dbEPL_sf = db(abs(SF.P_epl));
-[NF] = calc_EPL(testfreq, noise_complex.*res.multiplier, res.calib, 1);
+[NF] = calc_EPL(testfreq, noise_complex.*res.multiplier, calib, 1);
 res.complex.nf_epl = NF.P_epl;
 res.f_epl = NF.f;
 res.dbEPL_nf = db(abs(NF.P_epl));
-
-%                 [F1] = calc_FPL(res.f.f1, res.complex_f1, res.calib.Ph1);
-%                 res.complex_f1_fpl = F1.P_fpl;
-%                 res.f1_fpl = F1.f;
-%                 if exist('res.calib.Ph2', 'var')
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph2);
-%                 else
-%                     [F2] = calc_FPL(res.f.f2, res.complex_f2, res.calib.Ph1);
-%                 end
-%                 res.complex_f2_fpl = F2.P_fpl;
-%                 res.f2_fpl = F2.f;
-
-% plot figure again
+sfoae_full_epl = res.dbEPL_sf;
+sfnf_full_epl = res.dbEPL_nf;
+%% Plot SF - EPL
 % figure;
-% plot(testfreq/1000, res.dbEPL_sf, 'linew', 3, 'Color', '#4575b4');
-% hold on;
+% plot(testfreq/1000, res.dbEPL_sf, 'linew', 3, 'Color', '#4575b4'); hold on;
 % plot(testfreq/1000, res.dbEPL_nf, 'k--', 'linew', 1.5);
-% title([subj ' | SFOAE | ' condition], 'FontSize', 14)
+% title([subject, ' | SFOAE | ', condition, ' (n = ', num2str(numOfTrials), ')'], 'FontSize', 14, 'FontWeight', 'bold')
 % set(gca, 'XScale', 'log', 'FontSize', 14)
 % xlim([.5, 16])
-% ylim([-50, 50])
 % xticks([.5, 1, 2, 4, 8, 16])
-% ylabel('Amplitude (dB EPL)', 'FontWeight', 'bold')
-% xlabel('F2 Frequency (kHz)', 'FontWeight', 'bold')
+% xlabel('Frequency (kHz)','FontWeight','bold')
+% ylabel('Amplitude (dB EPL)','FontWeight','bold')
 % legend('SFOAE', 'NF')
-% drawnow;
-%% Save result function
-res.windowdur = windowdur;
-res.offsetwin = offsetwin;
-res.npoints = npoints;
-res.avgSFOAEresp = SFOAE;   % average mic response
-res.avgNOISEresp = NOISE;
-res.t_freq = t_freq;
-res.f = testfreq;           % frequency vectors
-res.a = a;                  % coefficients
-res.b = b;
-res.a_n = a_n;
-res.b_n = b_n;
-res.stim = stim;
-res.tau = tau;
-res.phasor = phasor;
-res.subj = subj;
-res.multiplier = stim.VoltageToPascal.* stim.PascalToLinearSPL;
-res.complex.oae = oae_complex;
-res.complex.nf = noise_complex;
-res.complex.nf2 = noise_complex2;
-data.res = res;
-spl.oae = oae_complex;
-spl.noise = noise_complex;
-spl.f = testfreq/1000;
-spl.VtoSPL = res.multiplier;
-data.spl = spl;
+% box off;
+%% Calculate band-average SF
+fmin = 0.5;
+fmax = 16;
+edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
+bandEdges = edges(2:2:end-1);
+centerFreqs = edges(3:2:end-2);
+sfoae_w_spl = zeros(length(centerFreqs),1);
+sfnf_w_spl = zeros(length(centerFreqs),1);
+sfoae_full_spl = db(abs(oae_complex).*res.multiplier);
+sfnf_full_spl = db(abs(noise_complex).*res.multiplier);
+% resample / average to 9 center frequencies
+for z = 1:length(centerFreqs)
+    band = find( testfreq/1000 >= bandEdges(z) & testfreq/1000 < bandEdges(z+1));
+    % Do some weighting by SNR
+    % TO DO: NF from which SNR was calculated included median of 7 points
+    % nearest the target frequency
+    %EPL
+    SNR_epl = sfoae_full_epl(band) - sfnf_full_epl(band);
+    weight_epl = (10.^(SNR_epl./10)).^2;  
+    sfoae_epl(z, 1) = mean(sfoae_full_epl(band));
+    sfnf_epl(z,1) = mean(sfnf_full_epl(band));
+    sfoae_w_epl(z,1) = sum(weight_epl.*sfoae_full_epl(band))/sum(weight_epl);
+    sfnf_w_epl(z,1) = sum(weight_epl.*sfnf_full_epl(band))/sum(weight_epl);
+    %SPL
+    SNR_spl = sfoae_full_spl(band) - sfnf_full_spl(band);
+    weight_spl = (10.^(SNR_spl./10)).^2;  
+    sfoae_spl(z, 1) = mean(sfoae_full_spl(band));
+    sfnf_spl(z,1) = mean(sfnf_full_spl(band));
+    sfoae_w_spl(z,1) = sum(weight_spl.*sfoae_full_spl(band))/sum(weight_spl);
+    sfnf_w_spl(z,1) = sum(weight_spl.*sfnf_full_spl(band))/sum(weight_spl);
+
+end
+%% Plot band-average SF - SPL
+plot(centerFreqs, sfoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
+plot(centerFreqs, sfnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
+lowlim = min(sfnf_full_spl);
+uplim = max(db(abs(oae_complex).*res.multiplier));
+ylim([round(lowlim - 5,1), round(uplim + 5,1)])
 %% Export:
+% EPL
+epl.f = testfreq/1000;
+epl.oae = sfoae_full_epl; 
+epl.nf = sfnf_full_epl; 
+epl.centerFreq = centerFreqs;
+epl.bandOAE = sfoae_w_epl;
+epl.bandNF = sfnf_w_epl;
+data.epl = epl; 
+% SPL
+spl.f = testfreq/1000;
+spl.oae = db(abs(oae_complex).*res.multiplier);
+spl.nf = db(abs(noise_complex).*res.multiplier);
+spl.VtoSPL = res.multiplier;
+spl.centerFreq = centerFreqs;
+spl.bandOAE = sfoae_w_spl;
+spl.bandNF = sfnf_w_spl;
+data.spl = spl;
 cd(outpath);
-fname = [subj,'_SFOAEswept_',condition,'_',datafile{1}(1:end-4),'_',calibfile{1}(1:end-4)];
+fname = [subject,'_SFOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
 save(fname,'data')
 cd(cwd);
+end
