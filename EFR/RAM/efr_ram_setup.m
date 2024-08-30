@@ -5,8 +5,8 @@
 close all;
 clear; clc;
 %% User Defined:
-Chins2Run={'Q456'};
-Conds2Run = {strcat('pre',filesep,'B1'),strcat('post',filesep,'D5'), strcat('post',filesep,'D14')};
+Chins2Run={'Q465'};
+Conds2Run = {strcat('pre',filesep,'Baseline_1')};
 level_spl = 80;
 EXPname = 'EFR';
 EXPname2 = 'RAM';
