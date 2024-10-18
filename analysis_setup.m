@@ -1,14 +1,27 @@
 clc; close all;
 %% User Input:
 % Chins2Run = list of subjects to analyze data
-% Conds2Run = list of conditions to analyze data (baseline vs post)
-Chins2Run={'Q438','Q445','Q446','Q447','Q473','Q474','Q475','Q476','Q461','Q462','Q464','Q481','Q482','Q460'}; %,'Q438','Q445','Q446','Q447'   'Q473','Q474','Q475','Q476',    'Q460','Q461','Q462','Q464',     'Q481','Q482'
+Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q487','Q488','Q464'};
+% ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q487','Q488','Q464'
+% Group 1: 'Q438','Q445','Q446','Q447'
+% Group 2: 'Q460','Q461','Q462','Q464'
+% Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480'
+% Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488'
 Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
 plot_relative = {strcat('pre',filesep,'Baseline')};
-ylimits_avg_oae = [-40,20];
+% Conds2Run = list of conditions to analyze data (baseline vs post)
+% Baseline = strcat('pre',filesep,'Baseline')
+% Week 1 = strcat('post',filesep,'D7')
+% Week 2 = strcat('post',filesep,'D14')
+% Week 4 = strcat('post',filesep,'D30')
+
+% Plot limits
+ylimits_avg_oae = [-50,30];
 ylimits_ind_oae = [-80,60];
 xlimits_memr = [50,100];
-ylimits_efr = [-1,1];
+ylimits_efr = [-0.6,1.5];
+ylimits_ind_abr = [0,80];
+ylimits_avg_abr = [-5,80];
 shapes = ["o";"square";"diamond";"^";"pentagram"];
 %colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"; "#FF33FF"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47; 255,51,255]/255;
@@ -39,11 +52,11 @@ for ChinIND=1:length(Chins2Run)
         filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,Conds2Run{CondIND});
         datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
         calibpath = datapath;
-        files{ChinIND,CondIND} = search_files(Chins2Run{ChinIND},Conds2Run{CondIND},filepath);
+        files{ChinIND,CondIND} = search_files(Chins2Run{ChinIND},Conds2Run{CondIND},datapath,filepath);
         file_check =  dir(fullfile(files{ChinIND,CondIND}.dir,searchfile));
         condition = strsplit(Conds2Run{CondIND}, filesep);
         cd(CODEdir);
-        if isempty(file_check)    % convert RAW data for analysis
+        if isempty(file_check) && isfolder(datapath)    % convert RAW data for analysis
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
@@ -79,8 +92,12 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
-                    %% TBD FUNCTION 
-                    % ABR Audiogram filename: 
+                    switch EXPname2
+                        case 'Thresholds'
+                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr,ylimits_avg_abr,shapes,colors,'Thresholds');
+                        case 'Peaks'
+                            %% TBD
+                    end
                 case 'EFR'
                     if flag == 0
                         answer = questdlg('Select EFR level:', ...

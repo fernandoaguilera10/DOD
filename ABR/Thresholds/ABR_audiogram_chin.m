@@ -161,6 +161,8 @@ if exist(datapath,"dir")
         if nr_flag
             thresh(f) = 120;
         end
+        if thresh(f) < 0, thresh(f) = 0; end
+            
 
         clr_no = [0,0,0,.3];
         clr_yes = [0,0,0,1];
@@ -175,9 +177,11 @@ if exist(datapath,"dir")
 
         hold on
         if sum(lev>thresh(f))~=0
-            plot(t,wform_plot(:,lev>thresh(f)),'color',clr_yes,'linewidth',2);
+            plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
         end
-        plot(t,wform_plot(:,lev<=thresh(f)),'color',clr_no,'linewidth',2);
+        if round(thresh(f),-1) ~= 0
+            plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
+        end
         xlim([0,30])
         hold off
         yticks(mean(wform_plot));

@@ -5,9 +5,9 @@ y_units = 'PLV';
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'RAM')
     title_str = 'RAM 223 Hz';
-    filename = cell2mat([Chins2Run(ChinIND),'_RAM223_',condition{2}]);
+    filename = cell2mat([Chins2Run(ChinIND),'_RAM223_',mat2str(data.spl),'dBSPL_',condition{2}]);
 elseif strcmp(plot_type,'AM/FM')
-    filename = cell2mat([Chins2Run(ChinIND),'_AMFM_',condition{2}]);
+    filename = cell2mat([Chins2Run(ChinIND),'_AMFM_',mat2str(data.spl),'dBSPL_',condition{2}]);
     title_str = 'AM/FM 4 kHz';
 end
 figure(ChinIND); hold on;
