@@ -1,18 +1,12 @@
 clc; close all;
 %% User Input:
-Chins2Run={'Q481','Q482'};
-Conds2Run = {strcat('post',filesep,'D7')};
+Chins2Run={'Q447'};
+Conds2Run = {strcat('post',filesep,'D30')};
 if ismac
-    source = '/Volumes/FEFE/DOD/RAW';
+    source = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';
 else
     source = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';
 end
-%% COPIED FILES:
-% Q457: B D15
-% Q460: B D7 D14 D30
-% Q461: B D7 D14 D30
-% Q481: B D7
-% Q482: B D7
 %% CODE
 % Ensure the source directory exists
 if ~isfolder(source)
