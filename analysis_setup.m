@@ -1,31 +1,33 @@
 clc; close all;
-%% User Input:
-% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q487','Q488','Q464'};
-% ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q487','Q488','Q464'
-% Group 1: 'Q438','Q445','Q446','Q447'
-% Group 2: 'Q460','Q461','Q462','Q464'
-% Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480'
-% Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488'
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+%% Chins2Run = list of subjects to analyze data
+Chins2Run={'Q447'};
+% NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
+% BLAST: 'Q457','Q463','Q478'
+% 75 kPa: 'Q457','Q478'
+% 150 kPa: 'Q463'
+% NOISE: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'
+% Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
+% Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
+% Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
+% Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
+% Group 5: 'Q485','Q486' (10hrs/4 days per week)
+%% Conds2Run = list of conditions to analyze data (pre vs post)
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7')};
 plot_relative = {strcat('pre',filesep,'Baseline')};
-% Conds2Run = list of conditions to analyze data (baseline vs post)
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
 % Week 4 = strcat('post',filesep,'D30')
-
-% Plot limits
-ylimits_avg_oae = [-50,30];
+%% Plot limits
+ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-80,60];
-xlimits_memr = [50,100];
-ylimits_efr = [-0.6,1.5];
+xlimits_memr = [50,105];
+ylimits_efr = [-0.6,1.2];
 ylimits_ind_abr = [0,80];
-ylimits_avg_abr = [-5,80];
-shapes = ["o";"square";"diamond";"^";"pentagram"];
-%colors = ["#0072BD"; "#EDB120"; "#7E2F8E"; "#77AC30"; "#A2142F"; "#FF33FF"];
-colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 162,20,47; 255,51,255]/255;
-%% Analysis
+ylimits_avg_abr = [-20,20];
+shapes = ["o";"square";"diamond";"^";"pentagram";"v"];
+colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
+%% Analysis Code
 cwd = pwd;
 if ~isempty(plot_relative)
     idx_plot_relative = ismember(plot_relative,Conds2Run);
@@ -97,6 +99,8 @@ for ChinIND=1:length(Chins2Run)
                             ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr,ylimits_avg_abr,shapes,colors,'Thresholds');
                         case 'Peaks'
                             %% TBD
+                        case 'Waveforms'
+                            ABRwaveform()
                     end
                 case 'EFR'
                     if flag == 0

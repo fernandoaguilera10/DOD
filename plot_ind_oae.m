@@ -4,16 +4,19 @@ condition = strsplit(Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'SPL')
     data_new = data.spl;
     y_units = 'Amplitude (dB SPL)';
-    filename = cell2mat([Chins2Run(ChinIND),'_DPOAEswept_',condition{2},'_SPL_']);
 elseif strcmp(plot_type,'EPL')
     data_new = data.epl;
     y_units = 'Amplitude (dB EPL)';
-    filename = cell2mat([Chins2Run(ChinIND),'_DPOAEswept_',condition{2},'_EPL_']);
 end
 if strcmp(EXPname,'DPOAE')
     x_units = 'F2 Frequency (kHz)';
-else
+    filename = cell2mat([Chins2Run(ChinIND),'_DPOAEswept_',condition{2},'_',plot_type,'_']);
+elseif strcmp(EXPname,'SFOAE')
     x_units = 'Frequency (kHz)';
+    filename = cell2mat([Chins2Run(ChinIND),'_SFOAEswept_',condition{2},'_',plot_type,'_']);
+elseif strcmp(EXPname,'TEOAE')
+    x_units = 'Frequency (kHz)';
+    filename = cell2mat([Chins2Run(ChinIND),'_TEOAE_',condition{2},'_',plot_type,'_']);
 end
 figure(fig_num); hold on;
 plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:))

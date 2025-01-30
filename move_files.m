@@ -1,11 +1,13 @@
 clc; close all;
 %% User Input:
-Chins2Run={'Q447'};
-Conds2Run = {strcat('post',filesep,'D30')};
+Chins2Run={'Q506'};
+Conds2Run = {strcat('pre',filesep,'Baseline')};
 if ismac
-    source = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';
+    %source = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
+    source = '/Volumes/FefeSSD/DOD/Code Archive';
 else
-    source = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';
+    %source = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
+    source = 'D:\DOD\Data\RAW'; % SSD
 end
 %% CODE
 % Ensure the source directory exists
@@ -65,6 +67,7 @@ for ChinIND=1:length(Chins2Run)
         if ~isempty(datafiles)
             fprintf('\nMoving files...');
             fprintf('\nTarget directory: %s\n', targetDir);
+            fprintf('Source directory: %s\n', sourceDir);
             if strcmp(EXPname,'ABR') || strcmp(EXPname,'EFR') || strcmp(EXPname,'OAE')
                  % Move each calib file to the target directory
                 for k = 1:length(calibfiles)
