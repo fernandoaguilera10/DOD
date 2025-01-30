@@ -6,14 +6,15 @@ if isempty(idx_plot_relative)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
         errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
+        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
         xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
         set(gca, 'XScale', 'log', 'FontSize', 14);
         title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
-        legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols)));
+        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
-        legend boxoff; hold off;
+        legend boxoff; hold off; grid on;
     end
 end
 
@@ -23,14 +24,16 @@ if ~isempty(idx_plot_relative)  %plot relative to
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
         errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:));
+        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'HandleVisibility','off');
+        plot(average.elicitor{1,cols}, zeros(size(average.elicitor{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
         xlim(xlimits);
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel(y_units,'FontWeight', 'bold');
         set(gca, 'XScale', 'log', 'FontSize', 14);
         title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
-        legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols+1)));
+        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
-        legend boxoff; hold off;
+        legend boxoff; hold off; grid on;
     end
 end
 %% Export

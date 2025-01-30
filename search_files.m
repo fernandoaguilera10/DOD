@@ -6,7 +6,7 @@ end
 % Check if directory exists
 if ~exist(data_directory, 'dir') %if data directory does not exists
     dir_msg = sprintf('ERROR: Data directory does not exist for %s (%s)',subject,condition);
-    uiwait(msgbox(dir_msg,'Analysis Type','error'));
+    %uiwait(msgbox(dir_msg,'Analysis Type','error'));
     output.files = [];
     output.dir = [];
 elseif exist(data_directory, 'dir')  %if directory exists

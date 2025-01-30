@@ -9,15 +9,16 @@ if isempty(idx_plot_relative)
             % Average DP + NF
             figure(counter); hold on;
             errorbar(average.x{1,cols}, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+            plot(average.x{1,cols}, average.y{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
             xticks(average.x{1,1});
             xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('ABR Thresholds | Average (n = %.0f)',sum(idx(:,1))), 'FontSize', 16);
-            legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols)));
+            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
             legend boxoff; hold off;
-            ylim(ylimits);
+            ylim(ylimits); grid on;
         end
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Time (ms)';
@@ -33,15 +34,17 @@ if ~isempty(idx_plot_relative)  %plot relative to
             % Average DP + NF
             figure(counter); hold on;
             errorbar(average.x{1,cols}, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+            plot(average.x{1,cols}, average.y{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'HandleVisibility','off');
+            plot(average.x{1,cols}, zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
             xticks(average.x{1,1});
             xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('ABR Thresholds | Average (n = %.0f)',sum(idx(:,1))), 'FontSize', 16);
-            legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols+1)));
+            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
             legend boxoff; hold off;
-            ylim(ylimits);
+            ylim(ylimits); grid on;
         end
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Time (ms)';
