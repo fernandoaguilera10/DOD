@@ -12,15 +12,15 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.peaks_locs)
         % Average DP + NF
         figure(counter); hold on;
-        plot(average.peaks_locs{1,cols},average.peaks{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
         errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+        plot(average.peaks_locs{1,cols},average.peaks{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
         title(sprintf('EFR (%s) | Average (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
-        legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols)));
+        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),sum(idx(:,cols)));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
         legend boxoff; hold off;
-        ylim(ylimits);
+        ylim(ylimits); grid on;
     end
 end
 
@@ -30,13 +30,15 @@ if ~isempty(idx_plot_relative)  %plot relative to
         % Average DP + NF
         figure(counter); hold on;
         errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+        plot(average.peaks_locs{1,cols},average.peaks{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'HandleVisibility','off');
+        plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
         title(sprintf('EFR (%s) | Average (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
-        legend_string{1,cols} = sprintf('%s',cell2mat(Conds2Run(cols+1)));
+        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
         legend boxoff; hold off;
-        ylim(ylimits);
+        ylim(ylimits); grid on;
     end
 end
 %% Export

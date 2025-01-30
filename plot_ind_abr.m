@@ -14,7 +14,7 @@ if strcmp(plot_type,'Thresholds')
     xticklabels({'Click', '0.5', '1', '2', '4', '8'});
     legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
     legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8)
-    legend boxoff
+    legend boxoff; grid on;
     title(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))), 'FontSize', 16);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Time (ms)';

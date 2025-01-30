@@ -162,7 +162,7 @@ if exist(datapath,"dir")
             thresh(f) = 120;
         end
         if thresh(f) < 0, thresh(f) = 0; end
-            
+        if thresh(f) > 80,thresh(f) = 80; end
 
         clr_no = [0,0,0,.3];
         clr_yes = [0,0,0,1];
@@ -176,6 +176,7 @@ if exist(datapath,"dir")
         t = t*1e3; %time in ms
 
         hold on
+
         if sum(lev>thresh(f))~=0
             plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
         end
