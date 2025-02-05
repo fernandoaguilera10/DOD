@@ -17,11 +17,10 @@ else
     mkdir(ChinDir);
     cd(ChinDir)
 end
-
 if freq~=0
-    files = dir(sprintf('*Q%s_%s_%s_%dHz*.mat',num2str(animal),ChinCondition,ChinFile,freq));
+    files = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),cell2mat(ChinCondition),freq));
 else
-    files = dir(sprintf('*Q%s_%s_%s_click*.mat',num2str(animal),ChinCondition,ChinFile));
+    files = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),cell2mat(ChinCondition)));
 end
 files = files(find((strncmp('.',{files.name},1)==0))); % Only files which are not '.' nor '..'
 str = {files.name};

@@ -11,5 +11,6 @@ addpath(abr_root_dir)
 if ~exist(abr_out_dir,'dir')
     mkdir(abr_out_dir);
 end
+addpath(abr_root_dir);
 abr_analysis_HL;
 end
