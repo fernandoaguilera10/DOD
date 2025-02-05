@@ -41,8 +41,6 @@ elseif ~isempty(idx_plot_relative)
                     % Plot individual traces with average
                     figure(counter); hold on;
                     %plot(x{rows, cols}, y{rows, cols}-y{rows, idx_plot_relative}, '-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
-                    
-
                 end
             end
         end

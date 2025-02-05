@@ -3,7 +3,7 @@ function zzz2
 global abr_Stimuli abr_data_dir...
 	num dt line_width abr freq attn spl w upper_y_bound lower_y_bound padvoltage y_shift date...
 	data noise freq_level han animal abr_time thresh_mag ABRmag invert dataFolderpath ...
-    include_spl include_zscore include_w replot
+    include_spl include_zscore include_w replot abr_out_dir
 
 pic = ParseInputPicString_V2(abr_Stimuli.abr_pic); 
 num=length(pic);
@@ -13,7 +13,7 @@ clear global 'frequency'
 
 line_width=1;
 %ExpDir=fullfile(abr_data_dir,abr_Stimuli.dir);
-ExpDir = dataFolderpath;
+ExpDir = abr_data_dir;
 cd(ExpDir);
 
 %Read in the ABR waveforms
