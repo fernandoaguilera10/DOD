@@ -35,7 +35,7 @@ ABRmag=NaN*ones(num,4);
 line_width=1;
 
 %ExpDir=fullfile(abr_data_dir,abr_Stimuli.dir);
-ExpDir = dataFolderpath;
+ExpDir = abr_data_dir;
 cd(ExpDir);
 
 %% Read in the ABR waveforms

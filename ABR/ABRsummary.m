@@ -16,6 +16,11 @@ if exist(outpath,"dir")
         plot_ind_abr(abr_out,analysis_type,colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,ylimits_ind)
     elseif strcmp(analysis_type,'Peaks')
         %% TBD
+        search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRpeaks*.mat']);
+        datafile = load_files(outpath,search_file);
+        load(datafile);
+        cd(cwd);
+        abrs.plot
     end
     cd(cwd)
 else

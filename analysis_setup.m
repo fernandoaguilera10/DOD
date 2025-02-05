@@ -1,6 +1,7 @@
 clc; close all;
+reanalyze = 0; % 1 = redo analysis      0 = skip analysis
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q447'};
+Chins2Run={'Q438'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -12,7 +13,7 @@ Chins2Run={'Q447'};
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7')};
+Conds2Run = {strcat('pre',filesep,'Baseline')};
 plot_relative = {strcat('pre',filesep,'Baseline')};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
@@ -23,8 +24,10 @@ ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-80,60];
 xlimits_memr = [50,105];
 ylimits_efr = [-0.6,1.2];
-ylimits_ind_abr = [0,80];
-ylimits_avg_abr = [-20,20];
+ylimits_ind_abr_threshold = [0,80];
+ylimits_avg_abr_threshold = [-20,20];
+ylimits_ind_abr_peaks = [];
+ylimits_avg_abr_peaks = [];
 shapes = ["o";"square";"diamond";"^";"pentagram";"v"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
 %% Analysis Code
@@ -58,7 +61,7 @@ for ChinIND=1:length(Chins2Run)
         file_check =  dir(fullfile(files{ChinIND,CondIND}.dir,searchfile));
         condition = strsplit(Conds2Run{CondIND}, filesep);
         cd(CODEdir);
-        if isempty(file_check) && isfolder(datapath)    % convert RAW data for analysis
+        if isempty(file_check) && isfolder(datapath)    % convert RAW data for analysis for no existing analyzed file
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
@@ -67,8 +70,36 @@ for ChinIND=1:length(Chins2Run)
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
                         case 'Peaks'
                             abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
-                        case 'Peaks+Thresholds'
-                            %% TBD (see Hannah's code)
+                    end
+                case 'EFR'
+                    switch EXPname2
+                        case 'AM/FM'
+                            %% TBD
+                        case 'RAM'
+                            EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            cd(CODEdir)
+                    end
+                case 'OAE'
+                    switch EXPname2
+                        case 'DPOAE'
+                            DPanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                        case 'SFOAE'
+                            SFanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                        case 'TEOAE'
+                            TEanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                    end
+                case 'MEMR'
+                    WBMEMRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+            end
+        elseif ~isempty(file_check) && isfolder(datapath) && reanalyze == 1     % convert RAW data for existing analyzed file
+            fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
+            switch EXPname
+                case 'ABR'
+                    switch EXPname2
+                        case 'Thresholds'
+                            abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
+                        case 'Peaks'
+                            abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition)
                     end
                 case 'EFR'
                     switch EXPname2
@@ -94,15 +125,17 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
+                    cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr,ylimits_avg_abr,shapes,colors,'Thresholds');
+                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_threshold,ylimits_avg_abr_threshold,shapes,colors,'Thresholds');
                         case 'Peaks'
-                            %% TBD
+                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_peaks,ylimits_avg_abr_peaks,shapes,colors,'Peaks');
                         case 'Waveforms'
                             ABRwaveform()
                     end
                 case 'EFR'
+                    cd(CODEdir)
                     if flag == 0
                         answer = questdlg('Select EFR level:', ...
                             'EFR Level', ...
@@ -118,6 +151,7 @@ for ChinIND=1:length(Chins2Run)
                     end
                     EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors);
                 case 'OAE'
+                    cd(CODEdir)
                     switch EXPname2
                         case 'DPOAE'
                             DPsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors);
@@ -127,6 +161,7 @@ for ChinIND=1:length(Chins2Run)
                             TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors);
                     end
                 case 'MEMR'
+                    cd(CODEdir)
                     WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,shapes,colors)
             end
         end

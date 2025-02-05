@@ -3,16 +3,13 @@ function save_file2_HG
 global num freq spl animal date freq_level data abr ABRmag w hearingStatus abr_out_dir abr_Stimuli ...
     AR_marker abr_time abr_FIG ChinCondition ChinFile ChinID date_abr today_date
 
-today = datetime('now');
-today_date = datestr(today);
-today_date = [today_date(1:2), today_date(4:6), today_date(8:11)];
 ChinDir = abr_out_dir;
 cd(ChinDir)
 % check if previous files have been saved
 if freq~=0
-    file_check = dir(sprintf('*Q%s_%s_%s_%dHz*.mat',num2str(animal),ChinCondition,ChinFile,freq));
+    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),cell2mat(ChinCondition),freq));
 else
-    file_check = dir(sprintf('*Q%s_%s_%s_click*.mat',num2str(animal),ChinCondition,ChinFile));
+    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),cell2mat(ChinCondition)));
 end
 filename = {file_check.name};
 freq2=ones(1,num)*freq; replaced=0;
@@ -94,7 +91,6 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
                 idx = strfind(abr_FIG.parm_txt(9).String,'.mat');
                 filename_out = [abr_FIG.parm_txt(9).String(1:idx-12-1)];
                 save(filename_out, 'abrs','-append'); clear abrs;
-                save(filename2, 'abrs','-append'); clear abrs;
             end
         elseif  contains(answer, 'No') || isempty(filename) || isempty(abr_FIG.parm_txt(9).String)%Creates new version file
             if freq~=0
@@ -132,7 +128,6 @@ if ~isempty(filename) && ~isempty(abr_FIG.parm_txt(9).String) % Replace file con
                 end
                 filename_out = filename3;
                 save(filename_out,'abrs');
-                filename_out = filename3;
             end
             %HG ADDED 2/11/20
             abrs.AR_marker = AR_marker;
@@ -177,7 +172,6 @@ elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file 
         end
         filename_out = filename3;
         save(filename_out,'abrs');
-        filename_out = filename3;
     end
     %HG ADDED 2/11/20
     abrs.AR_marker = AR_marker;
@@ -186,12 +180,13 @@ elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file 
     close;
 else    %Save first file if no prior files exist
     if freq~=0
+        filename2 = sprintf('Q%s_%s_ABRpeaks_%dHz',num2str(animal),cell2mat(ChinCondition),freq);
         prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
-        filename2 = sprintf('Q%s_%s_%s_%dHz_%s',num2str(animal),ChinCondition,ChinFile,freq,today_date);
     else
+        filename2 = sprintf('Q%s_%s_ABRpeaks_click',num2str(animal),cell2mat(ChinCondition));
         prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
-        filename2 = sprintf('Q%s_%s_%s_click_%s',num2str(animal),ChinCondition,ChinFile,today_date);
     end
+    
     waitbar(0,prompt_peak_save);
     pause(.5);
     close;

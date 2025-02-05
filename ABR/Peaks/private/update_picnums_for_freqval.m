@@ -37,7 +37,7 @@ if ~isempty(data)
         end
     end
 end
-ExpDir = dataFolderpath;
+ExpDir = abr_data_dir;
 cd(ExpDir);
 if freq_val_kHz~=0
     allfiles=dir(['a*ABR*' num2str(round(freq_val_kHz*1e3)) '*.mat']);
