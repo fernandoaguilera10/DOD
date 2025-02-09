@@ -45,9 +45,11 @@ freqs=NaN*ones(1,num);
 attn=NaN*ones(1,num);
 %HG ADDED 2/26/20
 if viewraw == 0 %AC corrected data
-    hhh=dir(sprintf('a%04d*.mat',pic(1)));
+    %hhh=dir(sprintf('a%04d*.mat',pic(1)));
+    hhh=dir(sprintf('p%04d*.mat',pic(1)));
 else %RAW data
-    hhh=dir(sprintf('RAW/a%04d*.mat',pic(1)));
+    %hhh=dir(sprintf('RAW/a%04d*.mat',pic(1)));
+    hhh=dir(sprintf('RAW/p%04d*.mat',pic(1)));
 end
 %Make sure you are looking at a file, NOT ARAW file
 if (contains(hhh.name,'araw') && (viewraw == 0))
@@ -56,10 +58,12 @@ end
 if exist(hhh.name,'file') && ~isempty(hhh)
     for i=1:num
         if viewraw == 0 %AC corrected data
-            fname=dir(sprintf('a%04d*.mat',pic(i)));
+            %fname=dir(sprintf('a%04d*.mat',pic(i)));
+            fname=dir(sprintf('p%04d*.mat',pic(i)));
             filename=fname.name;
         else %RAW data
-            fname=dir(sprintf('RAW/a%04d*.mat',pic(i)));
+            %fname=dir(sprintf('RAW/a%04d*.mat',pic(i)));
+            fname=dir(sprintf('RAW/p%04d*.mat',pic(i)));
             filename = [fname.folder,'/',fname.name];
         end
 %         eval(['x=' filename ';'])
@@ -95,17 +99,24 @@ if exist(hhh.name,'file') && ~isempty(hhh)
             if (isa(x.AD_Data.AD_Avg_V, 'double') == 0)
                 if (isa(x.AD_Data.AD_Avg_V{1}, 'double') == 0)
                     x.AD_Data.AD_Avg_V{1}{1} = resample(x.AD_Data.AD_Avg_V{1}{1},fs_needed,fs_curr);
-                    abr(:,i)=x.AD_Data.AD_Avg_V{1}{1}'-mean(x.AD_Data.AD_Avg_V{1}{1}); % removes DC offset
+                    x.AD_Data.AD_All_V{1}{1} = resample(x.AD_Data.AD_All_V{1}{1},fs_needed,fs_curr);
+                    %abr(:,i)=x.AD_Data.AD_Avg_V{1}{1}'-mean(x.AD_Data.AD_Avg_V{1}{1}); % removes DC offset
+                    abr(:,i)=mean(x.AD_Data.AD_All_V{1}{1})'-mean(mean(x.AD_Data.AD_All_V{1}{1})); % removes DC offset
                 else
                     x.AD_Data.AD_Avg_V{1} = resample(x.AD_Data.AD_Avg_V{1},fs_needed,fs_curr);
-                    abr(:,i)=x.AD_Data.AD_Avg_V{1}'-mean(x.AD_Data.AD_Avg_V{1}); % removes DC offset
+                    x.AD_Data.AD_All_V{1} = resample(x.AD_Data.AD_All_V{1},fs_needed,fs_curr);
+                    %abr(:,i)=x.AD_Data.AD_Avg_V{1}'-mean(x.AD_Data.AD_Avg_V{1}); % removes DC offset 
+                    abr(:,i)=mean(x.AD_Data.AD_All_V{1})'-mean(mean(x.AD_Data.AD_All_V{1})); % removes DC offset
                 end
             else
                 x.AD_Data.AD_Avg_V = resample(x.AD_Data.AD_Avg_V,fs_needed,fs_curr);
-                abr(:,i)=x.AD_Data.AD_Avg_V'-mean(x.AD_Data.AD_Avg_V); % removes DC offset
+                x.AD_Data.AD_All_V = resample(x.AD_Data.AD_All_V,fs_needed,fs_curr);
+                %abr(:,i)=x.AD_Data.AD_Avg_V'-mean(x.AD_Data.AD_Avg_V); % removes DC offset
+                abr(:,i)=mean(x.AD_Data.AD_All_V)'-mean(mean(x.AD_Data.AD_All_V)); % removes DC offset
             end
         else
-            abr(:,i)=x.AD_Data.AD_Avg_V'-mean(x.AD_Data.AD_Avg_V);
+            %abr(:,i)=x.AD_Data.AD_Avg_V'-mean(x.AD_Data.AD_Avg_V);
+            abr(:,i)=mean(x.AD_Data.AD_All_V)'-mean(mean(x.AD_Data.AD_All_V));
         end
         if abr(end,i)>max(abr(1:end-1,i)) % Weird DC except at last point. Remove DC, remove last point, again remove new DC.
             abr(end,i)=0;

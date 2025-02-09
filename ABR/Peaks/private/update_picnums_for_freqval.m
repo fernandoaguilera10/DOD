@@ -45,7 +45,8 @@ if freq_val_kHz~=0
         allfiles=dir(['p*ABR*' num2str(round(freq_val_kHz*1e3)) '*.mat']);
     end
 elseif freq_val_kHz==0
-    allfiles=dir('a*ABR*click*.mat');
+    %allfiles=dir('a*ABR*click*.mat');
+    allfiles=dir('p*ABR*click*.mat');
     if isempty(allfiles)
         allfiles=dir('p*ABR*click*.mat');
     end
