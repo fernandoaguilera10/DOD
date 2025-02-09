@@ -233,12 +233,12 @@ if exist(datapath,"dir")
     filename = cell2mat([subject,'_',condition]);
     print(abr_vis,[filename,'_ABRwaves.png'],'-dpng','-r300');
     print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
-    print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
+    %print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
     
     abr_out.freqs = freqs;
     abr_out.thresholds = thresh;
     abr_out.subj = subject;
-    save([filename,'_ABRdata.mat'],'abr_out');
+    save([filename,'_ABRthresholds.mat'],'abr_out');
     cd(cwd);
 else
     fprintf('No data directory found.\n');
