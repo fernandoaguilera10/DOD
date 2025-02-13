@@ -1,7 +1,7 @@
 clc; close all;
 reanalyze = 0; % 1 = redo analysis      0 = skip analysis
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438'};
+Chins2Run={'Q438','Q445','Q446'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -30,7 +30,7 @@ ylimits_ind_abr_peaks = [0,2];
 ylimits_avg_abr_peaks = [-1,4];
 ylimits_ind_abr_lat = [4,10];
 ylimits_avg_abr_lat = [0,15];
-shapes = ["o";"square";"diamond";"^";"pentagram";"v"];
+shapes = ["o";"square";"diamond";"^";"v";"pentagram"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
 %% Analysis Code
 cwd = pwd;
@@ -101,7 +101,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Thresholds'
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
                         case 'Peaks'
-                            abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition)
+                            abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition)
                     end
                 case 'EFR'
                     switch EXPname2
@@ -134,7 +134,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Peaks'
                             ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,'Peaks');
                         case 'Waveforms'
-                            ABRwaveform()
+                            %% ABRwaveform()
                     end
                 case 'EFR'
                     cd(CODEdir)

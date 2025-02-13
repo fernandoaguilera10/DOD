@@ -1,4 +1,4 @@
-function abr_peaks_setup(ROOTdir,datapath,outpath,subject,condition)
+function abr_peaks_setup(ROOTdir,CODEdir,datapath,outpath,subject,condition)
 global abr_root_dir abr_data_dir abr_out_dir animal ChinCondition ChinID
 ChinID = subject;
 ChinCondition = condition;
@@ -12,5 +12,6 @@ if ~exist(abr_out_dir,'dir')
     mkdir(abr_out_dir);
 end
 addpath(abr_root_dir);
+addpath(CODEdir)
 abr_analysis_HL;
 end

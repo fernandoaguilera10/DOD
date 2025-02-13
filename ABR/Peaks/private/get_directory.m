@@ -89,35 +89,35 @@ end
 % araw files exist if AR has already been performed - don't perform AR again
 % No araw files exist if AR - perform AR for ALL files
 
-TEMPdir=dir('*_AR*');
-a_files_all = dir('a*.mat'); %should we check for mat files here?
-if isempty(TEMPdir)
-    %If AR_marker exists, user set that AR does not need to be performed
-    %Load in first a file to check for AR_marker
-    if ~isempty(a_files_all)
-        load(a_files_all(1).name);
-    else
-        return;
-    end
-    %     load(a_files_all(1.name);
-    %     x = ans;
-    %AR_marker = x.AR_marker;
-    %If AR_marker does not exist, call artifact rejection
-    %if ~exist('AR_marker','var')
-    if ~isfield(x,'AR_marker')
-        %Call AR if no araw files exist AND AR_marker does not exist
-        %Only calls abr_artifact_rejection if AR needs to be performed
-        abr_artifact_rejection;
-    else %tell user that previous user indicated that AR does not need to be performed
-        uiwait(warndlg('A previous user has indicated that AR does not need to be performed on this data set.','Artifact Correction NOT NECESSARY','modal'));
-        %AFTER FIRST GO-AROUND - data has already been processed
-        %Unable "view raw data" checkbox - because AC doesnt exist
-        set(han.viewraw,'Enable','off');
-        dimcheck = 1;
-    end
-else
-    uiwait(warndlg('This folder has already been artifact corrected.','Artifact Correction COMPLETE','modal'));
-    viewraw = 0;
-end
+% TEMPdir=dir('*_AR*');
+% a_files_all = dir('a*.mat'); %should we check for mat files here?
+% if isempty(TEMPdir)
+%     %If AR_marker exists, user set that AR does not need to be performed
+%     %Load in first a file to check for AR_marker
+%     if ~isempty(a_files_all)
+%         load(a_files_all(1).name);
+%     else
+%         return;
+%     end
+%     %     load(a_files_all(1.name);
+%     %     x = ans;
+%     %AR_marker = x.AR_marker;
+%     %If AR_marker does not exist, call artifact rejection
+%     %if ~exist('AR_marker','var')
+%     if ~isfield(x,'AR_marker')
+%         %Call AR if no araw files exist AND AR_marker does not exist
+%         %Only calls abr_artifact_rejection if AR needs to be performed
+%         abr_artifact_rejection;
+%     else %tell user that previous user indicated that AR does not need to be performed
+%         uiwait(warndlg('A previous user has indicated that AR does not need to be performed on this data set.','Artifact Correction NOT NECESSARY','modal'));
+%         %AFTER FIRST GO-AROUND - data has already been processed
+%         %Unable "view raw data" checkbox - because AC doesnt exist
+%         set(han.viewraw,'Enable','off');
+%         dimcheck = 1;
+%     end
+% else
+%     uiwait(warndlg('This folder has already been artifact corrected.','Artifact Correction COMPLETE','modal'));
+%     viewraw = 0;
+% end
 CURdir = pwd;
 cd(CURdir) % return after artifact correction

@@ -4,7 +4,7 @@ function datafile = load_files(path,filename)
         cd(path);
         datafile = dir(fullfile(cd,filename));
         if length(datafile) < 1 || isempty(datafile)
-            fprintf('No files for this subject...Quitting.\n')
+            fprintf('No analyzed files for this subject.\n')
             cd(cwd);
             return
         elseif size(datafile,1) > 1

@@ -38,17 +38,24 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     if strcmp(analysis_type,'Thresholds')
         fig_num_avg = length(Chins2Run)+1;
         % Plot individual lines
-        [average,idx] = avg_abr(abr_f,abr_thresholds,Chins2Run,Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type);
+        [average,idx] = avg_abr(abr_f,abr_thresholds,Chins2Run,Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type,[]);
         % Plot average lines
         outpath = strcat(OUTdir,filesep,'ABR');
         filename = 'ABR_Thresholds_Average_dBSPL';
-        plot_avg_abr(average,analysis_type,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,[],[],idx_plot_relative)
+        plot_avg_abr(average,analysis_type,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative)
     elseif strcmp(analysis_type,'Peaks')
-        fig_num_avg = length(Conds2Run)+1;
-        [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type);
+        % Peak-to-peak amplitude
+        fig_num_avg = ((ChinIND - 1) * length(Conds2Run) + CondIND)+1;
+        [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type,'Amplitude');
         outpath = strcat(OUTdir,filesep,'ABR');
-        filename = 'ABR_Peaks_Average';
-        plot_avg_abr(average,analysis_type,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,[],ylimits_avg_peaks,ylimits_avg_lat,idx_plot_relative)
+        filename = 'ABR_PeakAmplitude_Average';
+        plot_avg_abr(average,analysis_type,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude')
+        % Peak latency
+        fig_num_avg = ((ChinIND - 1) * length(Conds2Run) + CondIND)+2;
+        [average,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type,'Latency');
+        outpath = strcat(OUTdir,filesep,'ABR'); cd(cwd);
+        filename = 'ABR_PeakLatency_Average';
+        plot_avg_abr(average,analysis_type,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency')
     end
 end
 cd(cwd);
