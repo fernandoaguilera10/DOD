@@ -2,7 +2,7 @@ function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,ChinIND,C
 global legend_string
 condition = strsplit(Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'Thresholds')
-    fig_num = ChinID;
+    fig_num = ChinIND;
     x_units = 'Frequency (kHz)';
     y_units = 'Threshold (dB SPL)';
     filename = cell2mat([Chins2Run(ChinIND),condition,'_ABRthresholds',]);
@@ -32,22 +32,24 @@ elseif strcmp(plot_type,'Peaks')
     left_width = 0.40;  % Left side takes half the figure
     right_width = 0.40; % Right side takes half the figure
     height = 0.375;     % Height for each of the stacked plots
-    fig_num = CondIND;
+    fig_num = (ChinIND - 1) * length(Conds2Run) + CondIND;
     figure(fig_num);
-    
     % Peak plots
     subplot('Position', [0.08,height+0.15, left_width, height]);
     for i=1:2:width(data.peak_amplitude)-1
+        % peak-to-peak amplitude
         plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
+        % absolute amplitude
         %plot(data.levels, data.peak_amplitude(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
         hold on;
     end
     if ~isempty(ylimits_peaks)
         ylim(ylimits_peaks);
     end
+    xlim([-inf,inf]);
     hold off;
     ylabel(y_units_amp, 'FontWeight', 'bold')
-    level_ticks = round(unique(data.levels));
+    level_ticks = unique(round(data.levels));
     xticks(level_ticks);
     sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),Conds2Run{CondIND},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
     
@@ -60,6 +62,7 @@ elseif strcmp(plot_type,'Peaks')
     if ~isempty(ylimits_lat)
         ylim(ylimits_lat);
     end
+    xlim([-inf,inf]);
     hold off;
     ylabel(y_units_lat, 'FontWeight', 'bold')
     xlabel(x_units, 'FontWeight', 'bold')
@@ -90,6 +93,7 @@ elseif strcmp(plot_type,'Peaks')
     yticks(flip(mean(wform_plot)));
     yticklabels(flip(round(data.levels)));
     ylim([1.05*min(min(wform_plot)),0])
+    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
 end
 %% Export
 cd(outpath);

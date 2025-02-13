@@ -44,18 +44,36 @@ if exist(datapath,'dir')
         [f, ~, ~, PLV_env, ~, ~, T_env] = helper.getSpectAverage(pos,neg, fs, subset, k_iters);
         t = (1:length(T_env))/fs;
         %% Get Peaks
-        [PKS,LOCS] = helper.getPeaks(f,PLV_env,fmod,harmonics);
+        [pks,locs] = helper.getPeaks(f,PLV_env,fmod,harmonics);
+        cutoff = 2500; % noise cutoff frequency in Hz
+        idx = round(length(PLV_env)/(fs/2)*cutoff);
+        noise = PLV_env(idx:end);
+        noise = [nan(idx,1);PLV_env(idx+1:end)];
+        threshold = nanmean(noise) + 3*nanstd(noise);
+        PKS_real = nan(size(pks));
+        LOCS_real = nan(size(locs));
+        real_peak_idx = find(pks > threshold);
+        LOCS_real(real_peak_idx) = locs(real_peak_idx);
+        PKS_real(real_peak_idx) = pks(real_peak_idx);
+        im_peak_idx = find(pks < threshold);
+        LOCS_im = locs(im_peak_idx);
+        PKS_im = pks(im_peak_idx);
         %% Plot:
         blck = [0.25, 0.25, 0.25];
         rd = [0.8500, 0.3250, 0.0980, 0.5];
+        yl = [237,177,32]/255;
+        gr = [0, 192, 0]/255;
         figure;
         %Spectral Domain
         hold on;
         title([subject,' | ', num2str(fmod),' Hz RAM - 25% Duty Cycle | ',condition, ' | ',num2str(level_spl), ' dB SPL (n = 200)'],'FontSize',14);
         plot(f,PLV_env,'Color',blck,'linewidth',1.5);
-        plot(LOCS,PKS,'*','Color',rd,'MarkerSize',10,'LineWidth',2);
+        %plot(f,noise,'Color',yl,'linewidth',1.5);
+        plot(LOCS_real,PKS_real,'*','Color',gr,'MarkerSize',10,'LineWidth',2);
+        plot(LOCS_im,PKS_im,'*','Color',rd,'MarkerSize',10,'LineWidth',2);
+        plot(f,threshold*ones(size(f)),'--','Color',blck,'linewidth',1.5);
         hold off;
-        ylim([0,1])
+        ylim([0,1.05]);
         ylabel('PLV','FontWeight','bold')
         xlabel('Frequency(Hz)','FontWeight','bold')
         %Time Domain
@@ -73,7 +91,7 @@ if exist(datapath,'dir')
         xlabel('Time(s)','FontWeight','bold');
         ylabel('Amplitude \muV','FontWeight','bold')
         hold off
-        set(gcf,'Position',[600 420 650 420]);
+        set(gcf,'Position',[500 420 650 420]);
         %% Export:
         cd(outpath);
         datafile_str = datafile(i).name;
@@ -83,8 +101,9 @@ if exist(datapath,'dir')
         efr.t_env = T_env;
         efr.f = f;
         efr.plv_env = PLV_env;
-        efr.peaks = PKS;
-        efr.peaks_locs = LOCS;
+        efr.peaks = PKS_real;
+        efr.peaks_locs = LOCS_real;
+        efr.peaks_locs_all = locs;
         efr.spl = level_spl;
         save(fname,'efr')
     end

@@ -1,5 +1,5 @@
 function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,colors,shapes)% EFR summary
-global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq
+global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(Conds2Run{CondIND}, filesep);
@@ -15,6 +15,7 @@ if exist(outpath,"dir")
     efr_PLV{ChinIND,CondIND} = efr.plv_env';
     efr_peak_amp{ChinIND,CondIND} = efr.peaks;
     efr_peak_freq{ChinIND,CondIND} = efr.peaks_locs;
+    efr_peak_freq_all{ChinIND,CondIND} = efr.peaks_locs_all;
     plot_ind_efr(efr,'RAM',colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath)
     cd(cwd)
 else
@@ -24,11 +25,11 @@ end
 fig_num_avg = length(Chins2Run)+1;
 if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     % Plot individual lines
-    [average,idx] = avg_efr(efr_peak_freq,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative);
+    [average,idx] = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative);
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'EFR');
     filename = ['EFR_RAM223_Average_',num2str(level_spl),'dBSPL'];
-    plot_avg_efr(average,'RAM',level_spl,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
+    plot_avg_efr(average,efr_peak_freq_all,'RAM',level_spl,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
 end
 cd(cwd);
 end

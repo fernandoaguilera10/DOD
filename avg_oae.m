@@ -25,7 +25,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_oae_band{1,cols} = mean([avg_oae_band{1,cols}; oae_amp_band{rows, cols}],1);
             avg_nf_band{1,cols} = mean([avg_nf_band{1,cols}; oae_nf_band{rows, cols}],1);
             all_oae_band{rows,cols} = oae_amp_band{rows, cols};
-            oae_band_std{1,cols} = std(cell2mat(all_oae_band(:,cols)));
+            oae_band_std{1,cols} = std(cell2mat(all_oae_band(:,cols)),0,1);
             % check if data is present for a given timepoint and subject
             if idx(rows,cols) == 1
                 % Plot individual traces with average
@@ -46,7 +46,7 @@ elseif ~isempty(idx_plot_relative)
                 avg_oae_band{1,cols-1} = mean([avg_oae_band{1,cols-1}; oae_amp_band{rows, cols}-oae_amp_band{rows, idx_plot_relative}],1);
                 avg_nf_band{1,cols-1} = mean([avg_nf_band{1,cols-1}; oae_nf_band{rows, cols}-oae_nf_band{rows, idx_plot_relative}],1);
                 all_oae_band{rows,cols-1} = oae_amp_band{rows, cols}-oae_amp_band{rows, idx_plot_relative};
-                oae_band_std{1,cols-1} = std(cell2mat(all_oae_band(:,cols-1)));
+                oae_band_std{1,cols-1} = std(cell2mat(all_oae_band(:,cols-1)),0,1);
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average

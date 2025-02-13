@@ -19,7 +19,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_elicitor{1,cols} = mean([avg_elicitor{1,cols}; elicitor{rows, cols}],1);
             avg_deltapow{1,cols} = mean([avg_deltapow{1,cols}; deltapow{rows, cols}],1);
             all_deltapow{rows,cols} = deltapow{rows, cols};
-            deltapow_std{1,cols} = std(cell2mat(all_deltapow(:,cols)));
+            deltapow_std{1,cols} = std(cell2mat(all_deltapow(:,cols)),0,1);
             % check if data is present for a given timepoint and subject
             if idx(rows,cols) == 1
                 % Plot individual traces with average
@@ -37,7 +37,7 @@ elseif ~isempty(idx_plot_relative)
                 avg_elicitor{1,cols-1} = mean([avg_elicitor{1,cols-1}; elicitor{rows, cols}],1);
                 avg_deltapow{1,cols-1} = mean([avg_deltapow{1,cols-1}; deltapow{rows, cols}-deltapow{rows, idx_plot_relative}],1);
                 all_deltapow{rows,cols-1} = deltapow{rows, cols}-deltapow{rows, idx_plot_relative};
-                deltapow_std{1,cols-1} = std(cell2mat(all_deltapow(:,cols-1)));
+                deltapow_std{1,cols-1} = std(cell2mat(all_deltapow(:,cols-1)),0,1);
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average

@@ -22,7 +22,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_peaks_locs{1,cols} = mean([avg_peaks_locs{1,cols}; peaks_locs{rows, cols}],1);
             avg_peaks{1,cols} = mean([avg_peaks{1,cols}; peaks{rows, cols}],1);
             all_peaks{rows,cols} = peaks{rows, cols};
-            peaks_std{1,cols} = std(cell2mat(all_peaks(:,cols)));
+            peaks_std{1,cols} = std(cell2mat(all_peaks(:,cols)),0,1);
             avg_plv_env{1,cols} = mean([avg_plv_env{1,cols}; plv_env{rows, cols}],1);
             avg_f{1,cols} = mean([avg_f{1,cols}; f{rows, cols}],1);
             if idx(rows,cols) == 1
@@ -39,7 +39,7 @@ elseif ~isempty(idx_plot_relative)
                 avg_peaks_locs{1,cols-1} = mean([avg_peaks_locs{1,cols-1}; peaks_locs{rows, cols}],1);
                 avg_peaks{1,cols-1} = mean([avg_peaks{1,cols-1}; peaks{rows, cols}-peaks{rows, idx_plot_relative}],1);
                 all_peaks{rows,cols-1} = peaks{rows, cols}-peaks{rows, idx_plot_relative};
-                peaks_std{1,cols-1} = std(cell2mat(all_peaks(:,cols-1)));
+                peaks_std{1,cols-1} = std(cell2mat(all_peaks(:,cols-1)),0,1);
                 avg_plv_env{1,cols-1} = mean([avg_plv_env{1,cols-1}; plv_env{rows, cols}-plv_env{rows, idx_plot_relative}],1);
                 avg_f{1,cols-1} = mean([avg_f{1,cols-1}; f{rows, cols}],1);
                 % check if data is present for a given timepoint and subject
