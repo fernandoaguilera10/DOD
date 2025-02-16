@@ -17,9 +17,10 @@ if strcmp(plot_type,'Thresholds')
     xticks(data.freqs);
     xticklabels({'Click', '0.5', '1', '2', '4', '8'});
     legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
-    legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8)
+    legend(legend_string,'Location','southoutside','Orientation','horizontal')
     legend boxoff; grid on;
-    title(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))), 'FontSize', 16);
+    title(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))));
+    set(gca,'FontSize',15);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Peak-to-Peak Amplitude (\muV)';
@@ -51,8 +52,8 @@ elseif strcmp(plot_type,'Peaks')
     ylabel(y_units_amp, 'FontWeight', 'bold')
     level_ticks = unique(round(data.levels));
     xticks(level_ticks);
-    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),Conds2Run{CondIND},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
-    
+    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),Conds2Run{CondIND},freq),'FontWeight', 'bold'); grid on;
+    set(gca,'FontSize',15);
     % Latency plots
     subplot('Position', [0.08, 0.10, left_width, height]);
     for i=1:2:width(data.peak_latency)
@@ -69,8 +70,9 @@ elseif strcmp(plot_type,'Peaks')
     xticks(level_ticks);
     xticklabels(level_ticks); grid on;
     legend_string = {'w1','w2','w3','w4','w5'};
-    legend(legend_string,'Location','northoutside','Orientation','horizontal','FontSize',8)
+    legend(legend_string,'Location','northoutside','Orientation','horizontal')
     legend boxoff;
+    set(gca,'FontSize',15);
 
     % Waveform plots
     subplot('Position', [right_width+0.16, 0.10, right_width, 0.80]);
@@ -94,6 +96,7 @@ elseif strcmp(plot_type,'Peaks')
     yticklabels(flip(round(data.levels)));
     ylim([1.05*min(min(wform_plot)),0])
     set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
+    set(gca,'FontSize',15);
 end
 %% Export
 cd(outpath);

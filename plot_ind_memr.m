@@ -6,11 +6,12 @@ plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','li
 xlim(xlimits);
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
-set(gca, 'XScale', 'log', 'FontSize', 14);
+set(gca, 'XScale', 'log');
 legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
-legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8)
+legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
-title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}), 'FontSize', 16)
+title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}));
+set(gca,'FontSize',15);
 %% Export
 cd(outpath);
 filename = cell2mat([Chins2Run(ChinIND),'_MEMR_WB_',condition{2}]);

@@ -23,16 +23,17 @@ plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:))
 plot(data_new.f, data_new.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
 plot(data_new.centerFreq, data_new.bandOAE, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
 plot(data_new.centerFreq, data_new.bandNF, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
-set(gca, 'XScale', 'log', 'FontSize', 14)
+set(gca, 'XScale', 'log');
 xlim([.5, 16])
 ylim(ylimits);
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')
 legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
-legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8)
+legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
-title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}), 'FontSize', 16)
+title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}))
+set(gca,'FontSize',15);
 %% Export
 cd(outpath);
 print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');

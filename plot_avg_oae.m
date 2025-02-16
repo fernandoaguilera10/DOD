@@ -20,15 +20,16 @@ if isempty(idx_plot_relative)
         errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
         plot(average.bandF, average.bandOAE{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
         %plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-        set(gca, 'XScale', 'log', 'FontSize', 14);
+        set(gca, 'XScale', 'log');
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
+        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
-        legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
+        legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;
         ylim(ylimits); grid on;
+        set(gca,'FontSize',15);
     end
 end
 
@@ -47,15 +48,16 @@ if ~isempty(idx_plot_relative)  %plot relative to
         plot(average.bandF, average.bandOAE{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'HandleVisibility','off');
         plot(average.bandF, zeros(size(average.bandF)),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
         %plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-        set(gca, 'XScale', 'log', 'FontSize', 14);
+        set(gca, 'XScale', 'log');
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))), 'FontSize', 16);
+        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
-        legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8);
+        legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;
         ylim(ylimits); grid on;
+        set(gca,'FontSize',15);
     end
 end
 %% Export

@@ -16,9 +16,10 @@ ylim([0,1]); hold off;
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')
 legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
-legend(legend_string,'Location','southoutside','Orientation','horizontal','FontSize',8)
+legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
-title(sprintf('EFR (%s) | %s | %.0f dB SPL',title_str, cell2mat(Chins2Run(ChinIND)),data.spl), 'FontSize', 16);
+title(sprintf('EFR (%s) | %s | %.0f dB SPL',title_str, cell2mat(Chins2Run(ChinIND)),data.spl));
+set(gca,'FontSize',15);
 %% Export
 cd(outpath);
 print(figure(ChinIND),[filename,'_figure'],'-dpng','-r300');

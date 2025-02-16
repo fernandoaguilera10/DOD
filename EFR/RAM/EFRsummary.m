@@ -29,7 +29,7 @@ if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'EFR');
     filename = ['EFR_RAM223_Average_',num2str(level_spl),'dBSPL'];
-    plot_avg_efr(average,efr_peak_freq_all,'RAM',level_spl,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
+    plot_avg_efr(average,efr_peak_freq_all,'RAM',level_spl,colors,shapes,idx,Chins2Run,Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
 end
 cd(cwd);
 end
