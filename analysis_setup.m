@@ -1,7 +1,7 @@
 clc; close all;
-reanalyze = 0; % 1 = redo analysis      0 = skip analysis
+reanalyze = 1; % 1 = redo analysis      0 = skip analysis
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445','Q446'};
+Chins2Run={'Q438'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -13,7 +13,7 @@ Chins2Run={'Q438','Q445','Q446'};
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7')};
+Conds2Run = {strcat('post',filesep,'D7')};
 plot_relative = {};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
@@ -23,9 +23,9 @@ plot_relative = {};
 ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-80,60];
 xlimits_memr = [50,105];
-ylimits_efr = [-0.6,1.2];
+ylimits_efr = [0,1.25];
 ylimits_ind_abr_threshold = [0,80];
-ylimits_avg_abr_threshold = [-20,20];
+ylimits_avg_abr_threshold = [0,50];
 ylimits_ind_abr_peaks = [0,2];
 ylimits_avg_abr_peaks = [-1,4];
 ylimits_ind_abr_lat = [4,10];
