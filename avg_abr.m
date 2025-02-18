@@ -85,14 +85,14 @@ elseif strcmp(analysis_type,'Peaks')
                     end
                 end
                 [~,idx_peaks] = unique(round(x{rows,cols})); idx_peaks = flip(idx_peaks);
-                avg_x{1,cols} = mean([avg_x{1,cols}, x{rows, cols}(idx_peaks,:)],2);
-                avg_w1{1,cols} = mean([avg_w1{1,cols}, peak{rows, cols}(idx_peaks,1)],2);
-                avg_w2{1,cols} = mean([avg_w2{1,cols}, peak{rows, cols}(idx_peaks,2)],2);
-                avg_w3{1,cols} = mean([avg_w3{1,cols}, peak{rows, cols}(idx_peaks,3)],2);
-                avg_w4{1,cols} = mean([avg_w4{1,cols}, peak{rows, cols}(idx_peaks,4)],2);
-                avg_w5{1,cols} = mean([avg_w5{1,cols}, peak{rows, cols}(idx_peaks,5)],2);
+                avg_x{1,cols} = nanmean([avg_x{1,cols}, x{rows, cols}(idx_peaks,:)],2);
+                avg_w1{1,cols} = nanmean([avg_w1{1,cols}, peak{rows, cols}(idx_peaks,1)],2);
+                avg_w2{1,cols} = nanmean([avg_w2{1,cols}, peak{rows, cols}(idx_peaks,2)],2);
+                avg_w3{1,cols} = nanmean([avg_w3{1,cols}, peak{rows, cols}(idx_peaks,3)],2);
+                avg_w4{1,cols} = nanmean([avg_w4{1,cols}, peak{rows, cols}(idx_peaks,4)],2);
+                avg_w5{1,cols} = nanmean([avg_w5{1,cols}, peak{rows, cols}(idx_peaks,5)],2);
                 w1and5 = peak{rows, cols}(idx_peaks,1)./peak{rows, cols}(idx_peaks,5);
-                avg_w1and5{1,cols} = mean([avg_w1and5{1,cols}, w1and5],2);
+                avg_w1and5{1,cols} = nanmean([avg_w1and5{1,cols}, w1and5],2);
                 all_w1{rows,cols} = peak{rows,cols}(idx_peaks,1);
                 all_w2{rows,cols} = peak{rows,cols}(idx_peaks,2);
                 all_w3{rows,cols} = peak{rows,cols}(idx_peaks,3);
@@ -108,9 +108,8 @@ elseif strcmp(analysis_type,'Peaks')
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(counter); hold on;
                     for i=1:5
-                        subplot(5,1,i); hold on;
+                        figure(counter+i-1); hold on;
                         %plot(x{rows, cols}, peak{rows, cols}(:,i),'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off')
                     end
                 end
@@ -128,14 +127,14 @@ elseif strcmp(analysis_type,'Peaks')
                 end
                 if cols ~= idx_plot_relative && idx(rows,cols) == 1
                     [~,idx_peaks] = unique(x{rows,cols}); idx_peaks = flip(idx_peaks);
-                    avg_x{1,cols-1} = mean([avg_x{1,cols-1}, x{rows, cols}(idx_peaks,:)],2);
-                    avg_w1{1,cols-1} = mean([avg_w1{1,cols-1}, peak{rows, cols}(idx_peaks,1)-peak{rows,idx_plot_relative}(idx_peaks,1)],2);
-                    avg_w2{1,cols-1} = mean([avg_w2{1,cols-1}, peak{rows, cols}(idx_peaks,2)-peak{rows,idx_plot_relative}(idx_peaks,2)],2);
-                    avg_w3{1,cols-1} = mean([avg_w3{1,cols-1}, peak{rows, cols}(idx_peaks,3)-peak{rows,idx_plot_relative}(idx_peaks,3)],2);
-                    avg_w4{1,cols-1} = mean([avg_w4{1,cols-1}, peak{rows, cols}(idx_peaks,4)-peak{rows,idx_plot_relative}(idx_peaks,4)],2);
-                    avg_w5{1,cols-1} = mean([avg_w5{1,cols-1}, peak{rows, cols}(idx_peaks,5)-peak{rows,idx_plot_relative}(idx_peaks,5)],2);
+                    avg_x{1,cols-1} = nanmean([avg_x{1,cols-1}, x{rows, cols}(idx_peaks,:)],2);
+                    avg_w1{1,cols-1} = nanmean([avg_w1{1,cols-1}, peak{rows, cols}(idx_peaks,1)-peak{rows,idx_plot_relative}(idx_peaks,1)],2);
+                    avg_w2{1,cols-1} = nanmean([avg_w2{1,cols-1}, peak{rows, cols}(idx_peaks,2)-peak{rows,idx_plot_relative}(idx_peaks,2)],2);
+                    avg_w3{1,cols-1} = nanmean([avg_w3{1,cols-1}, peak{rows, cols}(idx_peaks,3)-peak{rows,idx_plot_relative}(idx_peaks,3)],2);
+                    avg_w4{1,cols-1} = nanmean([avg_w4{1,cols-1}, peak{rows, cols}(idx_peaks,4)-peak{rows,idx_plot_relative}(idx_peaks,4)],2);
+                    avg_w5{1,cols-1} = nanmean([avg_w5{1,cols-1}, peak{rows, cols}(idx_peaks,5)-peak{rows,idx_plot_relative}(idx_peaks,5)],2);
                     w1and5 = (peak{rows, cols}(idx_peaks,1)./peak{rows, cols}(idx_peaks,5))-(peak{rows,idx_plot_relative}(idx_peaks,1)./peak{rows,idx_plot_relative}(idx_peaks,5));
-                    avg_w1and5{1,cols-1} = mean([avg_w1and5{1,cols-1}, w1and5],2);
+                    avg_w1and5{1,cols-1} = nanmean([avg_w1and5{1,cols-1}, w1and5],2);
                     all_w1{rows,cols-1} = peak{rows,cols}(idx_peaks,1)-peak{rows,idx_plot_relative}(idx_peaks,1);
                     all_w2{rows,cols-1} = peak{rows,cols}(idx_peaks,2)-peak{rows,idx_plot_relative}(idx_peaks,2);
                     all_w3{rows,cols-1} = peak{rows,cols}(idx_peaks,3)-peak{rows,idx_plot_relative}(idx_peaks,3);
@@ -151,9 +150,8 @@ elseif strcmp(analysis_type,'Peaks')
                     % check if data is present for a given timepoint and subject
                     if idx(rows,cols) == 1
                         % Plot individual traces with average
-                        figure(counter); hold on;
                         for i=1:5
-                            subplot(5,1,i); hold on;
+                            figure(counter+i-1); hold on;
                             %plot(x{rows, cols}, peak{rows, cols}(:,i)-peak{rows, idx_plot_relative}(:,i),'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off')
                         end
                     end

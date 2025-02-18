@@ -26,7 +26,7 @@ if isempty(idx_plot_relative)
         idx_peaks = ~isnan(average.peaks{1,cols});
         x_max = round(max(average.peaks_locs{1,cols}(idx_peaks)),-3);
         xlim([0,x_max]); set(gca,'xscale','linear');
-        xticks(round(average.peaks_locs{1,cols}));
+        set(gca,'FontSize',15); xticks(round(average.peaks_locs{1,cols}));
     end
     % Average PLV ratio
     figure(counter+1); hold on;
@@ -62,7 +62,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
         idx_peaks = ~isnan(average.peaks{1,cols});
         x_max = round(max(average.peaks_locs{1,cols}(idx_peaks)),-3);
         xlim([0,x_max]); set(gca,'xscale','linear');
-        xticks(round(average.peaks_locs{1,cols}));
+        set(gca,'FontSize',15); xticks(round(average.peaks_locs{1,cols}));
     end
     % Average PLV ratio
     figure(counter+1); hold on;

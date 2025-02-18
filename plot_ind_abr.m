@@ -6,7 +6,24 @@ if strcmp(plot_type,'Thresholds')
     x_units = 'Frequency (kHz)';
     y_units = 'Threshold (dB SPL)';
     filename = cell2mat([Chins2Run(ChinIND),condition,'_ABRthresholds',]);
+    left_width = 0.60;
+    right_width = 0.10; 
+    height = 0.80;     
     figure(fig_num); hold on;
+    % Click
+    subplot('Position', [left_width+0.18,0.17, right_width, height-0.07]);
+    plot(data.freqs, data.thresholds,'Marker',shapes(CondIND,:),'LineStyle','none', 'linew', 2, 'MarkerSize', 8, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+    if ~isempty(ylimits_threshold)
+        ylim(ylimits_threshold);
+    end 
+    hold off;
+    xticks(data.freqs);
+    xticklabels({'Click', '0.5', '1', '2', '4', '8'}); set(gca,'yticklabel',[]);
+    legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
+    legend(legend_string,'Location','southoutside','Orientation','horizontal'); grid on; set(legend,'visible','off')
+    set(gca,'FontSize',15); xlim([-1,1]);
+    % Frequency
+    subplot('Position', [0.15,0.10, left_width, height]);
     plot(data.freqs, data.thresholds,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
     if ~isempty(ylimits_threshold)
         ylim(ylimits_threshold);
@@ -14,13 +31,12 @@ if strcmp(plot_type,'Thresholds')
     hold off;
     ylabel(y_units, 'FontWeight', 'bold')
     xlabel(x_units, 'FontWeight', 'bold')
-    xticks(data.freqs);
+    xticks(data.freqs); xlim([-inf,inf]);
     xticklabels({'Click', '0.5', '1', '2', '4', '8'});
-    legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
     legend(legend_string,'Location','southoutside','Orientation','horizontal')
     legend boxoff; grid on;
-    title(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))));
-    set(gca,'FontSize',15);
+    sgtitle(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))),'FontSize', 16,'FontWeight','bold');
+    set(gca,'FontSize',15); set(gca,'xscale','log'); set(legend,'visible','on');
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Peak-to-Peak Amplitude (\muV)';
