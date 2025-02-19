@@ -1,7 +1,7 @@
 clc; close all;
-reanalyze = 1; % 1 = redo analysis      0 = skip analysis
+analyze = 1; % 1 = redo analysis      0 = skip analysis
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438'};
+Chins2Run={'Q438','Q445','Q446','Q447'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -13,7 +13,7 @@ Chins2Run={'Q438'};
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('post',filesep,'D7')};
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
 plot_relative = {};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
@@ -26,7 +26,7 @@ xlimits_memr = [50,105];
 ylimits_efr = [0,1.25];
 ylimits_ind_abr_threshold = [0,80];
 ylimits_avg_abr_threshold = [0,50];
-ylimits_ind_abr_peaks = [0,2];
+ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-1,4];
 ylimits_ind_abr_lat = [4,10];
 ylimits_avg_abr_lat = [0,15];
@@ -39,7 +39,7 @@ if ~isempty(plot_relative)
 else
     idx_plot_relative = [];
 end
-[EXPname, EXPname2] = analysis_menu;
+[EXPname, EXPname2, EXPname3] = analysis_menu;
 if ~exist('ROOTdir','var')
     uiwait(msgbox('Press OK to select root directory','Root Directory','help'));
     ROOTdir = uigetdir('', 'Select the root directory');
@@ -48,6 +48,18 @@ end
 [DATAdir, OUTdir, CODEdir] = get_directory(ROOTdir,EXPname,EXPname2);
 if strcmp(EXPname,'OAE')
     searchfile = ['*',EXPname2,'*.mat'];
+elseif strcmp(EXPname,'ABR')
+    switch EXPname2
+        case 'Thresholds'
+            searchfile = ['*',EXPname,'thresholds*.mat'];
+        case 'Peaks'
+            switch EXPname3
+                case 'Manual'
+                    searchfile = ['*',EXPname,'peaks*.mat'];
+                case 'DTW'
+                    searchfile = ['*',EXPname,'peaks_dtw*.mat'];
+            end
+    end
 else
     searchfile = ['*',EXPname,'*.mat'];
 end
@@ -63,7 +75,7 @@ for ChinIND=1:length(Chins2Run)
         file_check =  dir(fullfile(files{ChinIND,CondIND}.dir,searchfile));
         condition = strsplit(Conds2Run{CondIND}, filesep);
         cd(CODEdir);
-        if isempty(file_check) && isfolder(datapath)    % convert RAW data for analysis for no existing analyzed file
+        if isempty(file_check) && isfolder(datapath) || analyze == 1    % convert RAW data for analysis for no existing analyzed file
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
@@ -71,7 +83,14 @@ for ChinIND=1:length(Chins2Run)
                         case 'Thresholds'
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
                         case 'Peaks'
-                            abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
+                            switch EXPname3
+                                case 'Manual'
+                                    abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
+                                case 'DTW'
+                                    %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
+                                    %if ~exist(filepath,'dir'), mkdir(filepath), end
+                                    processClick_dtw(datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes)
+                            end
                     end
                 case 'EFR'
                     switch EXPname2
@@ -93,48 +112,22 @@ for ChinIND=1:length(Chins2Run)
                 case 'MEMR'
                     WBMEMRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
-        elseif ~isempty(file_check) && isfolder(datapath) && reanalyze == 1     % convert RAW data for existing analyzed file
-            fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
-            switch EXPname
-                case 'ABR'
-                    switch EXPname2
-                        case 'Thresholds'
-                            abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},Conds2Run,CondIND);
-                        case 'Peaks'
-                            abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition)
-                    end
-                case 'EFR'
-                    switch EXPname2
-                        case 'AM/FM'
-                            %% TBD
-                        case 'RAM'
-                            EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-                            cd(CODEdir)
-                    end
-                case 'OAE'
-                    switch EXPname2
-                        case 'DPOAE'
-                            DPanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-                        case 'SFOAE'
-                            SFanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-                        case 'TEOAE'
-                            TEanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-                    end
-                case 'MEMR'
-                    WBMEMRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
-            end
-        else
+        elseif ~isempty(file_check)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
             switch EXPname
                 case 'ABR'
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_threshold,[],[],ylimits_avg_abr_threshold,[],[],colors,shapes,'Thresholds');
+                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_threshold,[],[],ylimits_avg_abr_threshold,[],[],colors,shapes,EXPname2,EXPname3);
                         case 'Peaks'
-                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,'Peaks');
-                        case 'Waveforms'
-                            %% ABRwaveform()
+                            switch EXPname3
+                                case 'Manual'
+                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3);
+                                case 'DTW'
+                                    %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
+                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3);
+                            end
                     end
                 case 'EFR'
                     cd(CODEdir)
@@ -166,6 +159,17 @@ for ChinIND=1:length(Chins2Run)
                     cd(CODEdir)
                     WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,shapes,colors)
             end
+        elseif isempty(file_check) && ~isfolder(datapath)   % move files from Data/RAW directory into individual folder
+            cd(CODEdir)
+            if ismac
+                %source = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
+                sourcepath = '/Volumes/FefeSSD/DOD/Code Archive';
+            else
+                %source = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
+                sourcepath = 'D:\DOD\Data\RAW'; % SSD
+            end
+            %% TBD: READ TABLE TO KNOW WHICH ANIMALS/CONDITIONS TO READ
+            %move_files(Chins2Run,Conds2Run,sourcepath);
         end
     end
 end

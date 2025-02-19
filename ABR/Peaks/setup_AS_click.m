@@ -1,12 +1,12 @@
 %Setup file for directory information (ABR threshold)
 
-close all;
+%close all;
 clear;
 
 set(0,'defaultfigurerenderer','painters')
 
 condition = 'Baseline';
-subj = 'Q438';
+subj = 'Q445';
 
 export = 1;
 mode = 0; %0 - Process single chin, 1 - plot single chin pre/post, 2 - batch process all, 3 - plot compiled pre-post for all
