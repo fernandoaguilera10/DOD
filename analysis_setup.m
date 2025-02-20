@@ -11,12 +11,12 @@ else
     ROOTdir = 'D:\DOD'; % SSD
 end
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445','Q460'};
+Chins2Run={'Q438','Q445','Q446','Q488'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
 % 150 kPa: 'Q463'
-% NOISE:'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'
+% NOISE:'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'
 % Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
 % Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
 % Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
@@ -24,7 +24,7 @@ Chins2Run={'Q438','Q445','Q460'};
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
 Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-plot_relative = {};
+plot_relative = {strcat('pre',filesep,'Baseline')};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
@@ -77,7 +77,16 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
     chinroster_temp = readcell(chinroster_file);
     temp_idx = cellfun(@(x) any(isa(x,'missing')), chinroster_temp);
     chinroster_temp(temp_idx) = {NaN};
-    chins_idx = ismember(cellfun(@char, chinroster_temp(:,1), 'UniformOutput', false), cellfun(@char, Chins2Run, 'UniformOutput', false));
+    temp = zeros(1,length(chinroster_temp));
+    for i=3:length(chinroster_temp)
+        for j=1:length(Chins2Run)
+            if strcmp(chinroster_temp(i,1),Chins2Run{j})
+                temp(i) = 1;
+            end
+        end
+    end
+    chins_idx = find(temp==1);
+    Chins2Run = chinroster_temp(chins_idx,1);
     chinroster.ChinSex = chinroster_temp(chins_idx,2);
     switch EXPname
         case 'ABR'

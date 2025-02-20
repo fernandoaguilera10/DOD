@@ -17,7 +17,7 @@ if isempty(idx_plot_relative)
             xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('ABR Thresholds | Average (n = %.0f)',sum(idx(:,1))), 'FontSize', 16,'FontWeight','bold');
+            title(sprintf('ABR Thresholds | Average'), 'FontSize', 16,'FontWeight','bold');
             legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off; grid on;
@@ -33,10 +33,10 @@ if isempty(idx_plot_relative)
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = 'Peak-to-Peak Amplitude (\muV)';
-            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average (n = %.0f)',sum(idx(:,1)));
+            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average');
         elseif strcmp(peak_analysis,'Latency')
             y_units = 'Time (ms)';
-            title_str = sprintf('ABR Absolute Peak Latency | Average (n = %.0f)',sum(idx(:,1)));
+            title_str = sprintf('ABR Absolute Peak Latency | Average');
         end
         for cols = 1:length(average.w1)
             figure(counter); hold on; % wave 1
@@ -138,7 +138,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('ABR Thresholds | Average (n = %.0f)',sum(idx(:,1))), 'FontSize', 16);
+            title(sprintf('ABR Thresholds | Average'), 'FontSize', 16);
             legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off; grid on;
@@ -154,10 +154,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = sprintf('Peak-to-Peak Amplitude Shift (re. %s)',str_plot_relative{2});
-            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average (n = %.0f)',sum(idx(:,1)));
+            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average');
         elseif strcmp(peak_analysis,'Latency')
             y_units = sprintf('Latency Shift (re. %s)',str_plot_relative{2});
-            title_str = sprintf('ABR Absolute Peak Latency | Average (n = %.0f)',sum(idx(:,1)));
+            title_str = sprintf('ABR Absolute Peak Latency | Average');
         end
         for cols = 1:length(average.w1)
             figure(counter); hold on; % wave 1

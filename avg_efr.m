@@ -18,7 +18,7 @@ all_peaks{1,conds} = [];
 all_ratio{1,conds} = [];
 peaks_std{1,conds} = [];
 ratio_std{1,conds} = [];
-idx_peaks = 1:5;
+idx_peaks = 1:3;
 idx = ~cellfun(@isempty,peaks_locs);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
     for cols = 1:length(Conds2Run)
@@ -26,7 +26,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_peaks_locs{1,cols} = nanmean([avg_peaks_locs{1,cols}; peaks_locs{rows, cols}],1);
             avg_peaks{1,cols} = nanmean([avg_peaks{1,cols}; peaks{rows, cols}],1);
             if ~isempty(peaks{rows, cols})
-                peak_sum = sum(peaks{rows, cols}(idx_peaks))/nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
+                peak_sum = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/nansum(peaks{rows, cols}(idx_peaks));
             else
                 peak_sum = [];
             end
@@ -50,8 +50,8 @@ elseif ~isempty(idx_plot_relative)
             if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_peaks_locs{1,cols-1} = nanmean([avg_peaks_locs{1,cols-1}; peaks_locs{rows, cols}],1);
                 avg_peaks{1,cols-1} = nanmean([avg_peaks{1,cols-1}; peaks{rows, cols}-peaks{rows, idx_plot_relative}],1);
-                peak_sum1 = sum(peaks{rows, cols}(idx_peaks))/nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
-                peak_sum2 = sum(peaks{rows, idx_plot_relative}(idx_peaks))/nansum(peaks{rows, idx_plot_relative}(idx_peaks(end)+1:end));
+                peak_sum1 = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/nansum(peaks{rows, cols}(idx_peaks));
+                peak_sum2 = nansum(peaks{rows, idx_plot_relative}(idx_peaks(end)+1:end))/nansum(peaks{rows, idx_plot_relative}(idx_peaks));
                 avg_ratio{1,cols-1} = nanmean([avg_ratio{1,cols-1}; peak_sum1-peak_sum2],1);
                 all_peaks{rows,cols-1} = peaks{rows, cols}-peaks{rows, idx_plot_relative};
                 all_ratio{rows,cols-1} = peak_sum1-peak_sum2;

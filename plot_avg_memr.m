@@ -12,7 +12,7 @@ if isempty(idx_plot_relative)
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
         set(gca, 'XScale', 'log');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
+        title(sprintf('%s | Average',EXPname));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off; grid on;
@@ -33,7 +33,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel(y_units,'FontWeight', 'bold');
         set(gca, 'XScale', 'log');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
+        title(sprintf('%s | Average',EXPname));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off; grid on;
