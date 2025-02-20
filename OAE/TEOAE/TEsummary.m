@@ -20,7 +20,7 @@ if exist(outpath,"dir")
     te_amp_band_spl{ChinIND,CondIND} = data.spl.bandOAE';
     te_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
     fig_num_ind = ChinIND;
-    plot_ind_oae(data,'SPL','TEOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits_ind)
+    plot_ind_oae(data,'SPL','TEOAE',colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits_ind,shapes)
     cd(cwd);
 else
     fprintf('No directory found.\n');

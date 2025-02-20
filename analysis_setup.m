@@ -11,7 +11,7 @@ else
     ROOTdir = 'D:\DOD'; % SSD
 end
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445'};
+Chins2Run={'Q438','Q445','Q460'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -23,8 +23,8 @@ Chins2Run={'Q438','Q445'};
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14')};
-plot_relative = {strcat('pre',filesep,'Baseline')};
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+plot_relative = {};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
