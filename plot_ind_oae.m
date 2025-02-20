@@ -19,10 +19,11 @@ elseif strcmp(EXPname,'TEOAE')
     filename = cell2mat([Chins2Run(ChinIND),'_TEOAE_',condition{2},'_',plot_type,'_']);
 end
 figure(fig_num); hold on;
-plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:))
-plot(data_new.f, data_new.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
-plot(data_new.centerFreq, data_new.bandOAE, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
-plot(data_new.centerFreq, data_new.bandNF, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
+%plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:),'HandleVisibility','off')
+%plot(data_new.f, data_new.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
+plot(data_new.centerFreq, data_new.bandOAE,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+plot(data_new.centerFreq, data_new.bandNF, 'x','LineStyle','none', 'linew', 4, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
+plot(data_new.centerFreq, data_new.bandNF,'LineStyle','--', 'linew', 2, 'Color', [colors(CondIND,:),0.50],'HandleVisibility','off');
 set(gca, 'XScale', 'log');
 xlim([.5, 16])
 ylim(ylimits);

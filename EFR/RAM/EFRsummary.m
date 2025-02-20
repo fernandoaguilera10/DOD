@@ -1,4 +1,4 @@
-function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,colors,shapes)% EFR summary
+function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,colors,shapes,average_flag)% EFR summary
 global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all
 cwd = pwd;
 %% INDIVIDUAL PLOTS
@@ -23,7 +23,7 @@ else
 end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = length(Chins2Run)+1;
-if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     [average,idx] = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative);
     % Plot average lines

@@ -1,4 +1,4 @@
-function TEsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors)% TEOAE summary
+function TEsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag)% TEOAE summary
 global te_f_epl te_amp_epl te_nf_epl te_f_band_epl te_amp_band_epl te_nf_band_epl
 global te_f_spl te_amp_spl te_nf_spl te_f_band_spl te_amp_band_spl te_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -27,7 +27,7 @@ else
 end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = ChinIND+1;
-if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     [average_spl,idx] = avg_oae(te_f_spl,te_amp_spl,te_nf_spl,te_f_band_spl,te_amp_band_spl,te_nf_band_spl,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative);
     % Plot average lines

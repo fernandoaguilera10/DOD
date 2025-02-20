@@ -11,7 +11,7 @@ elseif strcmp(plot_type,'AM/FM')
     title_str = 'AM/FM 4 kHz';
 end
 figure(ChinIND); hold on;
-plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
 ylim([0,1]); hold off;
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')

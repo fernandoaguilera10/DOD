@@ -18,14 +18,18 @@ all_peaks{1,conds} = [];
 all_ratio{1,conds} = [];
 peaks_std{1,conds} = [];
 ratio_std{1,conds} = [];
-idx_peaks = 1:4;
+idx_peaks = 1:5;
 idx = ~cellfun(@isempty,peaks_locs);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
     for cols = 1:length(Conds2Run)
         for rows = 1:length(Chins2Run)
             avg_peaks_locs{1,cols} = nanmean([avg_peaks_locs{1,cols}; peaks_locs{rows, cols}],1);
             avg_peaks{1,cols} = nanmean([avg_peaks{1,cols}; peaks{rows, cols}],1);
-            peak_sum = sum(peaks{rows, cols}(idx_peaks))/nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
+            if ~isempty(peaks{rows, cols})
+                peak_sum = sum(peaks{rows, cols}(idx_peaks))/nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
+            else
+                peak_sum = [];
+            end
             avg_ratio{1,cols} = nanmean([avg_ratio{1,cols}; peak_sum],1);
             all_peaks{rows,cols} = peaks{rows, cols};
             all_ratio{rows,cols} = peak_sum;
@@ -65,6 +69,9 @@ elseif ~isempty(idx_plot_relative)
         end
     end
 end
+temp_idx = cellfun(@(x) any(isempty(x)), all_ratio);
+all_ratio(temp_idx) = {NaN};
+
 average.f = avg_f;
 average.plv_env = avg_plv_env;
 average.peaks_locs = avg_peaks_locs;

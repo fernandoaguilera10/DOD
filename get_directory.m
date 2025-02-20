@@ -24,8 +24,8 @@ end
 if counter == 0
     % Display the directories
     clc;
-    uiwait(msgbox('All directories loaded succesfully','Loaded Directories','help'));
-    fprintf('ROOT:\t %s',ROOTdir);
+    fprintf('All directories loaded succesfully:');
+    fprintf('\nROOT:\t %s',ROOTdir);
     fprintf('\nDATA:\t %s',DATAdir);
     fprintf('\nOUT:\t %s',OUTdir);
     fprintf('\nCODE:\t %s\n',CODEdir);

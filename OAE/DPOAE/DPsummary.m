@@ -1,4 +1,4 @@
-function DPsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors)% DPOAE swept summary
+function DPsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag)% DPOAE swept summary
 global dp_f_epl dp_amp_epl dp_nf_epl dp_f2_band_epl dp_amp_band_epl dp_nf_band_epl
 global dp_f2_spl dp_amp_spl dp_nf_spl dp_f2_band_spl dp_amp_band_spl dp_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -35,7 +35,7 @@ else
 end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = 2*length(Chins2Run);
-if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     [average_epl,idx] = avg_oae(dp_f_epl,dp_amp_epl,dp_nf_epl,dp_f2_band_epl,dp_amp_band_epl,dp_nf_band_epl,Chins2Run,Conds2Run,fig_num_avg+1,colors,idx_plot_relative);
     [average_spl,~] = avg_oae(dp_f2_spl,dp_amp_spl,dp_nf_spl,dp_f2_band_spl,dp_amp_band_spl,dp_nf_band_spl,Chins2Run,Conds2Run,fig_num_avg+2,colors,idx_plot_relative);
