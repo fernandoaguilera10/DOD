@@ -1,32 +1,12 @@
-function movefiles(Chins2Run,Conds2Run,sourcepath)
+function movefiles(Chins2Run,Conds2Run,sourcepath,EXPname,DATAdir,CODEdir)
 % Ensure the source directory exists
-if ~isfolder(source)
+if ~isfolder(sourcepath)
     error('Source directory does not exist.');
 end
-if ~exist('ROOTdir','var')
-    uiwait(msgbox('Press OK to select root directory','Root Directory','help'));
-    ROOTdir = uigetdir('', 'Select root directory');
-    addpath(strcat(ROOTdir,filesep,'Code Archive'));
-end
-% Display menu options at the center of the screen
-analysis_options = {'ABR', 'EFR', 'OAE', 'MEMR'};
-choice = listdlg('PromptString','Select file type: ','ListString',analysis_options,'SelectionMode','single','ListSize', [100 80]);
-% Check the user's choice
-switch choice
-    case 1
-        EXPname = 'ABR';
-    case 2
-        EXPname = 'EFR';
-    case 3
-        EXPname = 'OAE';
-    case 4
-        EXPname = 'MEMR';
-end
-[DATAdir, OUTdir, CODEdir] = get_directory(ROOTdir,EXPname,[]);
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         targetDir = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
-        temp = dir(fullfile(source, ['*',Chins2Run{ChinIND},'*']));
+        temp = dir(fullfile(sourcepath, ['*',Chins2Run{ChinIND},'*']));
         temp = temp([temp.isdir]); % Filter for directories only
         for i=1:length(temp)
             sourceDir_temp(i) = {temp(i).name};
@@ -36,7 +16,7 @@ for ChinIND=1:length(Chins2Run)
                 'SelectionMode', 'single', ...
                 'ListString', sourceDir_temp,'ListSize', [500 150]);
             if tf
-                sourceDir = cell2mat(strcat(source,filesep,sourceDir_temp(selectionIndex)));
+                sourceDir = cell2mat(strcat(sourcepath,filesep,sourceDir_temp(selectionIndex)));
             else
                 disp('\nPlease select the source directory');
                 sourceDir = [];

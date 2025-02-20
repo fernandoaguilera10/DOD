@@ -1,4 +1,4 @@
-function WBMEMRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits,shapes,colors)% WBMEMR Analysis
+function WBMEMRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits,shapes,colors,average_flag)% WBMEMR Analysis
 global elicitor deltapow
 % Author: Fernando Aguilera de Alba
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -21,7 +21,7 @@ else
     fprintf('No directory found.\n');
 end
 %% AVERAGE PLOTS (individual + average)
-if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     [average,idx] = avg_memr(elicitor,deltapow,Chins2Run,Conds2Run,colors,idx_plot_relative);
     % Plot average lines

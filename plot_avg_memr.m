@@ -5,9 +5,10 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.elicitor)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
-        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
-        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
+        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:),'HandleVisibility','off');
+        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
         xlim(xlimits);
+        xticks(xlimits(1):5:xlimits(2));
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
         set(gca, 'XScale', 'log');
@@ -24,10 +25,11 @@ if ~isempty(idx_plot_relative)  %plot relative to
     for cols = 1:length(average.elicitor)
         % Average MEMR
         figure(length(Chins2Run)+1); hold on;
-        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 8, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:));
-        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'HandleVisibility','off');
+        errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:),'HandleVisibility','off');
+        plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:));
         plot(average.elicitor{1,cols}, zeros(size(average.elicitor{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
         xlim(xlimits);
+        xticks(xlimits(1):5:xlimits(2));
         xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
         ylabel(y_units,'FontWeight', 'bold');
         set(gca, 'XScale', 'log');

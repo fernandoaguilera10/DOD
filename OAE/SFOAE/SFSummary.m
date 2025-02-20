@@ -1,4 +1,4 @@
-function SFsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors)% SFOAE swept summary
+function SFsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag)% SFOAE swept summary
 global sf_f_epl sf_amp_epl sf_nf_epl sf_f_band_epl sf_amp_band_epl sf_nf_band_epl
 global sf_f_spl sf_amp_spl sf_nf_spl sf_f_band_spl sf_amp_band_spl sf_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -35,7 +35,7 @@ else
 end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = 2*length(Chins2Run);
-if ChinIND == length(Chins2Run) && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     [average_epl,idx] = avg_oae(sf_f_epl,sf_amp_epl,sf_nf_epl,sf_f_band_epl,sf_amp_band_epl,sf_nf_band_epl,Chins2Run,Conds2Run,fig_num_avg+1,colors,idx_plot_relative);
     [average_spl,~] = avg_oae(sf_f_spl,sf_amp_spl,sf_nf_spl,sf_f_band_spl,sf_amp_band_spl,sf_nf_band_spl,Chins2Run,Conds2Run,fig_num_avg+2,colors,idx_plot_relative);
