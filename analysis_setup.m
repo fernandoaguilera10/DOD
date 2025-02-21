@@ -30,7 +30,7 @@ plot_relative = {strcat('pre',filesep,'Baseline')};
 % Week 2 = strcat('post',filesep,'D14')
 % Week 4 = strcat('post',filesep,'D30')
 %% Plot limits
-ylimits_avg_oae = [-inf,inf];
+ylimits_avg_oae = [-70,20];
 ylimits_ind_oae = [-inf,inf];
 xlimits_memr = [70,105];
 ylimits_efr = [0,1.25];
