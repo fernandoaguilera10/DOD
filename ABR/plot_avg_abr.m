@@ -1,4 +1,4 @@
-function plot_avg_abr(average,plot_type,colors,shapes,idx,Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis)
+function plot_avg_abr(average,plot_type,colors,shapes,idx,Chins2Run,Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 rows = 1:4; % plot highest 4 levels [90 80 70 60] dB SPL
@@ -26,8 +26,11 @@ if isempty(idx_plot_relative)
             end
             set(gca,'FontSize',15);
         end
+        average.subjects = Chins2Run;
+        average.conditions = Conds2Run;
         % Export
         cd(outpath);
+        save(filename,'average');
         print(figure(counter),[filename,'_figure'],'-dpng','-r300');
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';
@@ -111,8 +114,11 @@ if isempty(idx_plot_relative)
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
         end
+        average.subjects = Chins2Run;
+        average.conditions = Conds2Run;
         % Export
         cd(outpath);
+        save(filename,'average');
         print(figure(counter),[filename,'_w1_figure'],'-dpng','-r300');
         print(figure(counter+1),[filename,'_w2_figure'],'-dpng','-r300');
         print(figure(counter+2),[filename,'_w3_figure'],'-dpng','-r300');
@@ -132,6 +138,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             freq_threshold = [nan,average.y{1,cols}(2:end)];
             figure(counter); hold on;
             errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            %plot(freq, average.y{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(freq, freq_threshold,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             plot(freq, zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
             xticks(freq); xlim([0.5,6.5]);
@@ -147,8 +154,11 @@ if ~isempty(idx_plot_relative)  %plot relative to
             end
             set(gca,'FontSize',15);
         end
+        average.subjects = Chins2Run;
+        average.conditions = Conds2Run;
         % Export
         cd(outpath);
+        save(filename,'average');
         print(figure(counter),[filename,'_figure'],'-dpng','-r300');
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';
@@ -243,8 +253,11 @@ if ~isempty(idx_plot_relative)  %plot relative to
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
         end
+        average.subjects = Chins2Run;
+        average.conditions = Conds2Run;
         % Export
         cd(outpath);
+        save(filename,'average');
         print(figure(counter),[filename,'_w1_figure'],'-dpng','-r300');
         print(figure(counter+1),[filename,'_w2_figure'],'-dpng','-r300');
         print(figure(counter+2),[filename,'_w3_figure'],'-dpng','-r300');
