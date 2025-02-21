@@ -1,6 +1,6 @@
 clc; close all; clear all;
 reanalyze = 0; % 1 = redo analysis      0 = skip analysis
-efr_level = 80; % EFR Levels = 65 or 80 dB SPL
+efr_level = 65; % EFR Levels = 65 or 80 dB SPL
 %% ROOT Directory 
 if ismac
     %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
@@ -24,7 +24,7 @@ Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475'
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
 Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-plot_relative = {};
+plot_relative = {strcat('pre',filesep,'Baseline')};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
@@ -33,9 +33,9 @@ plot_relative = {};
 ylimits_avg_oae = [-inf,inf];
 ylimits_ind_oae = [-inf,inf];
 xlimits_memr = [70,105];
-ylimits_efr = [-inf,inf];
+ylimits_efr = [0,1.25];
 ylimits_ind_abr_threshold = [-inf,inf];
-ylimits_avg_abr_threshold = [-inf,inf];
+ylimits_avg_abr_threshold = [-25,50];
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];

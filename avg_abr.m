@@ -50,6 +50,7 @@ if strcmp(analysis_type,'Thresholds')
     average.x = avg_x;
     average.y = avg_y;
     average.y_std = y_std;
+    average.all_y = all_y;
 
 
 elseif strcmp(analysis_type,'Peaks')
@@ -172,5 +173,11 @@ elseif strcmp(analysis_type,'Peaks')
     average.w4_std = w4_std;
     average.w5_std = w5_std;
     average.w1and5_std = w1and5_std;
+    average.all_w1 = all_w1;
+    average.all_w2 = all_w2;
+    average.all_w3 = all_w3;
+    average.all_w4 = all_w4;
+    average.all_w5 = all_w5;
+    average.all_w1and5 = all_w1and5;
 end
 end

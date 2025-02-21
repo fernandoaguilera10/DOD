@@ -48,7 +48,7 @@ if average_flag == 1
         % Plot average lines
         outpath = strcat(OUTdir,filesep,'ABR');
         filename = 'ABR_Thresholds_Average_dBSPL';
-        plot_avg_abr(average,analysis_type1,colors,shapes,idx,Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative)
+        plot_avg_abr(average,analysis_type1,colors,shapes,idx,Chins2Run,Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative)
     elseif strcmp(analysis_type1,'Peaks')
         if strcmp(analysis_type2,'Manual')
             % Peak-to-peak amplitude
