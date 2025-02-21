@@ -1,5 +1,4 @@
-%% FIX THIS TO REFLECT EFR!!
-function [average,idx] = avg_efr(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,counter,colors,idx_plot_relative)
+function average = avg_efr(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,counter,colors,idx_plot_relative,idx)
 if isempty(idx_plot_relative)
     conds = length(Conds2Run);
 elseif ~isempty(idx_plot_relative)
@@ -19,7 +18,7 @@ all_ratio{1,conds} = [];
 peaks_std{1,conds} = [];
 ratio_std{1,conds} = [];
 idx_peaks = 1:3;
-idx = ~cellfun(@isempty,peaks_locs);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
+%idx = ~cellfun(@isempty,peaks_locs);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
     for cols = 1:length(Conds2Run)
         for rows = 1:length(Chins2Run)

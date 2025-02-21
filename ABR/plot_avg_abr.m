@@ -169,7 +169,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             ylabel(y_units, 'FontWeight', 'bold');
             xticks(round(unique(average.x{1,1}(rows))));
             xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
             

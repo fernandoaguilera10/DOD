@@ -1,5 +1,7 @@
-function plot_ind_efr(data,plot_type,shapes,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath)
+function plot_ind_efr(data,plot_type,shapes,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,idx_plot_relative,subject_idx)
 global legend_string
+legend_string = [];
+legend_string= Conds2Run(subject_idx(ChinIND,:) == 1);
 x_units = 'Frequency (Hz)';
 y_units = 'PLV';
 condition = strsplit(Conds2Run{CondIND}, filesep);
@@ -15,7 +17,6 @@ plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'li
 ylim([0,1]); hold off;
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')
-legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('EFR (%s) | %s | %.0f dB SPL',title_str, cell2mat(Chins2Run(ChinIND)),data.spl));
