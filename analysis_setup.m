@@ -11,7 +11,7 @@ else
     ROOTdir = 'D:\DOD'; % SSD
 end
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445','Q446','Q488'};
+Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -24,7 +24,7 @@ Chins2Run={'Q438','Q445','Q446','Q488'};
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
 Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-plot_relative = {strcat('pre',filesep,'Baseline')};
+plot_relative = {};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
@@ -44,6 +44,11 @@ shapes = ["o";"square";"diamond";"^";"v";"pentagram"];
 colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
 %% Analysis Code
 cwd = pwd;
+if ~isempty(plot_relative)
+    idx_plot_relative = ismember(plot_relative,Conds2Run);
+else
+    idx_plot_relative = [];
+end
 [EXPname, EXPname2, EXPname3] = analysis_menu;
 [DATAdir, OUTdir, CODEdir] = get_directory(ROOTdir,EXPname,EXPname2);
 addpath(CODEdir);
@@ -106,14 +111,10 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
             chinroster.signal = chinroster_temp(chins_idx,23:26);
     end
 end
-if ~isempty(plot_relative)
-    idx_plot_relative = ismember(plot_relative,Conds2Run);
-else
-    idx_plot_relative = [];
-end
 % Check if RAW data has been analyzed
 counter = 0;
 flag = 0;
+chins_idx = [];
 filepath_idx = zeros(length(Chins2Run),length(Conds2Run));
 datapath_idx = zeros(length(Chins2Run),length(Conds2Run));
 subject_idx = zeros(length(Chins2Run),length(Conds2Run));
@@ -125,8 +126,8 @@ for ChinIND=1:length(Chins2Run)
         calibpath = datapath;
         filepath_files{ChinIND,CondIND} = search_files(filepath,filepath_searchfile).files;  % analyzed raw data files available
         datapath_files{ChinIND,CondIND} = search_files(datapath,datapath_searchfile).files; % raw data files available
-        filepath_dir{ChinIND,CondIND} = search_files(filepath,filepath_searchfile).dir;  % analyzed raw data files available
-        datapath_dir{ChinIND,CondIND} = search_files(datapath,datapath_searchfile).dir; % raw data files available
+        filepath_dir_temp{ChinIND,CondIND} = search_files(filepath,filepath_searchfile).dir;  % analyzed raw data files available
+        datapath_dir_temp{ChinIND,CondIND} = search_files(datapath,datapath_searchfile).dir; % raw data files available
         if ~isempty(filepath_files{ChinIND,CondIND})
             filepath_idx(ChinIND,CondIND) = 1;
         end
@@ -138,6 +139,23 @@ for ChinIND=1:length(Chins2Run)
         end
     end
 end
+% Remove subjects if baseline is not present for relative to
+if idx_plot_relative == 1
+    chins_idx = find(subject_idx(:,idx_plot_relative) == 0);
+    Chins2Run(chins_idx) = [];
+    chinroster.ChinSex(chins_idx,:) = [];
+    chinroster.signal(chins_idx, :) = [];
+    subject_idx(chins_idx, :) = [];
+    datapath_idx(chins_idx, :) = [];
+    filepath_idx(chins_idx, :) = [];
+    filepath_dir_temp(chins_idx, :) = [];
+    datapath_dir_temp(chins_idx, :) = [];
+end
+% Remove timepoints that are not present
+filepath_dir = cell(size(filepath_dir_temp));
+datapath_dir = cell(size(datapath_dir_temp));
+filepath_dir(filepath_idx==1) = filepath_dir_temp(filepath_idx==1);
+datapath_dir(datapath_idx==1) = datapath_dir_temp(datapath_idx==1);
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         file_check = filepath_idx(ChinIND,CondIND);
@@ -229,7 +247,7 @@ for ChinIND=1:length(Chins2Run)
                     end
                 case 'EFR'
                     cd(CODEdir)
-                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag);
+                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx);
                 case 'OAE'
                     cd(CODEdir)
                     switch EXPname2
