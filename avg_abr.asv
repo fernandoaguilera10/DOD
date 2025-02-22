@@ -25,7 +25,7 @@ if strcmp(analysis_type,'Thresholds')
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
                     figure(counter); hold on;
-                    %plot(x{rows, cols}, y{rows, cols}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                    plot(x{rows, cols}, y{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.25], 'MarkerSize', 5, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 end
             end
         end
@@ -41,7 +41,11 @@ if strcmp(analysis_type,'Thresholds')
                     if idx(rows,cols) == 1
                         % Plot individual traces with average
                         figure(counter); hold on;
-                        %plot(x{rows, cols}, y{rows, cols}-y{rows, idx_plot_relative}, '-', 'linew', 2, 'Color', colors(cols,:),'HandleVisibility','off');
+                        freq = 1:length(x{rows,cols});
+                        freq_threshold = [nan,  y{rows,cols}(2:end)-y{rows,idx_plot_relative}(2:end)];
+                        freq_click = [y{rows,cols}(1)-y{rows,idx_plot_relative}(1),nan(length())];
+                        plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.25], 'MarkerSize', 5, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                        plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.25], 'MarkerSize', 5, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                     end
                 end
             end
@@ -173,5 +177,11 @@ elseif strcmp(analysis_type,'Peaks')
     average.w4_std = w4_std;
     average.w5_std = w5_std;
     average.w1and5_std = w1and5_std;
+    average.all_w1 = all_w1;
+    average.all_w2 = all_w2;
+    average.all_w3 = all_w3;
+    average.all_w4 = all_w4;
+    average.all_w5 = all_w5;
+    average.all_w1and5 = all_w1and5;
 end
 end

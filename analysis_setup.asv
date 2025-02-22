@@ -11,7 +11,7 @@ else
     ROOTdir = 'D:\DOD'; % SSD
 end
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'};
+Chins2Run={'Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505','Q506'
 % BLAST: 'Q457','Q463','Q478'
 % 75 kPa: 'Q457','Q478'
@@ -23,19 +23,21 @@ Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475'
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D14')};
+all_Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
 plot_relative = {strcat('pre',filesep,'Baseline')};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
 % Week 4 = strcat('post',filesep,'D30')
 %% Plot limits
-ylimits_avg_oae = [-inf,inf];
+ylimits_avg_oae = [-70,20];
 ylimits_ind_oae = [-inf,inf];
 xlimits_memr = [70,105];
-ylimits_efr = [-inf,inf];
+ylimits_efr = [0,1.25];
 ylimits_ind_abr_threshold = [-inf,inf];
-ylimits_avg_abr_threshold = [-inf,inf];
+%ylimits_avg_abr_threshold = [-25,50];
+ylimits_avg_abr_threshold = [-30,65];
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
@@ -91,11 +93,16 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
         end
     end
     chins_idx = find(temp==1);
+    conds_idx = zeros(size(Conds2Run));
+    for i=1:length(Conds2Run)
+        conds_idx(i) = find(strcmp(Conds2Run(i),all_Conds2Run));
+    end
     Chins2Run = chinroster_temp(chins_idx,1);
     chinroster.ChinSex = chinroster_temp(chins_idx,2);
     switch EXPname
         case 'ABR'
-            chinroster.signal = chinroster_temp(chins_idx,3:6);
+            temp = chinroster_temp(:,3:6);
+            chinroster.signal = temp(chins_idx,cond);
         case 'EFR'
             chinroster.signal = chinroster_temp(chins_idx,7:10);
         case 'OAE'
@@ -140,20 +147,22 @@ for ChinIND=1:length(Chins2Run)
     end
 end
 % Remove subjects if baseline is not present for relative to
-chins_idx = find(subject_idx(:,idx_plot_relative) == 0);
-Chins2Run(chins_idx) = [];
-chinroster.ChinSex(chins_idx,:) = [];
-chinroster.signal(chins_idx, :) = [];
-subject_idx(chins_idx, :) = [];
-datapath_idx(chins_idx, :) = [];
-filepath_idx(chins_idx, :) = [];
-filepath_dir_temp(chins_idx, :) = [];
-datapath_dir_temp(chins_idx, :) = [];
+if idx_plot_relative == 1
+    chins_idx = find(subject_idx(:,idx_plot_relative) == 0);
+    Chins2Run(chins_idx) = [];
+    chinroster.ChinSex(chins_idx,:) = [];
+    chinroster.signal(chins_idx, :) = [];
+    subject_idx(chins_idx, :) = [];
+    datapath_idx(chins_idx, :) = [];
+    filepath_idx(chins_idx, :) = [];
+    filepath_dir_temp(chins_idx, :) = [];
+    datapath_dir_temp(chins_idx, :) = [];
+end
 % Remove timepoints that are not present
 filepath_dir = cell(size(filepath_dir_temp));
 datapath_dir = cell(size(datapath_dir_temp));
 filepath_dir(filepath_idx==1) = filepath_dir_temp(filepath_idx==1);
-datapath_dir(filepath_idx==1) = datapath_dir_temp(datapath_idx==1);
+datapath_dir(datapath_idx==1) = datapath_dir_temp(datapath_idx==1);
 for ChinIND=1:length(Chins2Run)
     for CondIND=1:length(Conds2Run)
         file_check = filepath_idx(ChinIND,CondIND);
@@ -220,7 +229,7 @@ for ChinIND=1:length(Chins2Run)
                 sourcepath = 'D:\DOD\Data\RAW'; % SSD
             end
             move_files(Chins2Run,Conds2Run,sourcepath,EXPname,DATAdir,CODEdir);
-        else %if file_check == 1 && data_check == 1 && subject_check == 1
+        elseif file_check == 1 && data_check == 1 && subject_check == 1
             counter = counter+1;
             if counter == sum(sum(subject_idx))
                 flag = 1;
