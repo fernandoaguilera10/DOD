@@ -1,4 +1,4 @@
-function plot_avg_oae(average,plot_type,EXPname,colors,idx,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,shapes)
+function plot_avg_oae(average,plot_type,EXPname,colors,idx,Chins2Run,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,shapes)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 if strcmp(EXPname,'DPOAE')
@@ -61,7 +61,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
         set(gca,'FontSize',15);
     end
 end
+average.subjects = Chins2Run;
+average.conditions = Conds2Run;
 %% Export
 cd(outpath);
+save(filename,'average');
 print(figure(counter),[filename,'_figure'],'-dpng','-r300');
 end
