@@ -66,4 +66,6 @@ average.bandF = [f_band]';
 average.bandOAE = avg_oae_band;
 average.bandNF = avg_nf_band;
 average.oae_band_std = oae_band_std;
+average.all_oae_band = all_oae_band;
+
 end

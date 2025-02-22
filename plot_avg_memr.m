@@ -40,7 +40,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
         set(gca,'FontSize',15);
     end
 end
+average.subjects = Chins2Run;
+average.conditions = Conds2Run;
 %% Export
 cd(outpath);
+save(filename,'average');
 print(figure(length(Chins2Run)+1),[filename,'_figure'],'-dpng','-r300');
 end

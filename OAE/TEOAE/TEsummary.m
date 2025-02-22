@@ -33,7 +33,7 @@ if average_flag == 1
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'OAE');
     filename_spl = 'TEOAE_Average_SPL';
-    plot_avg_oae(average_spl,'SPL','TEOAE',colors,idx,Conds2Run,outpath,filename_spl,fig_num_avg,ylimits_avg,idx_plot_relative,shapes);
+    plot_avg_oae(average_spl,'SPL','TEOAE',colors,idx,Chins2Run,Conds2Run,outpath,filename_spl,fig_num_avg,ylimits_avg,idx_plot_relative,shapes);
 end
 cd(cwd);
 end

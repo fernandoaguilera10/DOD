@@ -42,9 +42,9 @@ if average_flag == 1
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'OAE');
     filename_epl = 'DPOAEswept_Average_EPL';
-    plot_avg_oae(average_epl,'EPL','DPOAE',colors,idx,Conds2Run,outpath,filename_epl,fig_num_avg+1,ylimits_avg,idx_plot_relative,shapes)
+    plot_avg_oae(average_epl,'EPL','DPOAE',colors,idx,Chins2Run,Conds2Run,outpath,filename_epl,fig_num_avg+1,ylimits_avg,idx_plot_relative,shapes)
     filename_spl = 'DPOAEswept_Average_SPL';
-    plot_avg_oae(average_spl,'SPL','DPOAE',colors,idx,Conds2Run,outpath,filename_spl,fig_num_avg+2,ylimits_avg,idx_plot_relative,shapes);
+    plot_avg_oae(average_spl,'SPL','DPOAE',colors,idx,Chins2Run,Conds2Run,outpath,filename_spl,fig_num_avg+2,ylimits_avg,idx_plot_relative,shapes);
 end
 cd(cwd);
 end

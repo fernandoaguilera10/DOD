@@ -52,4 +52,5 @@ end
 average.elicitor = avg_elicitor;
 average.deltapow = avg_deltapow;
 average.deltapow_std = deltapow_std;
+average.all_deltapow = all_deltapow;
 end
