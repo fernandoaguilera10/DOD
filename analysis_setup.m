@@ -24,18 +24,20 @@ Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475'
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
 Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+all_Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
 plot_relative = {strcat('pre',filesep,'Baseline')};
 % Baseline = strcat('pre',filesep,'Baseline')
 % Week 1 = strcat('post',filesep,'D7')
 % Week 2 = strcat('post',filesep,'D14')
 % Week 4 = strcat('post',filesep,'D30')
 %% Plot limits
-ylimits_avg_oae = [-inf,inf];
+ylimits_avg_oae = [-70,20];
 ylimits_ind_oae = [-inf,inf];
 xlimits_memr = [70,105];
-ylimits_efr = [0,1.25];
+ylimits_efr = [-1,1];
 ylimits_ind_abr_threshold = [-inf,inf];
-ylimits_avg_abr_threshold = [-25,50];
+%ylimits_avg_abr_threshold = [-25,50];
+ylimits_avg_abr_threshold = [-30,65];
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
@@ -91,24 +93,35 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
         end
     end
     chins_idx = find(temp==1);
+    conds_idx = zeros(size(Conds2Run));
+    for i=1:length(Conds2Run)
+        conds_idx(i) = find(strcmp(Conds2Run(i),all_Conds2Run));
+    end
+    colors = colors(conds_idx,:);
     Chins2Run = chinroster_temp(chins_idx,1);
     chinroster.ChinSex = chinroster_temp(chins_idx,2);
     switch EXPname
         case 'ABR'
-            chinroster.signal = chinroster_temp(chins_idx,3:6);
+            temp = chinroster_temp(:,3:6);
+            chinroster.signal = temp(chins_idx,conds_idx);
         case 'EFR'
-            chinroster.signal = chinroster_temp(chins_idx,7:10);
+            temp = chinroster_temp(:,7:10);
+            chinroster.signal = temp(chins_idx,conds_idx);
         case 'OAE'
             switch EXPname2
                 case 'DPOAE'
-                    chinroster.signal = chinroster_temp(chins_idx,11:14);
+                    temp = chinroster_temp(:,11:14);
+                    chinroster.signal = temp(chins_idx,conds_idx);
                 case 'SFOAE'
-                    chinroster.signal = chinroster_temp(chins_idx,15:18);
+                    temp = chinroster_temp(:,15:18);
+                    chinroster.signal = temp(chins_idx,conds_idx);
                 case 'TEOAE'
-                    chinroster.signal = chinroster_temp(chins_idx,19:22);
+                    temp = chinroster_temp(:,19:22);
+                    chinroster.signal = temp(chins_idx,conds_idx);
             end
         case 'MEMR'
-            chinroster.signal = chinroster_temp(chins_idx,23:26);
+            temp = chinroster_temp(:,23:26);
+            chinroster.signal = temp(chins_idx,conds_idx);
     end
 end
 % Check if RAW data has been analyzed

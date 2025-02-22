@@ -26,7 +26,7 @@ if isempty(idx_plot_relative)
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
+        title(sprintf('%s | Average',EXPname));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;
@@ -53,7 +53,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average (n = %.0f)',EXPname,sum(idx(:,1))));
+        title(sprintf('%s | Average',EXPname));
         legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;

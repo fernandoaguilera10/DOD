@@ -51,9 +51,10 @@ if ~isempty(idx_plot_relative)   %plot relative to
     for cols = 1:length(average.peaks_locs)
         % Average PLV amplitude
         figure(counter); hold on;
-        %errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+        errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
         average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',locs_all{1,cols});
         plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+        %plot(locs_all{1,cols},average.peaks{1,cols},'*k','linewidth',2)
         plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
         ylabel(y_units_amp, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
@@ -66,7 +67,7 @@ if ~isempty(idx_plot_relative)   %plot relative to
         if ~isnan(average.peaks_locs{1,cols}(idx_peaks))
             x_max = round(max(average.peaks_locs{1,cols}(idx_peaks)),-3);
             xticks(round(average.peaks_locs{1,cols}));
-            xlim([0,x_max]);
+            xlim([0,x_max+200]);
         end
         set(gca,'xscale','linear');
         set(gca,'FontSize',15); 
