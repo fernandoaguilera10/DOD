@@ -137,8 +137,8 @@ if ~isempty(idx_plot_relative)  %plot relative to
             freq = 1:length(average.x{1,cols});
             freq_threshold = [nan,average.y{1,cols}(2:end)];
             figure(counter); hold on;
-            errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            %plot(freq, average.y{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            %errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            plot(freq, average.y{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(freq, freq_threshold,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             plot(freq, zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
             xticks(freq); xlim([0.5,6.5]);
