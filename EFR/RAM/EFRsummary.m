@@ -35,7 +35,7 @@ else
 end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = length(Chins2Run)+1;
-if average_flag == 1 && CondIND == length(Conds2Run)
+if average_flag == 1
     % Plot individual lines
     average = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative,subject_idx);
     % Plot average lines
