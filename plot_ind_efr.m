@@ -1,10 +1,9 @@
-function plot_ind_efr(data,plot_type,shapes,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,idx_plot_relative,subject_idx)
+function plot_ind_efr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,idx_plot_relative,subject_idx)
 global legend_string
-legend_string = [];
-legend_string= Conds2Run(subject_idx(ChinIND,:) == 1);
+legend_string= Conds2Run;
 x_units = 'Frequency (Hz)';
 y_units = 'PLV';
-condition = strsplit(Conds2Run{CondIND}, filesep);
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'RAM')
     title_str = 'RAM 223 Hz';
     filename = cell2mat([Chins2Run(ChinIND),'_RAM223_',mat2str(data.spl),'dBSPL_',condition{2}]);

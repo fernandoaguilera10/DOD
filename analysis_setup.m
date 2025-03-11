@@ -3,7 +3,7 @@ reanalyze = 0; % 1 = redo analysis      0 = skip analysis
 efr_level = 80; % EFR Levels = 65 or 80 dB SPL
 exposure_group = 'BLAST'; % 'NOISE' or 'BLAST'
 %% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q463','Q494'};
+Chins2Run={'Q457','Q478','Q493'};
 % NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505'
 % BLAST: 'Q457','Q463','Q478','Q493','Q494'
 % 75 kPa: 'Q457','Q478','Q493'
@@ -15,7 +15,7 @@ Chins2Run={'Q463','Q494'};
 % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
 % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 %% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107')};
+Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107'),strcat('post',filesep,'D120')};
 plot_relative = {};
 % strcat('pre',filesep,'Baseline')
 % strcat('post',filesep,'D3')
@@ -26,9 +26,9 @@ plot_relative = {};
 % strcat('post',filesep,'D43')
 % strcat('post',filesep,'D92')
 % strcat('post',filesep,'D107')
-% strcat('post',filesep,'D120')}
+% strcat('post',filesep,'D120')
 %% Plot limits
-ylimits_avg_oae = [-70,20];
+ylimits_avg_oae = [-70,50];
 ylimits_ind_oae = [-inf,inf];
 xlimits_memr = [70,105];
 ylimits_efr = [0,1.3];
@@ -39,16 +39,16 @@ ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
 ylimits_avg_abr_lat = [-inf,inf];
-shapes = ["o";"square";"diamond";"^";"v";"pentagram"];
-colors_all = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
+shapes = ["o";"square";"diamond";"^";"v";">";"pentagram"];
+colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255; 217 83 25]/255;
 %% ROOT Directory
 if ismac
     %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
     ROOTdir = '/Volumes/FefeSSD/DOD';
 else
-    %ROOTdir = 'Z:\data\UserTESTS\FA\DOD';
-    % data depot
-    ROOTdir = 'D:\DOD'; % SSD
+    %ROOTdir = 'Z:\data\UserTESTS\FA\DOD'; % data depot
+    %ROOTdir = 'D:\DOD'; % SSD
+    ROOTdir = 'F:\DOD'; % NEL2
 end
 %% Analysis Code
 cwd = pwd;
@@ -202,27 +202,23 @@ filepath_dir = cell(size(filepath_dir_temp));
 datapath_dir = cell(size(datapath_dir_temp));
 filepath_dir(filepath_idx==1) = filepath_dir_temp(filepath_idx==1);
 datapath_dir(datapath_idx==1) = datapath_dir_temp(datapath_idx==1);
-max_idx = zeros(1,length(Chins2Run));
-for i=1:length(Chins2Run)
-    max_idx(i) = sum(subject_idx(i,:));
-end
-conds_idx = find(subject_idx(find(max(max_idx)),:)==1);
-Conds2Run = Conds2Run(conds_idx);
-colors = colors_all(conds_idx,:);
 for ChinIND=1:length(Chins2Run)
-    for CondIND=1:length(Conds2Run)
+    conds_idx = find(subject_idx(ChinIND,:)==1);
+    Conds2Run = all_Conds2Run(conds_idx);
+    for i=1:length(conds_idx)
+        CondIND = conds_idx(i);
         file_check = filepath_idx(ChinIND,CondIND);
         data_check = datapath_idx(ChinIND,CondIND);
         subject_check = subject_idx(ChinIND,CondIND);
-        condition = strsplit(Conds2Run{CondIND}, filesep);
+        condition = strsplit(all_Conds2Run{CondIND}, filesep);
         cd(CODEdir);
         if file_check == 0 && data_check == 1 && subject_check == 1 || reanalyze == 1  % convert RAW data for analysis for no existing analyzed file
-            fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
-            filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,Conds2Run{CondIND});
+            fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
+            filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,all_Conds2Run{CondIND});
             datapath = datapath_dir{ChinIND,CondIND};
             calibpath = datapath;
             if ~exist(filepath, 'dir')
-                fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},Conds2Run{CondIND});
+                fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
                 mkdir(filepath);
             end
             switch EXPname
@@ -261,26 +257,26 @@ for ChinIND=1:length(Chins2Run)
                     WBMEMRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
         elseif data_check == 0 && subject_check == 1   % move files from Data/RAW directory into individual folder
-            datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
+            datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,all_Conds2Run{CondIND});
             if ~exist(datapath, 'dir')
-                fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND}, Conds2Run{CondIND});
+                fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
                 mkdir(datapath);
             end
             cd(CODEdir)
             if ismac
-                %source = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
-                sourcepath = '/Volumes/FefeSSD/DOD/Code Archive';
+                %sourcepath = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
+                sourcepath = '/Volumes/FefeSSD/DOD/Data/RAW';
             else
-                %source = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
+                %sourcepath = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
                 sourcepath = 'D:\DOD\Data\RAW'; % SSD
             end
-            move_files(Chins2Run,Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
+            move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
         elseif file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
             counter = counter+1;
             if counter == sum(sum(subject_idx))
                 flag = 1;
             end
-            fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},Conds2Run{CondIND});
+            fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
             filepath = filepath_dir{ChinIND,CondIND};
             datapath = datapath_dir{ChinIND,CondIND};
             switch EXPname
@@ -288,34 +284,33 @@ for ChinIND=1:length(Chins2Run)
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_threshold,[],[],ylimits_avg_abr_threshold,[],[],colors,shapes,EXPname2,EXPname3,flag);
-                        case 'Peaks'
+                            ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_abr_threshold,[],[],ylimits_avg_abr_threshold,[],[],colors,shapes,EXPname2,EXPname3,flag,conds_idx);                        case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
-                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3,flag);
+                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
-                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3,flag);
+                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],ylimits_ind_abr_peaks,ylimits_ind_abr_lat,[],ylimits_avg_abr_peaks,ylimits_avg_abr_lat,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
                             end
                     end
                 case 'EFR'
                     cd(CODEdir)
-                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx);
+                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
                 case 'OAE'
                     cd(CODEdir)
                     switch EXPname2
                         case 'DPOAE'
-                            DPsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag);
+                            DPsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag,conds_idx);
                         case 'SFOAE'
-                            SFSummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag);
+                            SFSummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag,conds_idx);
                         case 'TEOAE'
-                            TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag);
+                            TEsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_oae,ylimits_avg_oae,shapes,colors,flag,conds_idx);
                     end
                 case 'MEMR'
                     cd(CODEdir)
-                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,shapes,colors,flag)
+                    WBMEMRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,xlimits_memr,shapes,colors,flag,conds_idx)
             end
-            flag = 0;
+            flag = -1;
         end
     end
 end

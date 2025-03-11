@@ -1,8 +1,8 @@
-function average = avg_efr(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,counter,colors,idx_plot_relative,idx)
+function average = avg_efr(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative,idx)
 if isempty(idx_plot_relative)
-    conds = length(Conds2Run);
+    conds = length(all_Conds2Run);
 elseif ~isempty(idx_plot_relative)
-    conds = length(Conds2Run)-1;
+    conds = length(all_Conds2Run)-1;
 end
 if conds < 1
     uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
@@ -20,7 +20,7 @@ ratio_std{1,conds} = [];
 idx_peaks = 1:3;
 %idx = ~cellfun(@isempty,peaks_locs);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             avg_peaks_locs{1,cols} = nanmean([avg_peaks_locs{1,cols}; peaks_locs{rows, cols}],1);
             avg_peaks{1,cols} = nanmean([avg_peaks{1,cols}; peaks{rows, cols}],1);
@@ -39,12 +39,12 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(counter); hold on;
-                %plot(peaks_locs{rows, cols}, peaks{rows, cols},'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                plot(peaks_locs{rows, cols}, peaks{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             end
         end
     end
 elseif ~isempty(idx_plot_relative)
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_peaks_locs{1,cols-1} = nanmean([avg_peaks_locs{1,cols-1}; peaks_locs{rows, cols}],1);
@@ -79,4 +79,5 @@ average.peaks_std = peaks_std;
 average.ratio = avg_ratio;
 average.ratio_std = ratio_std;
 average.all_ratio = all_ratio;
+average.all_peaks = all_peaks;
 end

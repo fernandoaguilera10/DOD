@@ -1,6 +1,7 @@
-function plot_ind_oae(data,plot_type,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,fig_num,ylimits,shapes)
+function plot_ind_oae(data,plot_type,EXPname,colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,fig_num,ylimits,shapes)
 global legend_string
-condition = strsplit(Conds2Run{CondIND}, filesep);
+legend_string= Conds2Run;
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'SPL')
     data_new = data.spl;
     y_units = 'Amplitude (dB SPL)';
@@ -30,7 +31,7 @@ ylim(ylimits);
 xticks([.5, 1, 2, 4, 8, 16])
 ylabel(y_units, 'FontWeight', 'bold')
 xlabel(x_units, 'FontWeight', 'bold')
-legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
+%legend_string{1,CondIND} = sprintf('%s',all_Conds2Run{CondIND});
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}))
