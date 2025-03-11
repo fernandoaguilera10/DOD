@@ -1,13 +1,13 @@
-function plot_ind_memr(data,EXPname,colors,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,xlimits,shapes)
+function plot_ind_memr(data,EXPname,colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,xlimits,shapes)
 global legend_string
-condition = strsplit(Conds2Run{CondIND}, filesep);
+legend_string= Conds2Run;
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 figure(ChinIND); hold on;
 plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:), 'MarkerFaceColor', colors(CondIND,:));
 xlim(xlimits); xticks(xlimits(1):5:xlimits(2));
 xlabel('Elicitor Level (dB FPL)', 'FontWeight', 'bold');
 ylabel('\Delta Absorbed Power (dB)','FontWeight', 'bold');
 set(gca, 'XScale', 'log');
-legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}));

@@ -1,10 +1,18 @@
 clear all; close all; clc;
 %% Select ME Directory
-dir_mac = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Grants/Blast DoD/Aircraft Spectra/';
-dir_windows = 'C:\Users\aguilerl\iCloudDrive\Desktop\Purdue\Heinz Lab\Grants\Blast DoD\Aircraft Spectra\';
-sel = input('Select OS - Windows (W)/Mac (M):  ','s');
-if sel == 'W' || sel == 'w', dir = dir_windows; end
-if sel == 'M' || sel == 'm', dir = dir_mac; end
+if ismac
+    %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
+    ROOTdir = '/Volumes/FefeSSD/DOD';
+    stimuli_dir = strcat(ROOTdir,filesep,'Code Archive',filesep,'Exposure Stimuli',filesep,'Continuous Noise');
+    chinME_dir = strcat(stimuli_dir,filesep,'Chin ME');
+else
+    %ROOTdir = 'Z:\data\UserTESTS\FA\DOD';  
+    % data depot
+    ROOTdir = 'D:\DOD'; % SSD
+    stimuli_dir = strcat(ROOTdir,filesep,'Code Archive',filesep,'Exposure Stimuli',filesep,'Continuous Noise');
+    chinME_dir = strcat(stimuli_dir,filesep,'Chin ME');
+end
+colors = [206, 184, 136; 0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255]/255;
 %% Generate White Noise
 load('noise_spectra.mat')
 fs = floor(97656.25);  %TDT sampling rate
@@ -53,9 +61,9 @@ text(3000,60,sprintf('Spectral Level: 87.5 dB SPL\nDosage: 8 hours/day\nDuration
 xlim(x_lim); ylim([0,70]); box off;
 print -dtiff ChinNoiseSpectra
 %% Middle Ear Absorbance
-cd (sprintf('%sChin ME',dir));
+cd (chinME_dir);
 load('Q351.mat'); load('Q381.mat'); load('Q421.mat'); load('Q422.mat'); load('Q425.mat'); load('Q426.mat'); load('Q427.mat'); load('Q428.mat'); load('Q431.mat')
-cd (dir)
+cd (stimuli_dir)
 me_chin_ind = [Q351.abs, Q381.abs, Q421.abs, Q422.abs, Q425.abs, Q426.abs, Q427.abs, Q428.abs, Q431.abs];
 f_chin_me = Q421.freq*1000;
 me_chin_ind(me_chin_ind < 0) = 1;
@@ -90,11 +98,11 @@ t = t(fs+1:end-fs);
 stimuli_chin = stimuli_chin(fs+1:end-fs);
 stimuli_chin = stimuli_chin/max(abs(stimuli_chin)); % sets max value to 1 for wav file
 figure; 
-subplot(2,1,1);
 plot(t,stimuli_chin,'LineWidth',1.5); hold on; 
-xlabel('Time [s]'); ylabel('Amplitude'); 
+xlabel('Time (s)'); ylabel('Amplitude (a.u.)'); 
 ylim([-1, 1]); box off;
 title('Aircraft Noise'); subtitle('Chinchilla');
+set(gca,'Fontsize',15);
 % Stimuli Spectra
 nfft = 2*fs;
 f_fft = fs*ceil(-nfft/2:nfft/2-1)/nfft;
@@ -104,15 +112,16 @@ fft_stim_chin = fft_stim_chin(idx);
 %me_chin_avg_db_interp = [interp1(f_chin_me,me_chin_avg_db,f_fft(fs+1:fs+1+0.5*fs)),me_chin_avg_db(end)*ones(1,0.5*fs-1)];
 me_chin_avg_db_interp = [interp1(f_chin_me,me_chin_avg_smooth_lowess_db,f_fft(fs+1:fs+1+0.5*fs)),me_chin_avg_smooth_lowess_db(end)*ones(1,0.5*fs-1)];
 fft_stim_chin_adj = mag2db(abs(fft_stim_chin)) + me_chin_avg_db_interp;   % adjust for ME absorbance
-subplot(2,1,2);
-plot(f_fft(idx),mag2db(abs(fft_stim_chin)),'LineWidth',1.5); hold on;
-plot(f_fft(idx),fft_stim_chin_adj,'LineWidth',1.5);
+figure;
+plot(f_fft(idx),mag2db(abs(fft_stim_chin)),'LineWidth',1.5,'color',[0.25,0.25,0.25]); hold on;
+plot(f_fft(idx),fft_stim_chin_adj,'LineWidth',1.5,'color',[colors(1,:),1]);
 title('Aircraft Noise Spectra');
-xlabel('Frequency [Hz]'); 
-ylabel('Magnitude [dB]');
+xlabel('Frequency (Hz)','Fontweight','bold'); 
+ylabel('Magnitude (dB)','Fontweight','bold');
 set (gca, 'xscale', 'log'); 
-legend('ME-Unajusted','ME-Adjusted','Location','southwest'); legend boxoff;
-xlim([0,50e3]); ylim([-60, 70]); box off;
+legend('ME-Unajusted','ME-Adjusted','Location','northeast'); legend boxoff;
+xlim([20,40e3]); ylim([0, 70]); box off;
+set(gca,'Fontsize',15);
 % Calibration
 N = length(fft_stim_chin);
 stimuli_chin_energy_t = rms(stimuli_chin)^2;
