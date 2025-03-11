@@ -1,8 +1,8 @@
-function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,colors,shapes,average_flag,subject_idx)% EFR summary
+function EFRsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,shapes,colors,average_flag,subject_idx,conds_idx)% EFR summary
 global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all dim_f dim_envelope dim_PLV dim_peak_amp dim_peak_freq dim_peak_freq_all
 cwd = pwd;
 %% INDIVIDUAL PLOTS
-condition = strsplit(Conds2Run{CondIND}, filesep);
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
     cd(outpath)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_EFR_RAM_',condition{2},'_',num2str(level_spl),'dBSPL*.mat']);
@@ -16,7 +16,7 @@ if exist(outpath,"dir")
     efr_peak_amp{ChinIND,CondIND} = efr.peaks;
     efr_peak_freq{ChinIND,CondIND} = efr.peaks_locs;
     efr_peak_freq_all{ChinIND,CondIND} = efr.peaks_locs_all;
-    plot_ind_efr(efr,'RAM',colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,idx_plot_relative,subject_idx)
+    plot_ind_efr(efr,'RAM',colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,idx_plot_relative,subject_idx)
     cd(cwd)
     dim_f = size(efr.f');
     dim_envelope = size(efr.t_env');
@@ -37,11 +37,11 @@ end
 fig_num_avg = length(Chins2Run)+1;
 if average_flag == 1
     % Plot individual lines
-    average = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,fig_num_avg,colors,idx_plot_relative,subject_idx);
+    average = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,subject_idx);
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'EFR');
     filename = ['EFR_RAM223_Average_',num2str(level_spl),'dBSPL'];
-    plot_avg_efr(average,efr_peak_freq_all,'RAM',level_spl,colors,shapes,subject_idx,Chins2Run,Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
+    plot_avg_efr(average,'RAM',level_spl,colors,shapes,subject_idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits,idx_plot_relative)
 end
 cd(cwd);
 end

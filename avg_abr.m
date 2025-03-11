@@ -1,8 +1,8 @@
-function [average,idx] = avg_abr(x,y,Chins2Run,Conds2Run,counter,colors,shapes,idx_plot_relative,analysis_type,peak_analysis)
+function [average,idx] = avg_abr(x,y,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative,analysis_type,peak_analysis)
 if isempty(idx_plot_relative)
-    conds = length(Conds2Run);
+    conds = length(all_Conds2Run);
 elseif ~isempty(idx_plot_relative)
-    conds = length(Conds2Run)-1;
+    conds = length(all_Conds2Run)-1;
 end
 if conds < 1
     uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
@@ -15,7 +15,7 @@ if strcmp(analysis_type,'Thresholds')
     y_std{1,conds} = [];
     idx = ~cellfun(@isempty,y);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
     if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-        for cols = 1:length(Conds2Run)
+        for cols = 1:length(all_Conds2Run)
             for rows = 1:length(Chins2Run)
                 avg_x{1,cols} = mean([avg_x{1,cols}; x{rows, cols}],1);
                 avg_y{1,cols} = mean([avg_y{1,cols}; y{rows, cols}],1);
@@ -34,7 +34,7 @@ if strcmp(analysis_type,'Thresholds')
             end
         end
     elseif ~isempty(idx_plot_relative)
-        for cols = 1:length(Conds2Run)
+        for cols = 1:length(all_Conds2Run)
             for rows = 1:length(Chins2Run)
                 if cols ~= idx_plot_relative && idx(rows,cols) == 1
                     avg_x{1,cols-1} = mean([avg_x{1,cols-1}; x{rows, cols}],1);

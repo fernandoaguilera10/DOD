@@ -1,8 +1,8 @@
-function [average,idx] = avg_memr(elicitor,deltapow,Chins2Run,Conds2Run,colors,idx_plot_relative)
+function [average,idx] = avg_memr(elicitor,deltapow,Chins2Run,Conds2Run,all_Conds2Run,colors,shapes,idx_plot_relative)
 if isempty(idx_plot_relative)
-    conds = length(Conds2Run);
+    conds = length(all_Conds2Run);
 elseif ~isempty(idx_plot_relative)
-    conds = length(Conds2Run)-1;
+    conds = length(all_Conds2Run)-1;
 end
 if conds < 1
     uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
@@ -14,7 +14,7 @@ all_deltapow{1,conds} = [];
 deltapow_std{1,conds} = [];
 idx = ~cellfun(@isempty,deltapow);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             avg_elicitor{1,cols} = mean([avg_elicitor{1,cols}; elicitor{rows, cols}],1);
             avg_deltapow{1,cols} = mean([avg_deltapow{1,cols}; deltapow{rows, cols}],1);
@@ -24,14 +24,13 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(length(Chins2Run)+1); hold on;
-                %plot(elicitor{rows, cols}, deltapow{rows, cols}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
-                %plot(f{rows, cols}, oae_nf{rows, cols}, '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                plot(elicitor{rows, cols}, deltapow{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
             end
         end
     end
 elseif ~isempty(idx_plot_relative)
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_elicitor{1,cols-1} = mean([avg_elicitor{1,cols-1}; elicitor{rows, cols}],1);

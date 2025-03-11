@@ -1,4 +1,4 @@
-function plot_avg_oae(average,plot_type,EXPname,colors,idx,Chins2Run,Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,shapes)
+function plot_avg_oae(average,plot_type,EXPname,colors,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,shapes)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 if strcmp(EXPname,'DPOAE')
@@ -17,17 +17,18 @@ if isempty(idx_plot_relative)
         figure(counter); hold on;
         %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols,:),0.75]);
         %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols,:),0.75],'HandleVisibility','off');
-        errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+        %errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
         plot(average.bandF, average.bandOAE{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
         plot(average.bandF, average.bandNF{1,cols}, 'x', 'linew', 4, 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
         plot(average.bandF, average.bandNF{1,cols},'LineStyle','--', 'linew', 2, 'Color', [colors(cols,:),0.50],'HandleVisibility','off');
-
         set(gca, 'XScale', 'log');
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
         title(sprintf('%s | Average',EXPname));
-        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+        temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+        legend_idx = find(~cellfun(@isempty,temp));
+        legend_string = temp(legend_idx);
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;
         ylim(ylimits); grid on;
@@ -53,8 +54,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
         xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
         ylabel(y_units, 'FontWeight', 'bold');
         xlabel(x_units, 'FontWeight', 'bold');
-        title(sprintf('%s | Average',EXPname));
-        legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+        title(sprintf('%s | Average',EXPname));        
+        temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+        legend_idx = find(~cellfun(@isempty,temp));
+        legend_string = temp(legend_idx);
         legend(legend_string,'Location','southoutside','Orientation','horizontal');
         legend boxoff; hold off;
         ylim(ylimits); grid on;
