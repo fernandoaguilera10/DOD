@@ -1,30 +1,34 @@
-function plot_avg_abr(average,plot_type,colors,shapes,idx,Chins2Run,Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis)
+function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
-rows = 1:4; % plot highest 4 levels [90 80 70 60] dB SPL
+rows = 1:4; % plot highest 4 levels [90 80 70 60] dB SPL for ABR peaks
 if isempty(idx_plot_relative)
     if strcmp(plot_type,'Thresholds')
         x_units = 'Frequency (kHz)';
         y_units = 'Threshold (dB SPL)';
         for cols = 1:length(average.y)
-            % Average
-            freq = 1:length(average.x{1,cols});
-            freq_threshold = [nan,average.y{1,cols}(2:end)];
-            figure(counter); hold on;
-            errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
-            xticks(freq); xlim([0.5,6.5]);
-            xticklabels({'Click', '0.5', '1', '2', '4', '8'});
-            ylabel(y_units, 'FontWeight', 'bold');
-            xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('ABR Thresholds | Average'), 'FontSize', 16,'FontWeight','bold');
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; hold off; grid on;
-            if ~isempty(ylimits_threshold)
-                ylim(ylimits_threshold);
+            if ~isempty(average.x{1,cols})
+                % Average
+                freq = 1:length(average.x{1,cols});
+                freq_threshold = [nan,average.y{1,cols}(2:end)];
+                figure(counter); hold on;
+                %errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+                xticks(freq); xlim([0.5,6.5]);
+                xticklabels({'Click', '0.5', '1', '2', '4', '8'});
+                ylabel(y_units, 'FontWeight', 'bold');
+                xlabel(x_units, 'FontWeight', 'bold');
+                title(sprintf('ABR Thresholds | Average'), 'FontSize', 16,'FontWeight','bold');
+                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+                legend_idx = find(~cellfun(@isempty,temp));
+                legend_string = temp(legend_idx);
+                legend(legend_string,'Location','southoutside','Orientation','horizontal');
+                legend boxoff; hold off; grid on;
+                if ~isempty(ylimits_threshold)
+                    ylim(ylimits_threshold);
+                end
+                set(gca,'FontSize',15);
             end
-            set(gca,'FontSize',15);
         end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
@@ -50,7 +54,7 @@ if isempty(idx_plot_relative)
             ylabel(y_units, 'FontWeight', 'bold');
             xticks(round(unique(average.x{1,1}(rows))));
             xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,conds_idx(cols)))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
             
@@ -146,7 +150,9 @@ if ~isempty(idx_plot_relative)  %plot relative to
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('ABR Thresholds | Average'), 'FontSize', 16);
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+            temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+            legend_idx = find(~cellfun(@isempty,temp));
+            legend_string = temp(legend_idx);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off; grid on;
             if ~isempty(ylimits_threshold)
@@ -179,7 +185,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             ylabel(y_units, 'FontWeight', 'bold');
             xticks(round(unique(average.x{1,1}(rows))));
             xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,conds_idx(cols+1)))));
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
             

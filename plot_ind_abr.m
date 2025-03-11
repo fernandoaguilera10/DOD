@@ -1,6 +1,7 @@
-function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat)
+function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat)
 global legend_string
-condition = strsplit(Conds2Run{CondIND}, filesep);
+legend_string= Conds2Run;
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'Thresholds')
     freq = 1:length(data.freqs);
     fig_num = ChinIND;
@@ -22,7 +23,6 @@ if strcmp(plot_type,'Thresholds')
     xlabel(x_units, 'FontWeight', 'bold')
     xticks(freq); xlim([0.5,6.5]);
     xticklabels({'Click', '0.5', '1', '2', '4', '8'});
-    legend_string{1,CondIND} = sprintf('%s',Conds2Run{CondIND});
     legend(legend_string,'Location','southoutside','Orientation','horizontal')
     legend boxoff; grid on;
     sgtitle(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))),'FontSize', 16,'FontWeight','bold');
@@ -39,7 +39,7 @@ elseif strcmp(plot_type,'Peaks')
     left_width = 0.40;  % Left side takes half the figure
     right_width = 0.40; % Right side takes half the figure
     height = 0.375;     % Height for each of the stacked plots
-    fig_num = (ChinIND - 1) * length(Conds2Run) + CondIND;
+    fig_num = (ChinIND - 1) * length(all_Conds2Run) + CondIND;
     figure(fig_num);
     % Peak plots
     subplot('Position', [0.08,height+0.15, left_width, height]);
@@ -58,7 +58,7 @@ elseif strcmp(plot_type,'Peaks')
     ylabel(y_units_amp, 'FontWeight', 'bold')
     level_ticks = unique(round(data.levels));
     xticks(level_ticks);
-    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),Conds2Run{CondIND},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
+    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),all_Conds2Run{CondIND},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
     set(gca,'FontSize',15);
     % Latency plots
     subplot('Position', [0.08, 0.10, left_width, height]);

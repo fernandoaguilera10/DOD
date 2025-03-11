@@ -1,8 +1,8 @@
-function [average,idx] = avg_oae(f,oae_amp,oae_nf,f_band,oae_amp_band,oae_nf_band,Chins2Run,Conds2Run,counter,colors,idx_plot_relative)
+function [average,idx] = avg_oae(f,oae_amp,oae_nf,f_band,oae_amp_band,oae_nf_band,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative)
 if isempty(idx_plot_relative)
-    conds = length(Conds2Run);
+    conds = length(all_Conds2Run);
 elseif ~isempty(idx_plot_relative)
-    conds = length(Conds2Run)-1;
+    conds = length(all_Conds2Run)-1;
 end
 if conds < 1
     uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
@@ -17,7 +17,7 @@ all_oae_band{1,conds} = [];
 oae_band_std{1,conds} = [];
 idx = ~cellfun(@isempty,oae_amp);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
 if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             avg_f{1,cols} = mean([avg_f{1,cols}; f{rows, cols}],1);
             avg_amp{1,cols} = mean([avg_amp{1,cols}; oae_amp{rows, cols}],1);
@@ -30,14 +30,14 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(counter); hold on;
-                %plot(f{rows, cols}, oae_amp{rows, cols}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
-                %plot(f{rows, cols}, oae_nf{rows, cols}, '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                plot(f_band, oae_amp_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                %plot(f_band, oae_nf_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
             end
         end
     end
 elseif ~isempty(idx_plot_relative)
-    for cols = 1:length(Conds2Run)
+    for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
             if cols ~= idx_plot_relative && idx(rows,cols) == 1
                 avg_f{1,cols-1} = mean([avg_f{1,cols-1}; f{rows, cols}],1);
@@ -66,4 +66,6 @@ average.bandF = [f_band]';
 average.bandOAE = avg_oae_band;
 average.bandNF = avg_nf_band;
 average.oae_band_std = oae_band_std;
+average.all_oae_band = all_oae_band;
+
 end
