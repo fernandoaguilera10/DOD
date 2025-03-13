@@ -15,12 +15,12 @@ if isempty(idx_plot_relative)
             row_idx{cols} = find(~cellfun('isempty', average.peaks_locs(:, cols)));
             % Average PLV amplitude
             figure(counter); hold on;
-            %errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{row_idx{1,cols}(1),cols});
             plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
             ylabel(y_units_amp, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | Average | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
@@ -44,7 +44,7 @@ if isempty(idx_plot_relative)
     end
     set(ratio_plot(1:6,:), 'LineWidth', 2);
     ylabel(y_units_ratio, 'FontWeight', 'bold','FontSize',13);
-    title(sprintf('EFR Ratio (%s) | Average (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
+    title(sprintf('EFR Ratio (%s) |  (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
     set(gca,'FontSize',15); xlim([0.50,width(average.all_ratio(:,legend_idx))+0.50]);
 end
 
@@ -55,14 +55,14 @@ if ~isempty(idx_plot_relative)   %plot relative to
         if ~isempty(average.peaks_locs{1,cols})
             % Average PLV amplitude
             figure(counter); hold on;
-            %errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
             plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             %plot(average.peaks_locs{1,cols},average.peaks{1,cols},'*k','linewidth',2)
             plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
             ylabel(y_units_amp, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | Average | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
@@ -90,7 +90,7 @@ if ~isempty(idx_plot_relative)   %plot relative to
     end
     set(ratio_plot(1:6,:), 'LineWidth', 2);
     ylabel(y_units_ratio, 'FontWeight', 'bold','FontSize',13);
-    title(sprintf('EFR Ratio (%s) | Average | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
     set(gca,'FontSize',15); xlim([0.75,width(average.all_ratio(:,legend_idx))+0.25]);
 end
 average.subjects = Chins2Run;

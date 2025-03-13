@@ -39,7 +39,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(counter); hold on;
-                plot(peaks_locs{rows, cols}, peaks{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                %plot(peaks_locs{rows, cols}, peaks{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             end
         end
     end
