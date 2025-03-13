@@ -28,8 +28,8 @@ if strcmp(analysis_type,'Thresholds')
                     freq = 1:length(x{rows,cols});
                     freq_threshold = [nan,  y{rows,cols}(2:end)];
                     freq_click = [y{rows,cols}(1),nan(1,length(freq)-1)];
-                    plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-                    plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                    %plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                    %plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 end
             end
         end
@@ -48,8 +48,8 @@ if strcmp(analysis_type,'Thresholds')
                         freq = 1:length(x{rows,cols});
                         freq_threshold = [nan,  y{rows,cols}(2:end)-y{rows,idx_plot_relative}(2:end)];
                         freq_click = [y{rows,cols}(1)-y{rows,idx_plot_relative}(1),nan(1,length(freq)-1)];
-                        plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-                        plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                        %plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                        %plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                     end
                 end
             end
