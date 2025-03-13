@@ -30,7 +30,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(counter); hold on;
-                plot(f_band, oae_amp_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                %plot(f_band, oae_amp_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 %plot(f_band, oae_nf_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
             end
