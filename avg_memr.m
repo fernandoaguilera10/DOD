@@ -24,7 +24,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if idx(rows,cols) == 1
                 % Plot individual traces with average
                 figure(length(Chins2Run)+1); hold on;
-                plot(elicitor{rows, cols}, deltapow{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                %plot(elicitor{rows, cols}, deltapow{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
             end
         end

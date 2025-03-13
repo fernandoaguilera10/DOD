@@ -1,46 +1,21 @@
 clc; close all; clear all;
-reanalyze = 0; % 1 = redo analysis      0 = skip analysis
-efr_level = 80; % EFR Levels = 65 or 80 dB SPL
 exposure_group = 'BLAST'; % 'NOISE' or 'BLAST'
-%% Chins2Run = list of subjects to analyze data
-Chins2Run={'Q457','Q478','Q493'};
-% NAIVE: 'Q493', 'Q494','Q495','Q499','Q500','Q503','Q504','Q505'
-% BLAST: 'Q457','Q463','Q478','Q493','Q494'
-% 75 kPa: 'Q457','Q478','Q493'
-% 150 kPa: 'Q463','Q494'
-% NOISE:'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q464'
-% Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
-% Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
-% Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
-% Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
-% Group 5: 'Q485','Q486' (10hrs/4 days per week)
-%% Conds2Run = list of conditions to analyze data (pre vs post)
-Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107'),strcat('post',filesep,'D120')};
 plot_relative = {};
-% strcat('pre',filesep,'Baseline')
-% strcat('post',filesep,'D3')
-% strcat('post',filesep,'D7')
-% strcat('post',filesep,'D15')
-% strcat('post',filesep,'D14')
-% strcat('post',filesep,'D30')
-% strcat('post',filesep,'D43')
-% strcat('post',filesep,'D92')
-% strcat('post',filesep,'D107')
-% strcat('post',filesep,'D120')
+reanalyze = 0; % 1 = redo analysis      0 = skip analysis
+efr_level = 65; % EFR Levels = 65 or 80 dB SPL
+shapes = ["o";"square";"diamond";"^";"v";">";"pentagram"];
+colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255; 217 83 25]/255;
 %% Plot limits
-ylimits_avg_oae = [-70,50];
-ylimits_ind_oae = [-inf,inf];
+ylimits_avg_oae = [-60,60];
+ylimits_ind_oae = [-60,60];
 xlimits_memr = [70,105];
 ylimits_efr = [0,1.3];
-ylimits_ind_abr_threshold = [-inf,inf];
-%ylimits_avg_abr_threshold = [-25,50];
-ylimits_avg_abr_threshold = [-30,65];
+ylimits_ind_abr_threshold = [0,40];
+ylimits_avg_abr_threshold = [0,40];
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
 ylimits_avg_abr_lat = [-inf,inf];
-shapes = ["o";"square";"diamond";"^";"v";">";"pentagram"];
-colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255; 217 83 25]/255;
 %% ROOT Directory
 if ismac
     %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
@@ -49,6 +24,22 @@ else
     %ROOTdir = 'Z:\data\UserTESTS\FA\DOD'; % data depot
     %ROOTdir = 'D:\DOD'; % SSD
     ROOTdir = 'F:\DOD'; % NEL2
+end
+%% Subjects and Conditions
+if strcmp(exposure_group,'BLAST')
+    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107'),strcat('post',filesep,'D120')};
+    Chins2Run={'Q463','Q494'};
+    % BLAST: 'Q457','Q463','Q478','Q493','Q494'
+    % 75 kPa: 'Q457','Q478','Q493'
+    % 150 kPa: 'Q463','Q494'
+elseif strcmp(exposure_group,'NOISE')
+    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+    Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'};
+    % Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
+    % Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
+    % Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
+    % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
+    % Group 5: 'Q485','Q486' (10hrs/4 days per week)
 end
 %% Analysis Code
 cwd = pwd;

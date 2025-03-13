@@ -12,13 +12,13 @@ if isempty(idx_plot_relative)
                 freq = 1:length(average.x{1,cols});
                 freq_threshold = [nan,average.y{1,cols}(2:end)];
                 figure(counter); hold on;
-                %errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+                errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
                 xticks(freq); xlim([0.5,6.5]);
                 xticklabels({'Click', '0.5', '1', '2', '4', '8'});
                 ylabel(y_units, 'FontWeight', 'bold');
                 xlabel(x_units, 'FontWeight', 'bold');
-                title(sprintf('ABR Thresholds | Average'), 'FontSize', 16,'FontWeight','bold');
+                title(sprintf('ABR Thresholds'), 'FontSize', 16,'FontWeight','bold');
                 temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
                 legend_idx = find(~cellfun(@isempty,temp));
                 legend_string = temp(legend_idx);
@@ -40,10 +40,10 @@ if isempty(idx_plot_relative)
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = 'Peak-to-Peak Amplitude (\muV)';
-            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average');
+            title_str = sprintf('ABR Peak-to-Peak Amplitude');
         elseif strcmp(peak_analysis,'Latency')
             y_units = 'Time (ms)';
-            title_str = sprintf('ABR Absolute Peak Latency | Average');
+            title_str = sprintf('ABR Absolute Peak Latency');
         end
         for cols = 1:length(average.w1)
             figure(counter); hold on; % wave 1
@@ -141,7 +141,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             freq = 1:length(average.x{1,cols});
             freq_threshold = [nan,average.y{1,cols}(2:end)];
             figure(counter); hold on;
-            %errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            errorbar(freq, average.y{1,cols},average.y_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(freq, average.y{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(freq, freq_threshold,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             plot(freq, zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
@@ -149,7 +149,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('ABR Thresholds | Average'), 'FontSize', 16);
+            title(sprintf('ABR Thresholds'), 'FontSize', 16);
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
@@ -170,10 +170,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = sprintf('Peak-to-Peak Amplitude Shift (re. %s)',str_plot_relative{2});
-            title_str = sprintf('ABR Peak-to-Peak Amplitude | Average');
+            title_str = sprintf('ABR Peak-to-Peak Amplitude');
         elseif strcmp(peak_analysis,'Latency')
             y_units = sprintf('Latency Shift (re. %s)',str_plot_relative{2});
-            title_str = sprintf('ABR Absolute Peak Latency | Average');
+            title_str = sprintf('ABR Absolute Peak Latency');
         end
         for cols = 1:length(average.w1)
             figure(counter); hold on; % wave 1
