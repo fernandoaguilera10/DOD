@@ -1,6 +1,6 @@
 clc; close all; clear all;
-exposure_group = 'BLAST'; % 'NOISE' or 'BLAST'
-plot_relative = {};
+exposure_group = 'NOISE'; % 'NOISE' or 'BLAST'
+plot_relative_flag = 1;   % Relative to Baseline:  Yes = 1   or  No = 0
 reanalyze = 0; % 1 = redo analysis      0 = skip analysis
 efr_level = 65; % EFR Levels = 65 or 80 dB SPL
 shapes = ["o";"square";"diamond";"^";"v";">";"pentagram"];
@@ -10,8 +10,8 @@ ylimits_avg_oae = [-60,60];
 ylimits_ind_oae = [-60,60];
 xlimits_memr = [70,105];
 ylimits_efr = [0,1.3];
-ylimits_ind_abr_threshold = [0,40];
-ylimits_avg_abr_threshold = [0,40];
+ylimits_ind_abr_threshold = [0,80];
+ylimits_avg_abr_threshold = [-10,50];
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
@@ -22,24 +22,31 @@ if ismac
     ROOTdir = '/Volumes/FefeSSD/DOD';
 else
     %ROOTdir = 'Z:\data\UserTESTS\FA\DOD'; % data depot
-    %ROOTdir = 'D:\DOD'; % SSD
-    ROOTdir = 'F:\DOD'; % NEL2
+    ROOTdir = 'D:\DOD'; % SSD
+    %ROOTdir = 'F:\DOD'; % NEL2
 end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107'),strcat('post',filesep,'D120')};
-    Chins2Run={'Q463','Q494'};
+    Chins2Run={'Q493','Q494'};
     % BLAST: 'Q457','Q463','Q478','Q493','Q494'
     % 75 kPa: 'Q457','Q478','Q493'
     % 150 kPa: 'Q463','Q494'
 elseif strcmp(exposure_group,'NOISE')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
     Chins2Run={'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'};
+    % ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'
     % Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
     % Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
     % Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
     % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
     % Group 5: 'Q485','Q486' (10hrs/4 days per week)
+    % GROUP 6: 'Q499','Q500','Q503','Q504','Q505' (NAIVE)
+end
+if plot_relative_flag == 1
+    plot_relative = {strcat('pre',filesep,'Baseline')};
+else
+    plot_relative = {};
 end
 %% Analysis Code
 cwd = pwd;
@@ -112,8 +119,8 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
         end
     end
     chins_idx = find(temp==1);
-    conds_idx = zeros(size(Conds2Run));
-    for i=1:length(Conds2Run)
+    conds_idx = zeros(size(all_Conds2Run));
+    for i=1:length(all_Conds2Run)
         conds_idx(i) = find(strcmp(Conds2Run(i),all_Conds2Run));
     end
     Chins2Run = chinroster_temp(chins_idx,1);
@@ -193,6 +200,7 @@ filepath_dir = cell(size(filepath_dir_temp));
 datapath_dir = cell(size(datapath_dir_temp));
 filepath_dir(filepath_idx==1) = filepath_dir_temp(filepath_idx==1);
 datapath_dir(datapath_idx==1) = datapath_dir_temp(datapath_idx==1);
+define_global_vars(Chins2Run,all_Conds2Run,EXPname,EXPname2);
 for ChinIND=1:length(Chins2Run)
     conds_idx = find(subject_idx(ChinIND,:)==1);
     Conds2Run = all_Conds2Run(conds_idx);
@@ -306,4 +314,41 @@ for ChinIND=1:length(Chins2Run)
     end
 end
 cd(cwd);
-
+%% Analysis Summary
+if flag == -1
+    summary_idx = zeros(length(Chins2Run),length(all_Conds2Run));
+     for i=1:size(summary_idx,1)
+        for j=1:size(summary_idx,2)
+            if filepath_idx(i,j) == 1 && subject_idx(i,j) == 1
+                summary_idx(i,j) = 1;
+            end
+        end
+     end
+    summary = cell(length(Chins2Run),length(all_Conds2Run)+1);
+    for i=1:size(summary,1)
+        for j=2:size(summary,2)
+            if summary_idx(i,j-1) == 1
+                summary(i,j) = all_Conds2Run(j-1);
+            end
+            if j==2
+                summary(i,j-1) = Chins2Run(i);
+            end
+        end
+    end
+    % Output
+    fprintf('\nANALYSIS SUMMARY:\n');
+    fprintf('\nSubject');
+    for j=1:length(all_Conds2Run)
+        fprintf(' \t%s',all_Conds2Run{j});
+    end
+    for i=1:size(summary,1)
+        fprintf('\n %s\t',summary{i,1});
+        for j=2:size(summary,2)
+            if ~isempty(summary{i,j})
+                fprintf(' \t%s\t','YES');
+            else
+                fprintf(' \t%s\t','NO');
+            end
+        end
+    end
+end
