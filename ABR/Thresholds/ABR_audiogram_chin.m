@@ -1,11 +1,11 @@
-function abr_out = ABR_audiogram_chin(datapath,outpath,subject,Conds2Run,CondIND)
+function abr_out = ABR_audiogram_chin(datapath,outpath,subject,all_Conds2Run,CondIND)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: Februrary, 2024
 %Description: Script to estimate and process ABR thresholds based on bootstrapped
 %cross-corelation (loosely-based on Luke Shaheen ARO2024 presentation)
 close all; cwd = pwd; addpath(cwd);
 freqs = [0,0.5,1,2,4,8]*1000;
-condition = strsplit(Conds2Run{CondIND}, filesep);
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 fs = 8e3; %resampled to 8e3
 samps = 400;
 iters = 200;
