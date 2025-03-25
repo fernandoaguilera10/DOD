@@ -247,12 +247,18 @@ if exist(datapath,"dir")
             threshold_flag = 0;
         elseif strcmp(threshold_dlg,'Yes')
             figure(abr_vis);
-            prompt = {sprintf('Enter frequency (Hz): '); sprintf('Enter new threshold (dB SPL): ')};
-            fieldsize = [1 40; 1 40];
+            freq_options = {'Click', '500 Hz', '1000 Hz', '2000 Hz', '4000 Hz', '8000 Hz'};
+            freq_choice = listdlg('PromptString','Select frequency: ','ListString',freq_options,'SelectionMode','single','ListSize', [100 90]);
+            prompt = {sprintf('Enter new threshold (dB SPL): ')};
+            fieldsize = [1 40];
             output = inputdlg(prompt,'ABR Threshold Overwrite',fieldsize);
-            f = str2num(output{1}); new_threshold = str2num(output{2});
+            f = freq_options{freq_choice}; new_threshold = str2num(cell2mat(output));
             if strcmp(f,'click') || strcmp(f,'Click')
                 f = 0;
+            elseif length(f) == 6   % 500 Hz
+                f = str2num(f(1:3)); 
+            else
+                f = str2num(f(1:4)); %1-8 kHz
             end
             idx = find(freqs==f);
             thresh(idx) = new_threshold;
