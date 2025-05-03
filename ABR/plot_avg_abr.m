@@ -19,7 +19,9 @@ if isempty(idx_plot_relative)
                 ylabel(y_units, 'FontWeight', 'bold');
                 xlabel(x_units, 'FontWeight', 'bold');
                 title(sprintf('ABR Thresholds'), 'FontSize', 16,'FontWeight','bold');
-                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+                if sum(idx(:,cols)) > 0
+                    temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+                end
                 legend_idx = find(~cellfun(@isempty,temp));
                 legend_string = temp(legend_idx);
                 legend(legend_string,'Location','southoutside','Orientation','horizontal');
@@ -141,6 +143,8 @@ if ~isempty(idx_plot_relative)  %plot relative to
             freq = 1:length(average.x{1,cols});
             if ~isempty(average.y{1,cols})
                 freq_threshold = [nan,average.y{1,cols}(2:end)];
+                xticks(freq); xlim([0.5,6.5]);
+                xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             else
                 freq_threshold = [];
             end
@@ -149,12 +153,12 @@ if ~isempty(idx_plot_relative)  %plot relative to
             plot(freq, average.y{1,cols},'Marker',shapes(cols+1,:),'LineStyle','none', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(freq, freq_threshold,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             plot(freq, zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            xticks(freq); xlim([0.5,6.5]);
-            xticklabels({'Click', '0.5', '1', '2', '4', '8'});
             ylabel(y_units, 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('ABR Thresholds'), 'FontSize', 16);
-            temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+            if sum(idx(:,cols+1)) > 0
+                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
+            end
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
