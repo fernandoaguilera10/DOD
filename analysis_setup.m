@@ -1,11 +1,11 @@
 clc; close all; clear all; warning off;
 exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
-plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
+plot_relative_flag = 1;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
-reanalyze = 1;              % 1 = redo analysis      0 = skip analysis
+reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
 efr_level = 80;             % Average EFR Levels: 65 or 80 dB SPL
-shapes = ["o";"square";"diamond";"^";"v";">";"pentagram"];
-colors = [0,114,189; 237,177,32; 126,47,142; 119,172,48; 204,0,0; 255,51,255; 217 83 25]/255;
+shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
+colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 52 144 220; 101 116 205; 149 97 226; 246 109 155; 246 153 63]/255;
 %% Plot limits
 ylimits_avg_oae = [-60,60];
 ylimits_ind_oae = [-60,60];
@@ -18,7 +18,6 @@ ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
 ylimits_avg_abr_lat = [-inf,inf];
 %% ROOT Directory
-
 if ismac
     %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
     ROOTdir = '/Volumes/FefeSSD/DOD';
@@ -29,10 +28,10 @@ else
 end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D15'),strcat('post',filesep,'D43'),strcat('post',filesep,'D92'),strcat('post',filesep,'D107'),strcat('post',filesep,'D120')};
-    Chins2Run={'Q493','Q494'};
+    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
+    Chins2Run={'Q457','Q478','Q493'};
     % BLAST: 'Q457','Q463','Q478','Q493','Q494'
-    % 75 kPa: 'Q457','Q478','Q493'
+    % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
     % 150 kPa: 'Q463','Q494'
 elseif strcmp(exposure_group,'NOISE')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
@@ -122,48 +121,43 @@ if ~isempty(search_files(OUTdir,chinroster_file).files)
     end
     chins_idx = find(temp==1);
     conds_idx = zeros(size(all_Conds2Run));
-    for i=1:length(all_Conds2Run)
-        conds_idx(i) = find(strcmp(Conds2Run(i),all_Conds2Run));
+    for i=1:length(Conds2Run)
+        for j=1:length(all_Conds2Run)
+             if strcmp(Conds2Run(i),all_Conds2Run(j))
+                 conds_idx(j) = j;
+             end
+        end
     end
-    %        chins_idx = find(temp==1);
-    %         conds_idx = zeros(size(all_Conds2Run));
-    %         for j=1:length(Conds2Run)
-    %             for i=1:length(all_Conds2Run)
-    %                 if strcmp(Conds2Run(j),all_Conds2Run(i))
-    %                     conds_idx(i) = i;
-    %                 end
-    %             end
-    %         end
     Chins2Run = chinroster_temp(chins_idx,1);
     chinroster.ChinSex = chinroster_temp(chins_idx,2);
     switch EXPname
         case 'ABR'
             range = col_idx(1):col_idx(1)+conds_length;
             temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,conds_idx);
+            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
         case 'EFR'
             range = col_idx(2):col_idx(2)+conds_length;
             temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,conds_idx);
+            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
         case 'OAE'
             switch EXPname2
                 case 'DPOAE'
                     range = col_idx(3):col_idx(3)+conds_length;
                     temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,conds_idx);
+                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
                 case 'SFOAE'
                     range = col_idx(4):col_idx(4)+conds_length;
                     temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,conds_idx);
+                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
                 case 'TEOAE'
                     range = col_idx(5):col_idx(5)+conds_length;
                     temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,conds_idx);
+                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
             end
         case 'MEMR'
             range = col_idx(6):col_idx(6)+conds_length;
             temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,conds_idx);
+            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
     end
 end
 % Check if RAW data has been analyzed
@@ -328,7 +322,7 @@ end
 cd(cwd);
 %% Analysis Summary
 if flag == -1
-    summary_idx = zeros(length(Chins2Run),length(all_Conds2Run));
+    summary_idx = zeros(length(Chins2Run),length(Conds2Run));
     for i=1:size(summary_idx,1)
         for j=1:size(summary_idx,2)
             if filepath_idx(i,j) == 1 && subject_idx(i,j) == 1
@@ -336,11 +330,11 @@ if flag == -1
             end
         end
     end
-    summary = cell(length(Chins2Run),length(all_Conds2Run)+1);
+    summary = cell(length(Chins2Run),length(Conds2Run)+1);
     for i=1:size(summary,1)
         for j=2:size(summary,2)
             if summary_idx(i,j-1) == 1
-                summary(i,j) = all_Conds2Run(j-1);
+                summary(i,j) = Conds2Run(j-1);
             end
             if j==2
                 summary(i,j-1) = Chins2Run(i);
@@ -348,10 +342,10 @@ if flag == -1
         end
     end
     % Output
-    fprintf('\nANALYSIS SUMMARY:\n');
+    fprintf('\nANALYSIS SUMMARY - %s (%s):\n',EXPname,EXPname2);
     fprintf('\nSubject');
-    for j=1:length(all_Conds2Run)
-        fprintf(' \t%s',all_Conds2Run{j});
+    for j=1:length(Conds2Run)
+        fprintf(' \t%s',Conds2Run{j});
     end
     for i=1:size(summary,1)
         fprintf('\n %s\t',summary{i,1});
