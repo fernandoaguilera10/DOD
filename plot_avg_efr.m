@@ -11,9 +11,9 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})
             y_units_amp = 'PLV';
-            y_units_ratio = 'PLV Ratio';
+            y_units_ratio = 'High/Low Ratio';
             row_idx{cols} = find(~cellfun('isempty', average.peaks_locs(:, cols)));
-            % Average PLV amplitude
+            %% Average PLV Spectrum
             figure(counter); hold on;
             errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{row_idx{1,cols}(1),cols});
@@ -33,24 +33,156 @@ if isempty(idx_plot_relative)
             set(gca,'FontSize',15); xticks(round(average.peaks_locs{1,cols}));
         end
     end
-    % Average PLV ratio
+    %% Average PLV at Low and High Freqs
     figure(counter+1); hold on;
-    ratio_plot = boxplot(cell2mat(average.all_ratio(:,legend_idx)),'Labels',legend_string,'Colors',colors(legend_idx,:));
-    h = findobj(gca,'Tag','Box');
-    for j=1:length(h)
-        patch(get(h(j),'XData'),get(h(j),'YData'),'y', ...
-            'FaceAlpha',0.5,'FaceColor', get(h(j), 'Color'), ...
-            'EdgeColor', get(h(j), 'Color'));
+    freq_labels = {'Low Harmonics (1-3)','High Harmonics (4+)'};
+    num_freqs = length(freq_labels);
+    [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
+    peaks = [];
+    frequencies = [];
+    timepoints = [];
+    for subj = 1:num_subjects
+        for tpt = 1:num_timepoints
+            data = average.all_low_high_peaks{subj, tpt};
+            if isempty(data)
+                data = NaN(1, num_freqs);     % handle empty entries
+            end
+            peaks = [peaks, data];                  % concat thresholds
+            frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
+            timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
+        end
     end
-    set(ratio_plot(1:6,:), 'LineWidth', 2);
-    ylabel(y_units_ratio, 'FontWeight', 'bold','FontSize',13);
-    title(sprintf('EFR Ratio (%s) |  (n = %.0f) | %.0f dB SPL',title_str,sum(idx(:,1)),level_spl), 'FontSize', 16);
-    set(gca,'FontSize',15); xlim([0.50,width(average.all_ratio(:,legend_idx))+0.50]);
+    peaks = peaks(:);
+    frequencies = frequencies(:);
+    timepoints = timepoints(:);
+    boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
+    % Thickens vertical separator line
+    all_lines = findobj(gca, 'Type', 'Line');
+    for i = 1:length(all_lines)
+        xdata = get(all_lines(i), 'XData');
+        ydata = get(all_lines(i), 'YData');
+        if length(xdata) >= 2 && length(ydata) >= 2
+            if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
+                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+            end
+        end
+    end
+    % Flip handles to match left-to-right plotting order
+    boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
+    medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
+    upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
+    lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
+    capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
+    capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
+    allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
+    unique_timepoints = unique(timepoints);
+    num_timepoints = length(unique_timepoints);
+    % Color everything by timepoint
+    for i = 1:length(boxHandles)
+        timepoint_idx = mod(i-1, num_timepoints) + 1;
+        thisColor = colors(timepoint_idx, :);
+        x = get(boxHandles(i), 'XData');
+        y = get(boxHandles(i), 'YData');
+        patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
+            'FaceAlpha', 0.5, 'EdgeColor', 'none');
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(gca, 'XTick', []);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+    end
+    hold on;
+    for i = 1:num_timepoints
+        plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
+            'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+    end
+    legend(all_Conds2Run,'Location','southoutside','Orientation','horizontal');
+    ylabel(y_units_amp, 'FontWeight', 'bold');
+    title(sprintf('EFR Harmonics (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    set(gca,'FontSize',15);
+    legend boxoff; hold off; box off;
+    group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
+    set(gca, 'XTick', group_ticks);
+    set(gca, 'XTickLabel', freq_labels);
+    %% Average PLV Ratio
+    figure(counter+2); hold on;
+    num_freqs = 1;
+    [num_subjects, num_timepoints] = size(average.all_ratio);
+    peaks = [];
+    frequencies = [];
+    timepoints = [];
+    for subj = 1:num_subjects
+        for tpt = 1:num_timepoints
+            data = average.all_ratio{subj, tpt};
+            if isempty(data)
+                data = NaN(1, num_freqs);     % handle empty entries
+            end
+            peaks = [peaks, data];                  % concat thresholds
+            frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
+            timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
+        end
+    end
+    peaks = peaks(:);
+    frequencies = frequencies(:);
+    timepoints = timepoints(:);
+    boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
+    % Thickens vertical separator line
+    all_lines = findobj(gca, 'Type', 'Line');
+    for i = 1:length(all_lines)
+        xdata = get(all_lines(i), 'XData');
+        ydata = get(all_lines(i), 'YData');
+        if length(xdata) >= 2 && length(ydata) >= 2
+            if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
+                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+            end
+        end
+    end
+    % Flip handles to match left-to-right plotting order
+    boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
+    medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
+    upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
+    lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
+    capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
+    capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
+    allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
+    unique_timepoints = unique(timepoints);
+    num_timepoints = length(unique_timepoints);
+    % Color everything by timepoint
+    for i = 1:length(boxHandles)
+        timepoint_idx = mod(i-1, num_timepoints) + 1;
+        thisColor = colors(timepoint_idx, :);
+        x = get(boxHandles(i), 'XData');
+        y = get(boxHandles(i), 'YData');
+        patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
+            'FaceAlpha', 0.5, 'EdgeColor', 'none');
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(gca, 'XTick', []);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+    end
+    hold on;
+    for i = 1:num_timepoints
+        plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
+            'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+    end
+    legend(all_Conds2Run,'Location','southoutside','Orientation','horizontal');
+    ylabel(y_units_amp, 'FontWeight', 'bold');
+    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    set(gca,'FontSize',15);
+    legend boxoff; hold off; box off;
+    ylabel(y_units_ratio, 'FontWeight', 'bold');
 end
-
-if ~isempty(idx_plot_relative)   %plot relative to
+%% Plot relative to Baseline
+if ~isempty(idx_plot_relative)
     y_units_amp = sprintf('PLV (re. %s)',str_plot_relative{2});
-    y_units_ratio = sprintf('PLV Ratio (re. %s)',str_plot_relative{2});
+    y_units_ratio = sprintf('High/Low Ratio (re. %s)',str_plot_relative{2});
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})
             % Average PLV amplitude
@@ -76,28 +208,162 @@ if ~isempty(idx_plot_relative)   %plot relative to
                 xlim([0,x_max+200]);
             end
             set(gca,'xscale','linear');
-            set(gca,'FontSize',15); 
+            set(gca,'FontSize',15);
         end
     end
-    % Average PLV ratio
+    %% Average PLV at Low and High Freqs
     figure(counter+1); hold on;
-    ratio_plot = boxplot(cell2mat(average.all_ratio(:,legend_idx)),'Labels',legend_string,'Colors',colors(legend_idx+1,:));
-    h = findobj(gca,'Tag','Box');
-    for j=1:length(h)
-        patch(get(h(j),'XData'),get(h(j),'YData'),'y', ...
-            'FaceAlpha',0.5,'FaceColor', get(h(j), 'Color'), ...
-            'EdgeColor', get(h(j), 'Color'));
+    freq_labels = {'Low Harmonics (1-3)','High Harmonics (4+)'};
+    num_freqs = length(freq_labels);
+    [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
+    peaks = [];
+    frequencies = [];
+    timepoints = [];
+    for subj = 1:num_subjects
+        for tpt = 1:num_timepoints
+            data = average.all_low_high_peaks{subj, tpt};
+            if isempty(data)
+                data = NaN(1, num_freqs);     % handle empty entries
+            end
+            peaks = [peaks, data];                  % concat thresholds
+            frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
+            timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
+        end
     end
-    set(ratio_plot(1:6,:), 'LineWidth', 2);
-    ylabel(y_units_ratio, 'FontWeight', 'bold','FontSize',13);
-    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
-    set(gca,'FontSize',15); xlim([0.75,width(average.all_ratio(:,legend_idx))+0.25]);
+    peaks = peaks(:);
+    frequencies = frequencies(:);
+    timepoints = timepoints(:);
+    boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
+    % Thickens vertical separator line
+    all_lines = findobj(gca, 'Type', 'Line');
+    for i = 1:length(all_lines)
+        xdata = get(all_lines(i), 'XData');
+        ydata = get(all_lines(i), 'YData');
+        if length(xdata) >= 2 && length(ydata) >= 2
+            if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
+                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+            end
+        end
+    end
+    % Flip handles to match left-to-right plotting order
+    boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
+    medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
+    upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
+    lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
+    capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
+    capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
+    allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
+    unique_timepoints = unique(timepoints);
+    num_timepoints = length(unique_timepoints);
+    % Color everything by timepoint
+    for i = 1:length(boxHandles)
+        timepoint_idx = mod(i-1, num_timepoints) + 1;
+        thisColor = colors(timepoint_idx+1, :);
+        x = get(boxHandles(i), 'XData');
+        y = get(boxHandles(i), 'YData');
+        patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
+            'FaceAlpha', 0.5, 'EdgeColor', 'none');
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(gca, 'XTick', []);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+    end
+    hold on;
+    for i = 1:num_timepoints
+        plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
+            'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+    end
+    legend(all_Conds2Run(2:end),'Location','southoutside','Orientation','horizontal');
+    ylabel(y_units_amp, 'FontWeight', 'bold');
+    title(sprintf('EFR Harmonics (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    set(gca,'FontSize',15);
+    legend boxoff; hold off; box off;
+    group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
+    set(gca, 'XTick', group_ticks);
+    set(gca, 'XTickLabel', freq_labels);
+    %% Average PLV Ratio
+    figure(counter+2); hold on;
+    num_freqs = 1;
+    [num_subjects, num_timepoints] = size(average.all_ratio);
+    peaks = [];
+    frequencies = [];
+    timepoints = [];
+    for subj = 1:num_subjects
+        for tpt = 1:num_timepoints
+            data = average.all_ratio{subj, tpt};
+            if isempty(data)
+                data = NaN(1, num_freqs);     % handle empty entries
+            end
+            peaks = [peaks, data];                  % concat thresholds
+            frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
+            timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
+        end
+    end
+    peaks = peaks(:);
+    frequencies = frequencies(:);
+    timepoints = timepoints(:);
+    boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
+    % Thickens vertical separator line
+    all_lines = findobj(gca, 'Type', 'Line');
+    for i = 1:length(all_lines)
+        xdata = get(all_lines(i), 'XData');
+        ydata = get(all_lines(i), 'YData');
+        if length(xdata) >= 2 && length(ydata) >= 2
+            if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
+                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+            end
+        end
+    end
+    % Flip handles to match left-to-right plotting order
+    boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
+    medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
+    upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
+    lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
+    capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
+    capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
+    allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
+    unique_timepoints = unique(timepoints);
+    num_timepoints = length(unique_timepoints);
+    % Color everything by timepoint
+    for i = 1:length(boxHandles)
+        timepoint_idx = mod(i-1, num_timepoints) + 1;
+        thisColor = colors(timepoint_idx+1, :);
+        x = get(boxHandles(i), 'XData');
+        y = get(boxHandles(i), 'YData');
+        patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
+            'FaceAlpha', 0.5, 'EdgeColor', 'none');
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(gca, 'XTick', []);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+    end
+    hold on;
+    for i = 1:num_timepoints
+        plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
+            'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+    end
+    legend(all_Conds2Run(2:end),'Location','southoutside','Orientation','horizontal');
+    ylabel(y_units_amp, 'FontWeight', 'bold');
+    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    set(gca,'FontSize',15);
+    legend boxoff; hold off; box off;
+    ylabel(y_units_ratio, 'FontWeight', 'bold');
 end
 average.subjects = Chins2Run;
 average.conditions = Conds2Run;
+average.analysis_log = idx;
 %% Export
 cd(outpath);
 save(filename,'average');
 print(figure(counter),[filename,'_figure'],'-dpng','-r300');
-print(figure(counter+1),[filename,'_PLVratio_figure'],'-dpng','-r300');
+print(figure(counter+1),[filename,'_PLVharmonics_figure'],'-dpng','-r300');
+print(figure(counter+2),[filename,'_PLVratio_figure'],'-dpng','-r300');
 end
