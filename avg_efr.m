@@ -15,6 +15,7 @@ avg_f{1,conds} = [];
 avg_ratio{1,conds} = [];
 all_peaks{1,conds} = [];
 all_ratio{1,conds} = [];
+all_low_high_peaks{1,conds} = [];
 peaks_std{1,conds} = [];
 ratio_std{1,conds} = [];
 idx_peaks = 1:3;
@@ -26,8 +27,11 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_peaks{1,cols} = nanmean([avg_peaks{1,cols}; peaks{rows, cols}],1);
             if ~isempty(peaks{rows, cols})
                 peak_sum = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/nansum(peaks{rows, cols}(idx_peaks));
+                all_low_high_peaks{rows,cols} = [nansum(peaks{rows, cols}(idx_peaks)), nansum(peaks{rows, cols}(idx_peaks(end)+1:end))];
             else
                 peak_sum = [];
+                all_low_high_peaks{rows,cols} = [];
+
             end
             avg_ratio{1,cols} = nanmean([avg_ratio{1,cols}; peak_sum],1);
             all_peaks{rows,cols} = peaks{rows, cols};
@@ -52,6 +56,7 @@ elseif ~isempty(idx_plot_relative)
                 peak_sum1 = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/nansum(peaks{rows, cols}(idx_peaks));
                 peak_sum2 = nansum(peaks{rows, idx_plot_relative}(idx_peaks(end)+1:end))/nansum(peaks{rows, idx_plot_relative}(idx_peaks));
                 avg_ratio{1,cols-1} = nanmean([avg_ratio{1,cols-1}; peak_sum1-peak_sum2],1);
+                all_low_high_peaks{rows,cols-1} = [nansum(peaks{rows, cols}(idx_peaks)) - nansum(peaks{rows, idx_plot_relative}(idx_peaks)), nansum(peaks{rows, cols}(idx_peaks(end)+1:end)) - nansum(peaks{rows, idx_plot_relative}(idx_peaks(end)+1:end))];
                 all_peaks{rows,cols-1} = peaks{rows, cols}-peaks{rows, idx_plot_relative};
                 all_ratio{rows,cols-1} = peak_sum1-peak_sum2;
                 peaks_std{1,cols-1} = nanstd(cell2mat(all_peaks(:,cols-1)),0,1);
@@ -79,4 +84,5 @@ average.ratio = avg_ratio;
 average.ratio_std = ratio_std;
 average.all_ratio = all_ratio;
 average.all_peaks = all_peaks;
+average.all_low_high_peaks = all_low_high_peaks;
 end
