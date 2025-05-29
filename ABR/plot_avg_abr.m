@@ -70,11 +70,22 @@ if isempty(idx_plot_relative)
             set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
         end
         hold on;
-        for i = 1:num_timepoints
-            plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
-                'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+        for z = 1:size(idx,1)
+            conds_counts(z) = sum(idx(z,:));
         end
-        legend(all_Conds2Run,'Location','southoutside','Orientation','horizontal');
+        legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
+        conds_counts_idx =  find(sum(idx)~= 0);
+        for i = 1:length(conds_counts_idx)
+            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
+        end
+        for cols = 1:length(average.y)
+            if ~isempty(average.y{1,cols})
+                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+                legend_idx = find(~cellfun(@isempty,temp));
+                legend_string = temp(legend_idx);
+            end
+        end
+        legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
         ylabel(y_units, 'FontWeight', 'bold');
         title(sprintf('ABR Thresholds'),'FontWeight','bold');
         set(gca,'FontSize',15);
@@ -82,6 +93,7 @@ if isempty(idx_plot_relative)
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);
         set(gca, 'XTickLabel', freq_labels);
+        set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
         end
@@ -174,6 +186,7 @@ if isempty(idx_plot_relative)
             subtitle('Wave I/V'); xlim([-inf,inf]);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
+            set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
@@ -218,6 +231,7 @@ if ~isempty(idx_plot_relative)
         timepoints = timepoints(:);
         %daviolinplot(thresholds, 'color', colors, 'violin', 'full', 'scatter', 2,'groups',timepoints);
         boxplot(thresholds, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
+        yline(0, 'k--', 'LineWidth', 1.5);
         % Thickens vertical separator line
         all_lines = findobj(gca, 'Type', 'Line');
         for i = 1:length(all_lines)
@@ -256,12 +270,25 @@ if ~isempty(idx_plot_relative)
             set(gca, 'XTick', []);
             set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
         end
+        idx_temp = idx;
+        idx = idx(:,2:end);
         hold on;
-        for i = 1:num_timepoints
-            plot(NaN, NaN, 's', 'MarkerFaceColor', colors(i,:), ...
-                'MarkerEdgeColor', 'k', 'MarkerSize', 8);
+        for z = 1:size(idx,1)-1
+            conds_counts(z) = sum(idx(z+1,:));
         end
-        legend(all_Conds2Run(2:end),'Location','southoutside','Orientation','horizontal');
+        legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
+        conds_counts_idx =  find(sum(idx)~= 0);
+        for i = 1:length(conds_counts_idx)
+            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
+        end
+        for cols = 1:length(average.y)
+            if ~isempty(average.y{1,cols})
+                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols))));
+                legend_idx = find(~cellfun(@isempty,temp));
+                legend_string = temp(legend_idx);
+            end
+        end
+        legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
         ylabel(y_units, 'FontWeight', 'bold');
         title(sprintf('ABR Thresholds'),'FontWeight','bold');
         set(gca,'FontSize',15);
@@ -269,6 +296,7 @@ if ~isempty(idx_plot_relative)
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);
         set(gca, 'XTickLabel', freq_labels);
+        set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
         end
@@ -279,6 +307,7 @@ if ~isempty(idx_plot_relative)
         cd(outpath);
         save(filename,'average');
         print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+        idx = idx_temp;
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
@@ -371,6 +400,7 @@ if ~isempty(idx_plot_relative)
             subtitle('Wave I/V'); xlim([-inf,inf]);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
+            set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
