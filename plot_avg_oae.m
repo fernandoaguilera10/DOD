@@ -36,6 +36,7 @@ if isempty(idx_plot_relative)
             set(gca,'FontSize',15);
         end
     end
+    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 
 if ~isempty(idx_plot_relative)  %plot relative to
@@ -67,6 +68,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             set(gca,'FontSize',15);
         end
     end
+    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 average.subjects = Chins2Run;
 average.conditions = Conds2Run;

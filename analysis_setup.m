@@ -1,5 +1,5 @@
 clc; close all; clear all; warning off;
-exposure_group = 'NOISE';   % 'NOISE' or 'BLAST'
+exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
 plot_relative_flag = 1;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
@@ -29,20 +29,21 @@ end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D0'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q499','Q500'};
+    Chins2Run={'Q503'};
     % BLAST: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
     % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
     % 150 kPa: 'Q463','Q494','Q503'
 elseif strcmp(exposure_group,'NOISE')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-    Chins2Run={'Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'};
-    % ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'
+    Chins2Run={'Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'};
+    % ALL:
+    % 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'
     % Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
     % Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
     % Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
     % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
     % Group 5: 'Q485','Q486' (10hrs/4 days per week)
-    % GROUP 6: 'Q499','Q500','Q503','Q504','Q505'
+    % GROUP 6: 'Q504','Q505' (10hrs/4 days per week)
 end
 if plot_relative_flag == 1
     plot_relative = {strcat('pre',filesep,'Baseline')};
