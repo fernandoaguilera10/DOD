@@ -71,7 +71,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 average.subjects = Chins2Run;
-average.conditions = Conds2Run;
+average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
 %% Export
 cd(outpath);
 save(filename,'average');
