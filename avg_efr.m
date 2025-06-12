@@ -29,7 +29,7 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             if ~isempty(peaks{rows, cols})
                 ratio = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/nansum(peaks{rows, cols}(idx_peaks));
                 all_low_high_peaks{rows,cols} = [nansum(peaks{rows, cols}(idx_peaks)), nansum(peaks{rows, cols}(idx_peaks(end)+1:end))];
-                all_weighted = nansum(peaks{rows, cols}(idx_peaks)) + nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
+                all_weighted{rows,cols} = nansum(peaks{rows, cols}(idx_peaks)) + nansum(peaks{rows, cols}(idx_peaks(end)+1:end));
                 low_weighted = nansum(peaks{rows, cols}(idx_peaks))/all_weighted;
                 high_weighted = nansum(peaks{rows, cols}(idx_peaks(end)+1:end))/all_weighted;
                 all_low_high_peaks_weighted{rows,cols} = [low_weighted,high_weighted];
@@ -74,6 +74,7 @@ elseif ~isempty(idx_plot_relative)
                 all_low_high_peaks_weighted{rows,cols-1} = [low_weighted,high_weighted];
                 all_peaks{rows,cols-1} = peaks{rows, cols}-peaks{rows, idx_plot_relative};
                 all_ratio{rows,cols-1} = ratio1-ratio2;
+                all_ratio_weighted{rows,cols-1} = high_weighted/low_weighted;
                 peaks_std{1,cols-1} = nanstd(cell2mat(all_peaks(:,cols-1)),0,1);
                 ratio_std{1,cols-1} = nanstd(cell2mat(all_ratio(:,cols-1)),0,1);
                 avg_plv_env{1,cols-1} = mean([avg_plv_env{1,cols-1}; plv_env{rows, cols}-plv_env{rows, idx_plot_relative}],1);
