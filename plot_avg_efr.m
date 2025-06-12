@@ -34,15 +34,15 @@ if isempty(idx_plot_relative)
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV at Low and High Freqs
     figure(counter+1); hold on;
-    freq_labels = {'Low Harmonics (1-3)','High Harmonics (4+)'};
+    freq_labels = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
     num_freqs = length(freq_labels);
-    [num_subjects, num_timepoints] = size(average.all_low_high_peaks_weighted);
+    [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
     peaks = [];
     frequencies = [];
     timepoints = [];
     for subj = 1:num_subjects
         for tpt = 1:num_timepoints
-            data = average.all_low_high_peaks_weighted{subj, tpt};
+            data = average.all_low_high_peaks{subj, tpt};
             if isempty(data)
                 data = NaN(1, num_freqs);     % handle empty entries
             end
@@ -103,24 +103,24 @@ if isempty(idx_plot_relative)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-    ylabel('Relative PLV Sum', 'FontWeight', 'bold');
-    title(sprintf('EFR Harmonics (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    ylabel('PLV', 'FontWeight', 'bold');
+    title(sprintf('EFR Harmonic Contribution (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
     set(gca,'FontSize',15);
     legend boxoff; hold off; box off;
     group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
     set(gca, 'XTick', group_ticks);
     set(gca, 'XTickLabel', freq_labels);
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
-    %% Average PLV Ratio
+    %% Average PLV Sum
     figure(counter+2); hold on;
     num_freqs = 1;
-    [num_subjects, num_timepoints] = size(average.all_ratio_weighted);
+    [num_subjects, num_timepoints] = size(average.all_plv_sum);
     peaks = [];
     frequencies = [];
     timepoints = [];
     for subj = 1:num_subjects
         for tpt = 1:num_timepoints
-            data = average.all_ratio_weighted{subj, tpt};
+            data = average.all_plv_sum{subj, tpt};
             if isempty(data)
                 data = NaN(1, num_freqs);     % handle empty entries
             end
@@ -177,8 +177,8 @@ if isempty(idx_plot_relative)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-    ylabel('Relative PLV Ratio', 'FontWeight', 'bold');
-    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    ylabel('PLV Sum', 'FontWeight', 'bold');
+    title(sprintf('EFR Total PLV Sum (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
     set(gca,'FontSize',15);
     legend boxoff; hold off; box off;
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
@@ -189,8 +189,8 @@ if ~isempty(idx_plot_relative)
         if ~isempty(average.peaks_locs{1,cols})
             figure(counter); hold on;
             errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
-            plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+            %average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
+            %plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             %plot(average.peaks_locs{1,cols},average.peaks{1,cols},'*k','linewidth',2)
             plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
             ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
@@ -215,15 +215,15 @@ if ~isempty(idx_plot_relative)
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV at Low and High Freqs
     figure(counter+1); hold on;
-    freq_labels = {'Low Harmonics (1-3)','High Harmonics (4+)'};
+    freq_labels = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
     num_freqs = length(freq_labels);
-    [num_subjects, num_timepoints] = size(average.all_low_high_peaks_weighted);
+    [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
     peaks = [];
     frequencies = [];
     timepoints = [];
     for subj = 1:num_subjects
         for tpt = 1:num_timepoints
-            data = average.all_low_high_peaks_weighted{subj, tpt};
+            data = average.all_low_high_peaks{subj, tpt};
             if isempty(data)
                 data = NaN(1, num_freqs);     % handle empty entries
             end
@@ -287,24 +287,24 @@ if ~isempty(idx_plot_relative)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-    ylabel('Relative PLV Sum Shift (re. Baseline)', 'FontWeight', 'bold');
-    title(sprintf('EFR Harmonics (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
+    title(sprintf('EFR Harmonic Contribution (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
     set(gca,'FontSize',15);
     legend boxoff; hold off; box off;
     group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
     set(gca, 'XTick', group_ticks);
     set(gca, 'XTickLabel', freq_labels);
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
-    %% Average PLV Ratio
+    %% Average PLV Sum
     figure(counter+2); hold on;
     num_freqs = 1;
-    [num_subjects, num_timepoints] = size(average.all_ratio);
+    [num_subjects, num_timepoints] = size(average.all_plv_sum);
     peaks = [];
     frequencies = [];
     timepoints = [];
     for subj = 1:num_subjects
         for tpt = 1:num_timepoints
-            data = average.all_ratio{subj, tpt};
+            data = average.all_plv_sum{subj, tpt};
             if isempty(data)
                 data = NaN(1, num_freqs);     % handle empty entries
             end
@@ -362,16 +362,15 @@ if ~isempty(idx_plot_relative)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-    ylabel('Relative PLV Ratio Shift (re. Baseline)', 'FontWeight', 'bold');
-    title(sprintf('EFR Ratio (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
+    ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
+    title(sprintf('EFR Total PLV Sum (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
     set(gca,'FontSize',15);
     legend boxoff; hold off; box off;
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     idx = idx_temp;
 end
 average.subjects = Chins2Run;
-average.conditions = Conds2Run;
-average.analysis_log = idx;
+average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
 %% Export
 cd(outpath);
 save(filename,'average');

@@ -49,7 +49,8 @@ if exist(datapath,'dir')
         idx = round(length(PLV_env)/(fs/2)*cutoff);
         noise = PLV_env(idx:end);
         noise = [nan(idx,1);PLV_env(idx+1:end)];
-        threshold = nanmean(noise) + 3*nanstd(noise);
+        %threshold = nanmean(noise) + 3*nanstd(noise);  % rejection threshold 
+        threshold = 0;
         PKS_real = nan(size(pks));
         LOCS_real = nan(size(locs));
         real_peak_idx = find(pks > threshold);
@@ -71,7 +72,7 @@ if exist(datapath,'dir')
         %plot(f,noise,'Color',yl,'linewidth',1.5);
         plot(LOCS_real,PKS_real,'*','Color',gr,'MarkerSize',10,'LineWidth',2);
         plot(LOCS_im,PKS_im,'*','Color',rd,'MarkerSize',10,'LineWidth',2);
-        plot(f,threshold*ones(size(f)),'--','Color',blck,'linewidth',1.5);
+        %plot(f,threshold*ones(size(f)),'--','Color',blck,'linewidth',1.5);
         hold off;
         ylim([0,1.05]);
         ylabel('PLV','FontWeight','bold')
