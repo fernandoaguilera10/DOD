@@ -376,5 +376,5 @@ cd(outpath);
 save(filename,'average');
 print(figure(counter),[filename,'_figure'],'-dpng','-r300');
 print(figure(counter+1),[filename,'_PLVharmonics_figure'],'-dpng','-r300');
-print(figure(counter+2),[filename,'_PLVratio_figure'],'-dpng','-r300');
+print(figure(counter+2),[filename,'_PLVsum_figure'],'-dpng','-r300');
 end
