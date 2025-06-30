@@ -1,13 +1,13 @@
 clc; close all; clear all; warning off;
-exposure_group = 'NOISE';   % 'NOISE' or 'BLAST'
+exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
 plot_relative_flag = 1;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
-efr_level = 80;             % Average EFR Levels: 65 or 80 dB SPL
+efr_level = 65;             % Average EFR Levels: 65 or 80 dB SPL
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
-colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 52 144 220; 101 116 205; 149 97 226; 246 109 155; 246 153 63]/255;
+colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63]/255;
 %% Plot limits
-ylimits_avg_oae = [-60,60];
+ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-60,60];
 xlimits_memr = [70,105];
 ylimits_efr = [-1,1];
@@ -28,8 +28,8 @@ else
 end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D0'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q500','Q503'};
+    Conds2Run = {strcat('pre',filesep,'Baseline')};
+    Chins2Run={'Q503'};
     % BLAST: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
     % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
     % 150 kPa: 'Q463','Q494','Q503'
@@ -233,7 +233,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
-                                    abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
+                                    abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
                                     %if ~exist(filepath,'dir'), mkdir(filepath), end
