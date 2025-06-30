@@ -13,6 +13,12 @@ if strcmp(analysis_type,'Thresholds')
     avg_y{1,conds} = [];
     all_y{1,conds} = [];
     y_std{1,conds} = [];
+    threshold_click{1,conds} = [];
+    threshold_500{1,conds} = [];
+    threshold_1000{1,conds} = [];
+    threshold_2000{1,conds} = [];
+    threshold_4000{1,conds} = [];
+    threshold_8000{1,conds} = [];
     idx = ~cellfun(@isempty,y);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
     if isempty(idx_plot_relative)   % plot all timepoints, including baseline
         for cols = 1:length(all_Conds2Run)
@@ -28,6 +34,12 @@ if strcmp(analysis_type,'Thresholds')
                     freq = 1:length(x{rows,cols});
                     freq_threshold = [nan,  y{rows,cols}(2:end)];
                     freq_click = [y{rows,cols}(1),nan(1,length(freq)-1)];
+                    threshold_click{rows,cols} = y{rows,cols}(1);
+                    threshold_500{rows,cols} = y{rows,cols}(2);
+                    threshold_1000{rows,cols} = y{rows,cols}(3);
+                    threshold_2000{rows,cols} = y{rows,cols}(4);
+                    threshold_4000{rows,cols} = y{rows,cols}(5);
+                    threshold_8000{rows,cols} = y{rows,cols}(6);
                     %plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                     %plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 end
@@ -48,6 +60,12 @@ if strcmp(analysis_type,'Thresholds')
                         freq = 1:length(x{rows,cols});
                         freq_threshold = [nan,  y{rows,cols}(2:end)-y{rows,idx_plot_relative}(2:end)];
                         freq_click = [y{rows,cols}(1)-y{rows,idx_plot_relative}(1),nan(1,length(freq)-1)];
+                        threshold_click{rows,cols-1} = y{rows,cols}(1)-y{rows,idx_plot_relative}(1);
+                        threshold_500{rows,cols-1} = y{rows,cols}(2)-y{rows,idx_plot_relative}(2);
+                        threshold_1000{rows,cols-1} = y{rows,cols}(3)-y{rows,idx_plot_relative}(3);
+                        threshold_2000{rows,cols-1} = y{rows,cols}(4)-y{rows,idx_plot_relative}(4);
+                        threshold_4000{rows,cols-1} = y{rows,cols}(5)-y{rows,idx_plot_relative}(5);
+                        threshold_8000{rows,cols-1} = y{rows,cols}(6)-y{rows,idx_plot_relative}(6);
                         %plot(freq, freq_click,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                         %plot(freq, freq_threshold,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                     end
@@ -59,8 +77,13 @@ if strcmp(analysis_type,'Thresholds')
     average.y = avg_y;
     average.y_std = y_std;
     average.all_y = all_y;
-
-
+    average.threshold_click = threshold_click;
+    average.threshold_500 = threshold_500;
+    average.threshold_1000 = threshold_1000;
+    average.threshold_2000 = threshold_2000;
+    average.threshold_4000 = threshold_4000;
+    average.threshold_8000 = threshold_8000;
+    
 elseif strcmp(analysis_type,'Peaks')
     avg_x{1,conds} = [];
     peak{1,conds} = [];

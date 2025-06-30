@@ -1,16 +1,16 @@
 clc; close all; clear all; warning off;
 exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
-plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
+plot_relative_flag = 1;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
-efr_level = 80;             % Average EFR Levels: 65 or 80 dB SPL
+efr_level = 65;             % Average EFR Levels: 65 or 80 dB SPL
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
-colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 52 144 220; 101 116 205; 149 97 226; 246 109 155; 246 153 63]/255;
+colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63]/255;
 %% Plot limits
-ylimits_avg_oae = [-60,60];
+ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-60,60];
 xlimits_memr = [70,105];
-ylimits_efr = [0,1.3];
+ylimits_efr = [-1,1];
 ylimits_ind_abr_threshold = [0,80];
 ylimits_avg_abr_threshold = [-10,50];
 ylimits_ind_abr_peaks = [0,inf];
@@ -28,21 +28,21 @@ else
 end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q457','Q478','Q493','Q499','Q500'};
+    Conds2Run = {strcat('pre',filesep,'Baseline')};
+    Chins2Run={'Q503'};
     % BLAST: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
     % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
     % 150 kPa: 'Q463','Q494','Q503'
 elseif strcmp(exposure_group,'NOISE')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-    Chins2Run={'Q460','Q462','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'};
-    % ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488'
+    Chins2Run={'Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'};
+    % ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'
     % Group 1: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
     % Group 2: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
     % Group 3: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
     % Group 4: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
     % Group 5: 'Q485','Q486' (10hrs/4 days per week)
-    % GROUP 6: 'Q499','Q500','Q503','Q504','Q505' (NAIVE)
+    % GROUP 6: 'Q504','Q505' (10hrs/4 days per week)
 end
 if plot_relative_flag == 1
     plot_relative = {strcat('pre',filesep,'Baseline')};
@@ -233,7 +233,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
-                                    abr_peaks_setup(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
+                                    abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
                                     %if ~exist(filepath,'dir'), mkdir(filepath), end
@@ -321,6 +321,7 @@ for ChinIND=1:length(Chins2Run)
 end
 cd(cwd);
 %% Analysis Summary
+Conds2Run = all_Conds2Run;
 if flag == -1
     summary_idx = zeros(length(Chins2Run),length(Conds2Run));
     for i=1:size(summary_idx,1)
@@ -342,19 +343,25 @@ if flag == -1
         end
     end
     % Output
-    fprintf('\nANALYSIS SUMMARY - %s (%s):\n',EXPname,EXPname2);
-    fprintf('\nSubject');
-    for j=1:length(Conds2Run)
-        fprintf(' \t%s',Conds2Run{j});
+    fprintf('\n\nANALYSIS SUMMARY - %s (%s):\n\n', EXPname, EXPname2);
+    fprintf('%-10s', 'Subject');
+    for j = 1:length(Conds2Run)
+        if strcmpi(all_temp{j}, 'Baseline')
+            fprintf('%-10s', 'B');
+        else
+            fprintf('%-10s', all_temp{j});
+        end
     end
-    for i=1:size(summary,1)
-        fprintf('\n %s\t',summary{i,1});
-        for j=2:size(summary,2)
+    fprintf('\n');
+    for i = 1:size(summary,1)
+        fprintf('%-10s', summary{i,1});
+        for j = 2:size(summary,2)
             if ~isempty(summary{i,j})
-                fprintf(' \t%s\t','YES');
+                fprintf('%-10s', 'YES');
             else
-                fprintf(' \t%s\t','NO');
+                fprintf('%-10s', 'NO');
             end
         end
+        fprintf('\n');
     end
 end
