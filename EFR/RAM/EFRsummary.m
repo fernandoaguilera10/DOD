@@ -37,7 +37,7 @@ end
 fig_num_avg = length(Chins2Run)+1;
 if average_flag == 1
     % Plot individual lines
-    average = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,subject_idx);
+    average = avg_efr(efr_peak_freq_all,efr_peak_amp,efr_f,efr_PLV,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,subject_idx,conds_idx);
     % Plot average lines
     outpath = strcat(OUTdir,filesep,'EFR');
     filename = ['EFR_RAM223_Average_',num2str(level_spl),'dBSPL'];

@@ -20,6 +20,7 @@ legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('EFR (%s) | %s | %.0f dB SPL',title_str, cell2mat(Chins2Run(ChinIND)),data.spl));
 set(gca,'FontSize',15);
+set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);
 print(figure(ChinIND),[filename,'_figure'],'-dpng','-r300');

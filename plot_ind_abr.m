@@ -27,6 +27,7 @@ if strcmp(plot_type,'Thresholds')
     legend boxoff; grid on;
     sgtitle(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))),'FontSize', 16,'FontWeight','bold');
     set(gca,'FontSize',15); set(gca,'xscale','linear'); set(legend,'visible','on');
+    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Peak-to-Peak Amplitude (\muV)';
@@ -101,8 +102,9 @@ elseif strcmp(plot_type,'Peaks')
     yticks(flip(mean(wform_plot)));
     yticklabels(flip(round(data.levels)));
     ylim([1.05*min(min(wform_plot)),0])
-    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
+    %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
     set(gca,'FontSize',15);
+    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 %% Export
 cd(outpath);
