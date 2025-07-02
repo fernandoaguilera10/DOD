@@ -29,8 +29,8 @@ else
 end
 %% Subjects and Conditions
 if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q540','Q541'};
+    Conds2Run = {strcat('pre',filesep,'Baseline')};   %,strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
+    Chins2Run={'Q503'};
     % NAIVE: 'Q537','Q538','Q540','Q541'
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
