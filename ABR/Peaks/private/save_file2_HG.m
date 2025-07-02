@@ -7,9 +7,9 @@ ChinDir = abr_out_dir;
 cd(ChinDir)
 % check if previous files have been saved
 if freq~=0
-    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),cell2mat(ChinCondition),freq));
+    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),ChinCondition,freq));
 else
-    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),cell2mat(ChinCondition)));
+    file_check = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),ChinCondition));
 end
 filename = {file_check.name};
 freq2=ones(1,num)*freq; replaced=0;
@@ -180,10 +180,10 @@ elseif ~isempty(filename) && isempty(abr_FIG.parm_txt(9).String) %Save new file 
     close;
 else    %Save first file if no prior files exist
     if freq~=0
-        filename2 = sprintf('Q%s_%s_ABRpeaks_%dHz',num2str(animal),cell2mat(ChinCondition),freq);
+        filename2 = sprintf('Q%s_%s_ABRpeaks_%dHz',num2str(animal),ChinCondition,freq);
         prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: %.1f kHz\n',animal, freq/1000);
     else
-        filename2 = sprintf('Q%s_%s_ABRpeaks_click',num2str(animal),cell2mat(ChinCondition));
+        filename2 = sprintf('Q%s_%s_ABRpeaks_click',num2str(animal),ChinCondition);
         prompt_peak_save = sprintf('\nSaving New File...\n\nSubject: Q%s \nStimulus: Click\n',animal);
     end
     
