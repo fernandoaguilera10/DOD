@@ -18,9 +18,9 @@ else
     cd(ChinDir)
 end
 if freq~=0
-    files = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),cell2mat(ChinCondition),freq));
+    files = dir(sprintf('*Q%s_%s_ABRpeaks_%dHz*.mat',num2str(animal),ChinCondition,freq));
 else
-    files = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),cell2mat(ChinCondition)));
+    files = dir(sprintf('*Q%s_%s_ABRpeaks_click*.mat',num2str(animal),ChinCondition));
 end
 files = files(find((strncmp('.',{files.name},1)==0))); % Only files which are not '.' nor '..'
 str = {files.name};
