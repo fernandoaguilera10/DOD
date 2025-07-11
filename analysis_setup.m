@@ -3,16 +3,21 @@ exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
 plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
-efr_level = 65;             % Average EFR Levels: 65 or 80 dB SPL
+efr_level = 80;             % Average EFR Levels: 65 or 80 dB SPL
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
-colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63]/255;
+colors = [0 0 0; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63; 227 52 47]/255;
 %% Plot limits
-ylimits_avg_oae = [-25,40];
+% OAE
+ylimits_avg_oae = [-60,60];
 ylimits_ind_oae = [-60,60];
+% MEMR
 xlimits_memr = [70,105];
-ylimits_efr = [-1,1];
+% EFR
+ylimits_efr = [0,1.1];
+% ABR - Thresholds
 ylimits_ind_abr_threshold = [0,80];
-ylimits_avg_abr_threshold = [-10,50];
+ylimits_avg_abr_threshold = [0,55];
+% ABR - Peaks
 ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
@@ -23,18 +28,21 @@ if ismac
     ROOTdir = '/Volumes/FefeSSD/DOD';
 else
     %ROOTdir = 'Z:\data\UserTESTS\FA\DOD'; % data depot
-    %ROOTdir = 'D:\DOD'; % SSD
+    ROOTdir = 'D:\DOD'; % SSD
     %ROOTdir = 'F:\DOD'; % NEL2
-    ROOTdir = 'E:\DOD'; % LYLE 3035 (Analysis)
+    %ROOTdir = 'E:\DOD'; % LYLE 3035 (Analysis)
 end
 %% Subjects and Conditions
+chinroster_file = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
 if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline')};   %,strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q503'};
-    % NAIVE: 'Q537','Q538','Q540','Q541'
+    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
+    Chins2Run={'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'};
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
+            % Head Free: 'Q457','Q478','Q493','Q500'
         % 150 kPa: 'Q463','Q494','Q503'
+            % Head Free: 'Q463','Q494'
+        % Group 1 (150 kPa w/earplugs + bite bar): 'Q537','Q538','Q540','Q541'
 elseif strcmp(exposure_group,'NOISE')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
     Chins2Run={'Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'};
@@ -85,7 +93,6 @@ else
     datapath_searchfile = filepath_searchfile;
 end
 % Check available subjects and conditions
-chinroster_file = 'DOD_ChinRoster.xlsx';
 if ~isempty(search_files(OUTdir,chinroster_file).files)
     cd(OUTdir)
     chinroster_temp = readcell(chinroster_file,'Sheet',exposure_group);
@@ -274,8 +281,8 @@ for ChinIND=1:length(Chins2Run)
                 sourcepath = '/Volumes/FefeSSD/DOD/Data/RAW';
             else
                 %sourcepath = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
-                %sourcepath = 'D:\DOD\Data\RAW'; % SSD
-                sourcepath = 'E:\DOD\Data\RAW'; % SSD
+                sourcepath = 'D:\DOD\Data\RAW'; % SSD
+                %sourcepath = 'E:\DOD\Data\RAW'; % LYLE 3035 (Analysis)
             end
             move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
         elseif file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
