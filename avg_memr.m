@@ -23,7 +23,11 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             deltapow_std{1,cols} = std(cell2mat(all_deltapow(:,cols)),0,1);
             threshold_idx = find(deltapow{rows, cols} > 0.1, 1, 'first');
             if isempty(threshold_idx), threshold_idx = 11; end
-            all_threshold{rows,cols} = elicitor{rows, cols}(threshold_idx);
+            if ~isempty(elicitor{rows, cols})
+                all_threshold{rows,cols} = elicitor{rows, cols}(threshold_idx);
+            else
+                all_threshold{rows,cols} = NaN;
+            end
             % check if data is present for a given timepoint and subject
             if idx(rows,cols) == 1
                 % Plot individual traces with average
