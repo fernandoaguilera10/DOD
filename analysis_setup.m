@@ -1,11 +1,26 @@
 clc; close all; clear all; warning off;
-exposure_group = 'BLAST';   % 'NOISE' or 'BLAST'
+chinroster_file = 'ChinRoster.xlsx';    % chin roster file
+exposure_group = 'Prasad';   % sheet within chin roster file
 plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
 publish_flag = 0;           % Publish PDF Report:    Yes = 1   or  No = 0     NOT WORKING, NEED TO FIX IT!
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
 efr_level = 65;             % Average EFR Levels: 65 or 80 dB SPL
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
 colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63]/255;
+%% ROOT Directory: CHANGE THIS **********************************************************
+if ismac
+    ROOTdir = 'TBD';
+else
+    ROOTdir = 'D:\ABR Peaks'; 
+end
+%% Subjects and Conditions: CHANGE THIS ***********************************************
+if strcmp(exposure_group,'Prasad')
+    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
+    Chins2Run={'Q541'};
+elseif strcmp(exposure_group,'Afagh')
+    Conds2Run = {};
+    Chins2Run={};
+end
 %% Plot limits
 ylimits_avg_oae = [-25,40];
 ylimits_ind_oae = [-60,60];
@@ -17,41 +32,12 @@ ylimits_ind_abr_peaks = [0,inf];
 ylimits_avg_abr_peaks = [-inf,inf];
 ylimits_ind_abr_lat = [-inf,inf];
 ylimits_avg_abr_lat = [-inf,inf];
-%% ROOT Directory
-if ismac
-    %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
-    ROOTdir = '/Volumes/FefeSSD/DOD';
-else
-    %ROOTdir = 'Z:\data\UserTESTS\FA\DOD'; % data depot
-    %ROOTdir = 'D:\DOD'; % SSD
-    %ROOTdir = 'F:\DOD'; % NEL2
-    ROOTdir = 'E:\DOD'; % LYLE 3035 (Analysis)
-end
-%% Subjects and Conditions
-if strcmp(exposure_group,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline')};   %,strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q503'};
-    % NAIVE: 'Q537','Q538','Q540','Q541'
-    % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
-        % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
-        % 150 kPa: 'Q463','Q494','Q503'
-elseif strcmp(exposure_group,'NOISE')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D7'),strcat('post',filesep,'D14'),strcat('post',filesep,'D30')};
-    Chins2Run={'Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'};
-    % ALL: 'Q438','Q445','Q446','Q447','Q460','Q461','Q462','Q464','Q473','Q474','Q475','Q476','Q479','Q480','Q481','Q482','Q483','Q484','Q485','Q486','Q487','Q488','Q504','Q505'
-        % Group 0: 'Q438','Q445','Q446','Q447' (8hrs/5 days per week)
-        % Group 1: 'Q460','Q461','Q462','Q464' (10hrs/4 days per week)
-        % Group 2: 'Q473','Q474','Q475','Q476','Q479','Q480' (10hrs/4 days per week)
-        % Group 3: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
-        % Group 4: 'Q485','Q486' (10hrs/4 days per week)
-        % GROUP 5: 'Q504','Q505' (10hrs/4 days per week)
-end
+%% Analysis Code: DO NOT NEED TO CHANGE ANYTHING
 if plot_relative_flag == 1
     plot_relative = {strcat('pre',filesep,'Baseline')};
 else
     plot_relative = {};
 end
-%% Analysis Code
 cwd = pwd;
 if ~isempty(plot_relative)
     idx_plot_relative = ismember(plot_relative,Conds2Run);
@@ -85,7 +71,6 @@ else
     datapath_searchfile = filepath_searchfile;
 end
 % Check available subjects and conditions
-chinroster_file = 'DOD_ChinRoster.xlsx';
 if ~isempty(search_files(OUTdir,chinroster_file).files)
     cd(OUTdir)
     chinroster_temp = readcell(chinroster_file,'Sheet',exposure_group);
