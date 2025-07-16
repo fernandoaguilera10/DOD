@@ -11,7 +11,7 @@ colors = [0 0 0; 227 52 47; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 
 if ismac
     ROOTdir = 'TBD';
 else
-    ROOTdir = 'D:\ABR Peaks'; 
+    ROOTdir = 'C:\Users\aguilerl\OneDrive - purdue.edu\Desktop\ABRpeaks'; 
 end
 %% Subjects and Conditions: CHANGE THIS ***********************************************
 if strcmp(exposure_group,'Prasad')
@@ -254,14 +254,7 @@ for ChinIND=1:length(Chins2Run)
                 mkdir(datapath);
             end
             cd(CODEdir)
-            if ismac
-                %sourcepath = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
-                sourcepath = '/Volumes/FefeSSD/DOD/Data/RAW';
-            else
-                %sourcepath = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
-                %sourcepath = 'D:\DOD\Data\RAW'; % SSD
-                sourcepath = 'E:\DOD\Data\RAW'; % SSD
-            end
+            sourcepath = strcat(DATAdir,filesep,'RAW');
             move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
         elseif file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
             counter = counter+1;
