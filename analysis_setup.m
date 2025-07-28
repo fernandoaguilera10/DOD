@@ -6,22 +6,6 @@ reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
 efr_level = 80;             % Average EFR Levels: 65 or 80 dB SPL
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
 colors = [0 0 0; 255 190 25; 77 192 181; 101 116 205; 149 97 226; 52 144 220; 246 109 155; 246 153 63; 227 52 47]/255;
-%% Plot limits
-% OAE
-ylimits_avg_oae = [-60,60];
-ylimits_ind_oae = [-60,60];
-% MEMR
-xlimits_memr = [70,105];
-% EFR
-ylimits_efr = [0,1.1];
-% ABR - Thresholds
-ylimits_ind_abr_threshold = [0,80];
-ylimits_avg_abr_threshold = [0,55];
-% ABR - Peaks
-ylimits_ind_abr_peaks = [0,inf];
-ylimits_avg_abr_peaks = [-inf,inf];
-ylimits_ind_abr_lat = [-inf,inf];
-ylimits_avg_abr_lat = [-inf,inf];
 %% ROOT Directory
 if ismac
     %ROOTdir = '/Volumes/heinz/data/UserTESTS/FA/DOD';  % data depot
@@ -36,7 +20,7 @@ end
 chinroster_file = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
 if strcmp(exposure_group,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q539','Q542','Q543'};
+    Chins2Run={'Q542'};
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
             % Head Free: 'Q457','Q478','Q493','Q500'
@@ -59,6 +43,22 @@ if plot_relative_flag == 1
 else
     plot_relative = {};
 end
+%% Plot limits
+% OAE
+ylimits_avg_oae = [-60,60];
+ylimits_ind_oae = [-60,60];
+% MEMR
+xlimits_memr = [70,105];
+% EFR
+ylimits_efr = [0,1.1];
+% ABR - Thresholds
+ylimits_ind_abr_threshold = [0,80];
+ylimits_avg_abr_threshold = [0,55];
+% ABR - Peaks
+ylimits_ind_abr_peaks = [0,inf];
+ylimits_avg_abr_peaks = [-inf,inf];
+ylimits_ind_abr_lat = [-inf,inf];
+ylimits_avg_abr_lat = [-inf,inf];
 %% Analysis Code
 cwd = pwd;
 if ~isempty(plot_relative)
@@ -86,8 +86,14 @@ elseif strcmp(EXPname,'ABR')
             end
     end
 elseif strcmp(EXPname,'EFR')
-    filepath_searchfile = '*EFR*.mat';
-    datapath_searchfile = '*FFR*.mat';
+    switch EXPname2
+        case 'dAM'
+            filepath_searchfile = '*EFR_AMFM*.mat';
+            datapath_searchfile = '*FFR_AMFM*.mat';
+        case 'RAM'
+            filepath_searchfile = '*EFR_RAM*.mat';
+            datapath_searchfile = '*FFR_RAM*.mat';
+    end
 else
     filepath_searchfile = ['*',EXPname,'*.mat'];
     datapath_searchfile = filepath_searchfile;
@@ -251,10 +257,11 @@ for ChinIND=1:length(Chins2Run)
                     end
                 case 'EFR'
                     switch EXPname2
-                        case 'AM/FM'
-                            % TBD
+                        case 'dAM'
+                            dAManalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            cd(CODEdir)
                         case 'RAM'
-                            EFRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            RAManalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
                             cd(CODEdir)
                     end
                 case 'OAE'
@@ -308,8 +315,14 @@ for ChinIND=1:length(Chins2Run)
                             end
                     end
                 case 'EFR'
-                    cd(CODEdir)
-                    EFRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
+                    switch EXPname2
+                        case 'dAM'
+                            cd(CODEdir)
+                            dAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
+                        case 'RAM'
+                            cd(CODEdir)
+                            RAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
+                    end
                 case 'OAE'
                     cd(CODEdir)
                     switch EXPname2
