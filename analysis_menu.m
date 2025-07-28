@@ -21,7 +21,7 @@ switch choice
         EXPname = 'EFR';
         EXPname2 = questdlg('Select EFR analysis:', ...
                         'EFR Analysis', ...
-                        'AM/FM','RAM','RAM');
+                        'dAM','RAM','RAM');
         EXPname3 = [];
     case 3
         EXPname = 'OAE';
