@@ -13,13 +13,21 @@ switch EXPname
         abr_peaks_waveform = cell(dim_size);
         abr_peaks_waveform_time = cell(dim_size);
     case 'EFR'
-        global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all dim_f dim_envelope dim_PLV dim_peak_amp dim_peak_freq dim_peak_freq_all
-        efr_f = cell(dim_size);
-        efr_envelope = cell(dim_size);
-        efr_PLV = cell(dim_size);
-        efr_peak_amp = cell(dim_size);
-        efr_peak_freq = cell(dim_size);
-        efr_peak_freq_all = cell(dim_size);
+        switch EXPname2
+            case 'RAM'
+                global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all dim_f dim_envelope dim_PLV dim_peak_amp dim_peak_freq dim_peak_freq_all
+                efr_f = cell(dim_size);
+                efr_envelope = cell(dim_size);
+                efr_PLV = cell(dim_size);
+                efr_peak_amp = cell(dim_size);
+                efr_peak_freq = cell(dim_size);
+                efr_peak_freq_all = cell(dim_size);
+            case 'dAM'
+                global efr_trajectory efr_dAMpower efr_NFpower dim_trajectory dim_dAMpower dim_NFpower
+                efr_trajectory = cell(dim_size);
+                efr_dAMpower = cell(dim_size);
+                efr_NFpower = cell(dim_size);
+        end
     case 'OAE'
         switch EXPname2
             case 'DPOAE'

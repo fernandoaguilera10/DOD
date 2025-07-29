@@ -20,7 +20,7 @@ end
 chinroster_file = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
 if strcmp(exposure_group,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q542'};
+    Chins2Run={'Q494','Q503'};
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
             % Head Free: 'Q457','Q478','Q493','Q500'
@@ -50,7 +50,8 @@ ylimits_ind_oae = [-60,60];
 % MEMR
 xlimits_memr = [70,105];
 % EFR
-ylimits_efr = [0,1.1];
+ylimits_efr_RAM = [0,1.1];
+ylimits_efr_dAM = [-80,10];
 % ABR - Thresholds
 ylimits_ind_abr_threshold = [0,80];
 ylimits_avg_abr_threshold = [0,55];
@@ -88,7 +89,7 @@ elseif strcmp(EXPname,'ABR')
 elseif strcmp(EXPname,'EFR')
     switch EXPname2
         case 'dAM'
-            filepath_searchfile = '*EFR_AMFM*.mat';
+            filepath_searchfile = '*EFR_dAM*.mat';
             datapath_searchfile = '*FFR_AMFM*.mat';
         case 'RAM'
             filepath_searchfile = '*EFR_RAM*.mat';
@@ -282,15 +283,8 @@ for ChinIND=1:length(Chins2Run)
                 fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
                 mkdir(datapath);
             end
+            sourcepath = strcat(DATAdir,filesep,'RAW');
             cd(CODEdir)
-            if ismac
-                %sourcepath = '/Volumes/heinz/data/UserTESTS/FA/DOD/Data/RAW';  % data depot
-                sourcepath = '/Volumes/FefeSSD/DOD/Data/RAW';
-            else
-                %sourcepath = 'Z:\data\UserTESTS\FA\DOD\Data\RAW';   % data depot
-                sourcepath = 'D:\DOD\Data\RAW'; % SSD
-                %sourcepath = 'E:\DOD\Data\RAW'; % LYLE 3035 (Analysis)
-            end
             move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
         elseif file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
             counter = counter+1;
@@ -318,10 +312,10 @@ for ChinIND=1:length(Chins2Run)
                     switch EXPname2
                         case 'dAM'
                             cd(CODEdir)
-                            dAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
+                            dAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr_dAM,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
                         case 'RAM'
                             cd(CODEdir)
-                            RAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
+                            RAMsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits_efr_RAM,idx_plot_relative,efr_level,shapes,colors,flag,subject_idx,conds_idx);
                     end
                 case 'OAE'
                     cd(CODEdir)
