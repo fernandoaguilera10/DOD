@@ -1,12 +1,8 @@
-function plot_avg_efr(average,plot_type,level_spl,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,flag)
+function plot_avg_efr_RAM(average,plot_type,level_spl,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits,idx_plot_relative,flag)
 str_plot_relative = strsplit(all_Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 x_units = 'Frequency (Hz)';
-if strcmp(plot_type,'RAM')
-    title_str = 'RAM 223 Hz';
-elseif strcmp(plot_type,'AM/FM')
-    title_str = 'AM/FM 4 kHz';
-end
+title_str = 'RAM 223 Hz';
 if isempty(idx_plot_relative)
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})

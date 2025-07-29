@@ -1,4 +1,4 @@
-function average = avg_efr(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative,idx,conds_idx)
+function average = avg_efr_RAM(peaks_locs,peaks,f,plv_env,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative,idx,conds_idx)
 if isempty(idx_plot_relative)
     conds = length(all_Conds2Run);
 elseif ~isempty(idx_plot_relative)

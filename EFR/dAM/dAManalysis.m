@@ -76,26 +76,26 @@ if exist(datapath,'dir')
         yl = [237,177,32]/255;
         gr = [0, 192, 0]/255;
         figure;
-        
-        %Spectral Domain
         hold on;
         title([subject,' | ', num2str(flist),' Hz dAM | ',condition, ' | ',num2str(level_spl), ' dB SPL (n = 200)'],'FontSize',14);
-        plot(dam_traj_Hz,dAM_pow_frac,'Color',blck,'linewidth',1.5,'DisplayName','dAM');    % response
-        plot(dam_traj_Hz,dAM_powNF_frac,'Color',rd,'linestyle','--','linewidth',1.5,'DisplayName','NF');    % noise floor
+        plot(dam_traj_Hz,dAM_pow_frac,'Color',blck,'linewidth',3,'DisplayName','dAM');    % response
+        plot(dam_traj_Hz,dAM_powNF_frac,'Color',rd,'linestyle','--','linewidth',3,'DisplayName','NF');    % noise floor
         hold off;  box off;
         legend('boxoff');
         ylabel('Power (dB)','FontWeight','bold')
         xlabel('Frequency(Hz)','FontWeight','bold')
         set(gca, 'XScale', 'log')
-        set(gcf,'Position',[500 420 650 420]);
+        set(gca,'FontSize',15);
+        set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         %% Export:
         cd(outpath);
         datafile_str = datafile(i).name;
         fname = [subject,'_EFR_dAM_',condition,'_',num2str(level_spl),'dBSPL','_',datafile_str(1:end-4)];
         print(gcf,[fname,'_figure'],'-dpng','-r300');
-        efr.trajectory = dam_traj_Hz;
-        efr.dAMpower = dAM_pow_frac;
-        efr.NFpower = dAM_powNF_frac;
+        idx_nan = find(isnan(dam_traj_Hz));
+        efr.trajectory = dam_traj_Hz(1:idx_nan(1)-1);
+        efr.dAMpower = dAM_pow_frac(1:idx_nan(1)-1);
+        efr.NFpower = dAM_powNF_frac(1:idx_nan(1)-1);
         efr.spl = level_spl;
         save(fname,'efr')
     end
