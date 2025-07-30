@@ -1,13 +1,14 @@
-function ABRsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1, analysis_type2,average_flag,conds_idx)% ABR summary
+function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1, analysis_type2,average_flag,conds_idx)% ABR summary
 global abr_f abr_thresholds abr_peaks_amp abr_peaks_lat abr_peaks_f abr_peaks_label abr_peaks_level abr_peaks_waveform abr_peaks_waveform_time
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     if strcmp(analysis_type1,'Thresholds')
         search_file = cell2mat([Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRthresholds.mat']);
         datafile = load_files(outpath,search_file);
+        cd(outpath);
         load(datafile);
         cd(cwd);
         % PLOTTING SPL
@@ -18,11 +19,13 @@ if exist(outpath,"dir")
         if strcmp(analysis_type2,'Manual')
             search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRpeaks*.mat']);
             datafile = load_files(outpath,search_file);
+            cd(outpath);
             load(datafile);
             cd(cwd);
         elseif strcmp(analysis_type2,'DTW')
             search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRpeaks_dtw*.mat']);
             datafile = load_files(outpath,search_file);
+            cd(outpath);
             load(datafile);
             cd(cwd);
         end

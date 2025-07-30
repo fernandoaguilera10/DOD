@@ -1,4 +1,4 @@
-function EFRanalysis(datapath,outpath,subject,condition)% EFR RAM analysis
+function RAManalysis(datapath,outpath,subject,condition)% EFR RAM analysis
 %Author: Andrew Sivaprakasam
 %Updated: July, 2023
 %Purpose: Script to import/plot/apply additional processing to RAM_EFR
