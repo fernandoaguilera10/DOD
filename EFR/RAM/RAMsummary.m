@@ -1,14 +1,16 @@
-function RAMsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,shapes,colors,average_flag,subject_idx,conds_idx)% EFR summary
+function RAMsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,ylimits,idx_plot_relative,level_spl,shapes,colors,average_flag,subject_idx,conds_idx)% EFR summary
 global efr_f efr_envelope efr_PLV efr_peak_amp efr_peak_freq efr_peak_freq_all dim_f dim_envelope dim_PLV dim_peak_amp dim_peak_freq dim_peak_freq_all
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_EFR_RAM_',condition{2},'_',num2str(level_spl),'dBSPL*.mat']);
     datafile = load_files(outpath,search_file);
+    cd(outpath);
     load(datafile);
     cd(cwd);
+    cd ..
     % PLOTTING SPL
     efr_f{ChinIND,CondIND} = efr.f';
     efr_envelope{ChinIND,CondIND} = efr.t_env';

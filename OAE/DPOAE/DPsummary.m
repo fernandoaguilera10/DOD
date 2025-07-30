@@ -1,4 +1,4 @@
-function DPsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% DPOAE swept summary
+function DPsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% DPOAE swept summary
 global dp_f_epl dp_amp_epl dp_nf_epl dp_f2_band_epl dp_amp_band_epl dp_nf_band_epl
 global dp_f2_spl dp_amp_spl dp_nf_spl dp_f2_band_spl dp_amp_band_spl dp_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -7,11 +7,13 @@ cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_DPOAEswept_',condition{2},'*.mat']);
     datafile = load_files(outpath,search_file);
+    cd(outpath);
     load(datafile);
     cd(cwd);
+    cd ..
     % PLOTTING EPL
     dp_f_epl{ChinIND,CondIND} = data.epl.f;
     dp_amp_epl{ChinIND,CondIND} = data.epl.oae';
@@ -30,6 +32,7 @@ if exist(outpath,"dir")
     dp_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
     plot_ind_oae(data,'SPL','DPOAE',colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,fig_num_ind+1,ylimits_ind,shapes)
     cd(cwd);
+    cd ..
 else
     fprintf('No directory found.\n');
 end
