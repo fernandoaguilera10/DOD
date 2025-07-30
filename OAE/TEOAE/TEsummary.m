@@ -1,4 +1,4 @@
-function TEsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% TEOAE summary
+function TEsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% TEOAE summary
 global te_f_epl te_amp_epl te_nf_epl te_f_band_epl te_amp_band_epl te_nf_band_epl
 global te_f_spl te_amp_spl te_nf_spl te_f_band_spl te_amp_band_spl te_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -7,11 +7,13 @@ cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_TEOAE_',condition{2},'*.mat']);
     datafile = load_files(outpath,search_file);
+    cd(outpath);
     load(datafile);
     cd(cwd);
+    cd ..
     % PLOTTING SPL
     te_f_spl{ChinIND,CondIND} = data.spl.f';
     te_amp_spl{ChinIND,CondIND} = data.spl.oae;
@@ -22,6 +24,7 @@ if exist(outpath,"dir")
     fig_num_ind = ChinIND;
     plot_ind_oae(data,'SPL','TEOAE',colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits_ind,shapes)
     cd(cwd);
+    cd ..
 else
     fprintf('No directory found.\n');
 end

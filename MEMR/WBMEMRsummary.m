@@ -1,4 +1,4 @@
-function WBMEMRsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,xlimits,shapes,colors,average_flag,conds_idx)% WBMEMR Analysis
+function WBMEMRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,xlimits,shapes,colors,average_flag,conds_idx)% WBMEMR Analysis
 global elicitor deltapow
 % Author: Fernando Aguilera de Alba
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -7,11 +7,11 @@ cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_MEMR_WB_',condition{2},'*.mat']);
     datafile = load_files(outpath,search_file);
+    cd(outpath);
     load(datafile);
-    cd(cwd);
     % PLOTTING FPL
     elicitor{ChinIND,CondIND} = memr.elicitor;
     deltapow{ChinIND,CondIND} = memr.deltapow';
