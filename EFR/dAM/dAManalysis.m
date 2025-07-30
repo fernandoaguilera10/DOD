@@ -36,7 +36,7 @@ tMin_s= 0;
 tMax_s= 1.5;
 %% NEW
 cwd = pwd;
-search_file = 'p*AMFM_4kHz*.mat';
+search_file = 'p*AMFM*4kHz*.mat';
 if exist(datapath,'dir')
     cd(datapath);
     datafile = dir(fullfile(cd,search_file));

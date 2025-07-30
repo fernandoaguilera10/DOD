@@ -1,4 +1,4 @@
-function SFsummary(outpath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% SFOAE swept summary
+function SFsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind,ylimits_avg,shapes,colors,average_flag,conds_idx)% SFOAE swept summary
 global sf_f_epl sf_amp_epl sf_nf_epl sf_f_band_epl sf_amp_band_epl sf_nf_band_epl
 global sf_f_spl sf_amp_spl sf_nf_spl sf_f_band_spl sf_amp_band_spl sf_nf_band_spl
 % Author: Fernando Aguilera de Alba
@@ -7,11 +7,13 @@ cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
-    cd(outpath)
+    cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_SFOAEswept_',condition{2},'*.mat']);
     datafile = load_files(outpath,search_file);
+    cd(outpath);
     load(datafile);
     cd(cwd);
+    cd ..
     % PLOTTING EPL
     sf_f_epl{ChinIND,CondIND} = data.epl.f;
     sf_amp_epl{ChinIND,CondIND} = data.epl.oae';
@@ -30,6 +32,7 @@ if exist(outpath,"dir")
     sf_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
     plot_ind_oae(data,'SPL','SFOAE',colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,fig_num_ind+1,ylimits_ind,shapes)
     cd(cwd);
+    cd ..
 else
     fprintf('No directory found.\n');
 end
