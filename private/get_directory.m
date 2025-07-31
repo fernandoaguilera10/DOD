@@ -2,10 +2,11 @@
 % ROOTdir = directory with your project
 % CODEdir = directory with MATLAB files (Github)
 % DATAdir = directory with data to analyze
+% USERdir = directory with individual user's Analysis and Data directories
 
-function [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2)
-DATAdir = strcat(ROOTdir,filesep,'Data');
-OUTdir = strcat(ROOTdir,filesep,'Analysis');
+function [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,USERdir,EXPname,EXPname2)
+DATAdir = strcat(ROOTdir,filesep,'Users',filesep,USERdir,filesep,'Data');
+OUTdir = strcat(ROOTdir,filesep,'Users',filesep,USERdir,filesep,'Analysis');
 CODEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,EXPname,filesep,EXPname2);
 PRIVATEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
 % Check if directories exist

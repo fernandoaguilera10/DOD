@@ -1,4 +1,4 @@
-function analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze)
+function analysis_run(ROOTdir,USERdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze)
 cwd = pwd;
 %% Define plotting parameters
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
@@ -15,7 +15,7 @@ else
 end
 [EXPname, EXPname2, EXPname3] = analysis_menu; % select analysis type: ABR, EFR, OAE, MEMR
 limits = plot_limits(EXPname,EXPname2,idx_plot_relative); % define plot limits
-[DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2); % define subdirectories based on ROOTdir
+[DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,USERdir,EXPname,EXPname2); % define subdirectories based on ROOTdir
 addpath(genpath(CODEdir));
 %% Define search filename to load data
 if strcmp(EXPname,'OAE')
