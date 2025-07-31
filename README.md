@@ -1,4 +1,4 @@
-# Noninvasive Analysis
+# Non-invasive Analysis
 Data analysis for ABR, EFR, OAE, and MEMR (MATLAB, R2022b) for data analysis of DOD project
 Author: Fernando Aguilera de Alba (https://github.com/fernandoaguilera10)
 Contributors: Michael Heinz, Hari Bharadwaj, Andrew Sivaprakasam, Sam Hauser, Afagh Farhadi
