@@ -31,7 +31,7 @@ if strcmp(plot_type,'Thresholds')
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Peak-to-Peak Amplitude (\muV)';
-    y_units_lat = 'Time (ms)';
+    y_units_lat = 'Latency (ms)';
     if data.freq == 0, freq = 'click'; end
     if data.freq ~= 0, freq = [num2str(data.freq), ' Hz']; end
     filename = cell2mat([Chins2Run(ChinIND),'_',condition,'_ABRpeaks_',freq]);
@@ -59,7 +59,7 @@ elseif strcmp(plot_type,'Peaks')
     ylabel(y_units_amp, 'FontWeight', 'bold')
     level_ticks = unique(round(data.levels));
     xticks(level_ticks);
-    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),all_Conds2Run{CondIND},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
+    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
     set(gca,'FontSize',15);
     % Latency plots
     subplot('Position', [0.08, 0.10, left_width, height]);

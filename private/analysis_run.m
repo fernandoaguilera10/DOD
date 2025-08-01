@@ -207,7 +207,7 @@ for ChinIND=1:length(Chins2Run)
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
                                     %if ~exist(filepath,'dir'), mkdir(filepath), end
-                                    processClick_dtw(datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes)
+                                    processClick_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks)
                             end
                     end
                 case 'EFR'
@@ -259,7 +259,7 @@ for ChinIND=1:length(Chins2Run)
                                     ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
-                                    ABRsummary(filepath,OUTdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
+                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
                             end
                     end
                 case 'EFR'
