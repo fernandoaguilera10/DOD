@@ -23,7 +23,7 @@ if isempty(idx_plot_relative)   % limits including baseline
                     limits.ind = [0,80];
                 case 'Peaks'
                     limits.avg.peaks = [-inf,inf];
-                    limits.ind.peaks = [0,inf];
+                    limits.ind.peaks = [-4,4];
                     limits.avg.latency = [-inf,inf];
                     limits.ind.latency = [-inf,inf];
             end
@@ -52,7 +52,7 @@ else    % limits relative to baseline
                     limits.ind = [0,80];
                 case 'Peaks'
                     limits.avg.peaks = [-inf,inf];
-                    limits.ind.peaks = [0,inf];
+                    limits.ind.peaks = [-4,4];
                     limits.avg.latency = [-inf,inf];
                     limits.ind.latency = [-inf,inf];
             end

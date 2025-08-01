@@ -1,4 +1,4 @@
-function processClick_dtw(datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes)
+function processClick_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: May, 2024
 %Description: Script to process ABR high level clicks using Dynamic Time
@@ -8,36 +8,80 @@ function processClick_dtw(datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,c
 % - Account for NEL latency differences
 % - What if multiple click files? Should user pick the right one?
 freq = [0 0.5 1 2 4 8]*10^3;
-levels = [90 80 70 60 50];
+levels = [90 80 70 60 50 40 30 20 10 0];
+cwd = pwd;
+TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(Conds2Run{CondIND}, filesep);
+%% Check ABR levels and templates available
+% Check all ABR levels available
+idx_abr = nan(length(levels),length(freq));
 for z = 1:length(freq)
-    if freq(z) == 0, freq_str = 'click'; end
-    if freq(z) ~= 0, freq_str = [num2str(freq(z)), ' Hz']; end
-    template_str = dir(sprintf('suprathreshold_template_%s.mat',freq_str));
-    if ~isempty(template_str)
-        template = load(template_str.name);
-        %% Load files
-        cwd = pwd();
-        addpath(cwd)
-        %Load Template
+    for j = 1:length(levels)
         cd(datapath);
-        datafiles = {dir(fullfile(cd,'p*click*.mat')).name};
-        for f = 1:length(datafiles)
-            matches = regexp(datafiles{f},'p(\d+)_', 'tokens');
-            pics(f) = str2double(matches{1}{1});
-        end
-        for j=1:length(levels)
-            for i=1:length(datafiles)
-                cd(datapath)
-                load(datafiles{i});
-                lev = round(x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB);
-                if lev == levels(j)
-                    I = i;
-                    break;
-                end
-                clear x;
+        if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
+        if freq(z) ~= 0, datafiles = {dir(fullfile(cd,['p*',mat2str(freq(z)),'*.mat'])).name}; end
+        for i=1:length(datafiles)
+            cd(datapath)
+            load(datafiles{i});
+            lev = round(x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB);
+            if lev == levels(j)
+                idx_abr(j,z) = i;
             end
-            load(datafiles{I});
+            clear x;
+        end
+    end
+end
+% Check all templates available
+idx_template = nan(size(idx_abr));
+for z = 1:length(freq)
+    for j = 1:length(levels)
+        if freq(z) == 0, freq_str = 'click'; end
+        if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+        cd(TEMPLATEdir)
+        template_str = dir(sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(j))));
+        if ~isempty(template_str)
+            idx_template(j,z) = 1;
+        end
+    end
+end
+fprintf('\n\nTemplate Availability\n\n');
+fprintf('%-10s', 'dB SPL');
+% for z = 1:length(idx_template)
+%     if freq(z) == 0
+%         fprintf('%-10s', 'Click');
+%     else
+%         fprintf('%-10s', mat2str(freq(z)));
+%     end
+% end
+fprintf('\n');
+for i = 1:size(levels,2)
+    fprintf('%-10s', mat2str(levels(i)));
+    for j = 1:size(idx_template,2)
+        if ~isnan(idx_template(i,j))
+            fprintf('%-10s', 'YES');
+        else
+            fprintf('%-10s', 'NO');
+        end
+    end
+    fprintf('\n');
+end
+%% Plotting
+for z = 1:length(freq)
+    for j = 1:length(levels)
+        if ~isnan(idx_abr(j,z)) && ~isnan(idx_template(j,z))
+            if freq(z) == 0, freq_str = 'click'; end
+            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+            % Load template file
+            cd(TEMPLATEdir);
+            template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(j)));
+            load(template_filename)
+            abr_template = abr - mean(abr);
+            abr_points = points;
+            % Load ABR file
+            cd(datapath);
+            if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
+            if freq(z) ~= 0, datafiles = {dir(fullfile(cd,['p*',mat2str(freq(z)),'*.mat'])).name}; end
+            load(datafiles{idx_abr(j,z)});
             %% Resample and make sure the level is correct
             fs = 8e3;
             if iscell(x.AD_Data.AD_All_V{1})
@@ -47,28 +91,65 @@ for z = 1:length(freq)
             end
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
-            %% Apply template
-            abr_template = template.abr - mean(template.abr);
-            abr_points = template.points;
-            abr_t_template = template.t;
-            fig_num = ((ChinIND - 1) * length(Conds2Run) + CondIND);
-            [peaks,latencies] = findPeaks_dtw(abr_t_template,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes);
-            abrs.plot.freq = freq(z);
-            abrs.plot.peak_amplitude(j,:) = peaks;
-            abrs.plot.peak_latency(j,:) = latencies;
-            abrs.plot.waveforms(j,:) = abr_data*10^2;
-            abrs.plot.waveforms_time = abr_t_template*10^3;
-            abrs.plot.levels = levels';
-            %abrs.plot.peaks =
+            fig_num = z;
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            abrs.freq = freq(z);
+            abrs.peak_amplitude(j,:) = peaks;
+            abrs.peak_latency(j,:) = latencies;
+            abrs.waveforms(j,:) = abr_data*10^2;
+            abrs.waveforms_time = abr_t*10^3;
+            abrs.levels = levels';
+        elseif ~isnan(idx_abr(j,z)) && isnan(idx_template(j,z))
+            if freq(z) == 0, freq_str = 'click'; end
+            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+            % Load ABR file
+            cd(datapath);
+            if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
+            if freq(z) ~= 0, datafiles = {dir(fullfile(cd,['p*',mat2str(freq(z)),'*.mat'])).name}; end
+            load(datafiles{idx_abr(j,z)});
+            %% Resample and make sure the level is correct
+            fs = 8e3;
+            if iscell(x.AD_Data.AD_All_V{1})
+                abr_data = mean(x.AD_Data.AD_All_V{1}{1}) - mean(mean(x.AD_Data.AD_All_V{1}{1})); % waveform with DC offset removed
+            else
+                abr_data =mean(cell2mat(x.AD_Data.AD_All_V)) - mean(mean(cell2mat(x.AD_Data.AD_All_V))); % waveform with DC offset removed
+            end
+            abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
+            abr_t = (1:length(abr_data))/fs;
+            fig_num = z;
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,[],[],Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            abrs.freq = freq(z);
+            abrs.peak_amplitude(j,:) = peaks;
+            abrs.peak_latency(j,:) = latencies;
+            abrs.waveforms(j,:) = abr_data*10^2;
+            abrs.waveforms_time = abr_t*10^3;
+            abrs.levels = levels';
+        elseif isnan(idx_abr(j,z))
+            if freq(z) == 0, freq_str = 'click'; end
+            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+            fig_num = z;
+            [peaks,latencies] = findPeaks_dtw([],[],[],[],Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            abrs.freq = [];
+            abrs.peak_amplitude(j,:) = peaks;
+            abrs.peak_latency(j,:) = latencies;
+            abrs.waveforms(j,:) = [];
+            abrs.waveforms_time = [];
+            abrs.levels = levels';
         end
-        %% Export and end
-        cd(outpath);
-        filename = cell2mat([Chins2Run(ChinIND),'_',condition,'_ABRpeaks_dtw_',freq_str]);
-        print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
-        save(filename,'abrs')
-        cd(cwd)
-    else
-        fprintf('ERROR: No template was found for %s\n',freq_str)
     end
+    % Standardize data format to match manual ABR peak picking
+%     abrs.thresholds = [freq(z),nan,nan,nan];
+%     abrs.z.par = [freq(z),nan,nan];
+%     abrs.z.score = [repmat(freq(z),10,1),levels',flip(sort(rand(10,2),1))];
+%     abrs.amp = [repmat(freq(z),10,1),flip(levels)',flip(sort(rand(10,2),1))];
+%     abrs.x = [repmat(freq(z),10,1),levels',abrs.peak_latency];
+%     abrs.y = [repmat(freq(z),10,1),levels',abrs.peak_amplitude];
+%     abrs.waves = [repmat(freq(z),10,1),levels',abrs.waveforms];
+    %% Export
+    cd(outpath);
+    filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str]);
+    print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
+    save(filename,'abrs')
+    cd(cwd)
 end
 end
