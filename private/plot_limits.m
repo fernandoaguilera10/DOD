@@ -2,7 +2,7 @@ function limits = plot_limits(EXPname,EXPname2,idx_plot_relative)
 if isempty(idx_plot_relative)   % limits including baseline
     switch EXPname
         case 'OAE'
-            limits.avg = [-60,60];
+            limits.avg = [-20,20];
             limits.ind = [-60,60];
         case 'MEMR'
             limits.avg = [70,105];

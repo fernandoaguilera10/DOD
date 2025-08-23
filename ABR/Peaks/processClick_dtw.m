@@ -8,7 +8,7 @@ function processClick_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Con
 % - Account for NEL latency differences
 % - What if multiple click files? Should user pick the right one?
 freq = [0 0.5 1 2 4 8]*10^3;
-levels = [90 80 70 60 50 40 30 20 10 0];
+levels = [90 80 70 60 50 40];
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(Conds2Run{CondIND}, filesep);

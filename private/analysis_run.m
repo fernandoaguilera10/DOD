@@ -222,14 +222,14 @@ for ChinIND=1:length(Chins2Run)
                 case 'OAE'
                     switch EXPname2
                         case 'DPOAE'
-                            DPanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            DPanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
                         case 'SFOAE'
-                            SFanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            SFanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
                         case 'TEOAE'
-                            TEanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            TEanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
                     end
                 case 'MEMR'
-                    WBMEMRanalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                    WBMEMRanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
         elseif data_check == 0 && subject_check == 1   % move files from Data/RAW directory into individual folder
             datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,all_Conds2Run{CondIND});

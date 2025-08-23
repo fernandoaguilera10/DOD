@@ -9,12 +9,12 @@ if isempty(idx_plot_relative)
             row_idx{cols} = find(~cellfun('isempty', average.peaks_locs(:, cols)));
             %% Average PLV Spectrum
             figure(counter); hold on;
-            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 3, 'MarkerSize', 15, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{row_idx{1,cols}(1),cols});
-            plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+            plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 3,'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
             ylabel('PLV', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
@@ -24,7 +24,7 @@ if isempty(idx_plot_relative)
             idx_peaks = ~isnan(average.peaks{1,cols});
             x_max = round(max(average.peaks_locs{1,cols}(idx_peaks)),-3);
             xlim([0,x_max]); set(gca,'xscale','linear');
-            set(gca,'FontSize',15); xticks(round(average.peaks_locs{1,cols}));
+            set(gca,'FontSize',25); xticks(round(average.peaks_locs{1,cols}));
         end
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
@@ -58,7 +58,7 @@ if isempty(idx_plot_relative)
         ydata = get(all_lines(i), 'YData');
         if length(xdata) >= 2 && length(ydata) >= 2
             if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
-                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+                set(all_lines(i), 'LineWidth', 3, 'LineStyle','-','Color','k');  % Thicken factor separator line
             end
         end
     end
@@ -80,14 +80,14 @@ if isempty(idx_plot_relative)
         y = get(boxHandles(i), 'YData');
         patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
             'FaceAlpha', 0.5, 'EdgeColor', 'none');
-        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
         set(gca, 'XTick', []);
-        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
     end
     hold on;
     for z = 1:size(idx,1)
@@ -158,14 +158,14 @@ if isempty(idx_plot_relative)
         y = get(boxHandles(i), 'YData');
         patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
             'FaceAlpha', 0.5, 'EdgeColor', 'none');
-        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
         set(gca, 'XTick', []);
-        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
     end
     hold on;
     legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
@@ -184,14 +184,14 @@ if ~isempty(idx_plot_relative)
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})
             figure(counter); hold on;
-            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 3, 'MarkerSize', 15, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             %average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
             %plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             %plot(average.peaks_locs{1,cols},average.peaks{1,cols},'*k','linewidth',2)
-            plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
+            plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 3, 'Color', 'k','HandleVisibility','off');
             ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
@@ -205,7 +205,7 @@ if ~isempty(idx_plot_relative)
                 xlim([0,x_max+200]);
             end
             set(gca,'xscale','linear');
-            set(gca,'FontSize',15);
+            set(gca,'FontSize',25);
         end        
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
@@ -232,7 +232,7 @@ if ~isempty(idx_plot_relative)
     frequencies = frequencies(:);
     timepoints = timepoints(:);
     boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
-    yline(0, 'k--', 'LineWidth', 1.5);
+    yline(0, 'k--', 'LineWidth', 3);
     % Thickens vertical separator line
     all_lines = findobj(gca, 'Type', 'Line');
     for i = 1:length(all_lines)
@@ -240,7 +240,7 @@ if ~isempty(idx_plot_relative)
         ydata = get(all_lines(i), 'YData');
         if length(xdata) >= 2 && length(ydata) >= 2
             if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
-                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+                set(all_lines(i), 'LineWidth', 3, 'LineStyle','-','Color','k');  % Thicken factor separator line
             end
         end
     end
@@ -262,14 +262,14 @@ if ~isempty(idx_plot_relative)
         y = get(boxHandles(i), 'YData');
         patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
             'FaceAlpha', 0.5, 'EdgeColor', 'none');
-        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
         set(gca, 'XTick', []);
-        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
     end
     hold on;
     idx_temp = idx;
@@ -285,7 +285,7 @@ if ~isempty(idx_plot_relative)
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
     ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
     title(sprintf('EFR Harmonic Contribution (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
-    set(gca,'FontSize',15);
+    set(gca,'FontSize',25);
     legend boxoff; hold off; box off;
     group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
     set(gca, 'XTick', group_ticks);
@@ -313,7 +313,7 @@ if ~isempty(idx_plot_relative)
     frequencies = frequencies(:);
     timepoints = timepoints(:);
     boxplot(peaks, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
-    yline(0, 'k--', 'LineWidth', 1.5);
+    yline(0, 'k--', 'LineWidth', 3);
     % Thickens vertical separator line
     all_lines = findobj(gca, 'Type', 'Line');
     for i = 1:length(all_lines)
@@ -321,7 +321,7 @@ if ~isempty(idx_plot_relative)
         ydata = get(all_lines(i), 'YData');
         if length(xdata) >= 2 && length(ydata) >= 2
             if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
-                set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
+                set(all_lines(i), 'LineWidth', 3, 'LineStyle','-','Color','k');  % Thicken factor separator line
             end
         end
     end
@@ -343,14 +343,14 @@ if ~isempty(idx_plot_relative)
         y = get(boxHandles(i), 'YData');
         patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
             'FaceAlpha', 0.5, 'EdgeColor', 'none');
-        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+        set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+        set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
         set(gca, 'XTick', []);
-        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+        set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
     end
     hold on;
     legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
@@ -360,7 +360,7 @@ if ~isempty(idx_plot_relative)
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
     ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
     title(sprintf('EFR Total PLV Sum (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
-    set(gca,'FontSize',15);
+    set(gca,'FontSize',25);
     legend boxoff; hold off; box off;
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     idx = idx_temp;

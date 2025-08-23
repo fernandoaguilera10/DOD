@@ -27,19 +27,19 @@ if isempty(idx_plot_relative)
 
             ylabel('Power (dB)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off;
             ylim(ylimits); grid on;
-            xlim([-inf,inf]); set(gca, 'XScale', 'log'); set(gca,'FontSize',15);
+            xlim([-inf,inf]); set(gca, 'XScale', 'log'); set(gca,'FontSize',25);
         end
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);   
 end
-%% Plot relative to Baseline ****** FIX THIS!!
+%% Plot relative to Baseline
 if ~isempty(idx_plot_relative)
     for cols = 1:length(average.dAMpower)
         if ~isempty(average.dAMpower{1,cols})
@@ -60,17 +60,17 @@ if ~isempty(idx_plot_relative)
 %             plot(average.trajectory{1,cols},NF_lower_std,'LineStyle','--','linew', 1,'Color', colors(cols+1,:),'HandleVisibility','off');   % Lower STD
 %             patch([average.trajectory{1,cols},fliplr(average.trajectory{1,cols})],[NF_upper_std, fliplr(NF_lower_std)],colors(cols+1,:),'FaceAlpha',0.2,'HandleVisibility','off');
             
-            plot(average.trajectory{1,cols}, zeros(size(average.trajectory{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
+            plot(average.trajectory{1,cols}, zeros(size(average.trajectory{1,cols})),'LineStyle','--', 'linew', 3, 'Color', 'k','HandleVisibility','off');
             ylabel('Power Shift (re. Baseline)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
-            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl), 'FontSize', 16);
+            title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
             temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols+1))));
             legend_idx = find(~cellfun(@isempty,temp));
             legend_string = temp(legend_idx);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off;
             ylim(ylimits); grid on;
-            xlim([-inf,inf]); set(gca, 'XScale', 'log'); set(gca,'FontSize',15);
+            xlim([-inf,inf]); set(gca, 'XScale', 'log'); set(gca,'FontSize',25);
         end        
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);

@@ -4,18 +4,17 @@ function abr_out = ABR_audiogram_chin(datapath,outpath,subject,all_Conds2Run,Con
 %Description: Script to estimate and process ABR thresholds based on bootstrapped
 %cross-corelation (loosely-based on Luke Shaheen ARO2024 presentation)
 close all; cwd = pwd; addpath(cwd);
-freqs = [0,0.5,1,2,4,8]*1000;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 fs = 8e3; %resampled to 8e3
 samps = 400;
 iters = 200;
-lev_all = cell(1,length(freqs));
-wforms_all = cell(1,length(freqs));
-cor_all = cell(1,length(freqs));
-cor_err_all = cell(1,length(freqs));
 %% Change into directory
 if exist(datapath,"dir")
     cd(datapath);
+    %% Chceck frequencies available
+    all_datafiles = {dir(fullfile(cd,'p*ABR*.mat')).name}';
+    all_freqs = cellfun(@(x) sscanf(extractAfter(x,'ABR_'),'%d'), all_datafiles);
+    freqs = unique(all_freqs);
     %% Fitting Properties
     x = 0:0.1:15;
     maximum = .8;
@@ -48,26 +47,14 @@ if exist(datapath,"dir")
     
     for f = 1:length(freqs)
         
-        %find files
-        if freqs(f) == 0
-            datafiles = {dir(fullfile(cd,'p*click*.mat')).name};
-        else
-            datafiles = {dir(fullfile(cd,['p*',num2str(freqs(f)),'*.mat'])).name};
-        end
-        
-        if isempty(datafiles)
-            fprintf('ERROR: p-files cannot be found for %d Hz\n',freqs(f));
-            return;
-        end
-        
         lev = [];
         wforms=[];
         cor_temp = [];
         cor_err_temp = [];
         nr_flag = false;
-        
-        for d = 1:length(datafiles)
-            load(datafiles{d})
+        freqs_datafiles = all_datafiles(all_freqs == freqs(f));
+        for d = 1:length(freqs_datafiles)
+            load(freqs_datafiles{d})
             fs_orig = x.Stimuli.RPsamprate_Hz;
             all_trials  = x.AD_Data.AD_All_V{1};
             lev(d) = x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB;
@@ -109,7 +96,10 @@ if exist(datapath,"dir")
             %
             %         combined_1 = filtfilt(b,a,combined_1);
             %         combined_2 = filtfilt(b,a,combined_2);
-            
+            lev_all = cell(1,length(freqs));
+            wforms_all = cell(1,length(freqs));
+            cor_all = cell(1,length(freqs));
+            cor_err_all = cell(1,length(freqs));
             %Cross-correlate first half w/second half
             xcor_t = helper.xcorr_matrix(combined_1,combined_2);
             
@@ -144,27 +134,32 @@ if exist(datapath,"dir")
         if max(cor_temp)<0.3
             nr_flag = true;
         end
-        
-        cor_temp = cor_temp/max(cor_temp); %normalize
-        cor_fit = fit(lev', cor_temp',ft);
-        
-        %Threshold estimate is the transition point of the sigmoid:
-        %     thresh(f) = cor_fit.c;
-        %
-        %     tol = 4;
-        %     c_y = (cor_fit.a+cor_fit.d)/2;
-        %     y = (c_y-cor_fit.d)*tol;
-        %     thresh(f) = cor_fit.c-y/cor_fit.b;
-        
-        %Find x value on sigmoid that is 25% of the way to transition point
-        
-        tol = .20;
-        y_transit = (cor_fit.a+cor_fit.d)/2;
-        y_thresh = cor_fit.d+tol*(y_transit-cor_fit.d);
-        
-        %invert
-        thresh(f) = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
-        
+        if length(lev) > 4      % at least 4 points needed for sigmoid fit
+            cor_temp = cor_temp/max(cor_temp); %normalize
+            cor_fit = fit(lev', cor_temp',ft);
+            
+            %Threshold estimate is the transition point of the sigmoid:
+            %     thresh(f) = cor_fit.c;
+            %
+            %     tol = 4;
+            %     c_y = (cor_fit.a+cor_fit.d)/2;
+            %     y = (c_y-cor_fit.d)*tol;
+            %     thresh(f) = cor_fit.c-y/cor_fit.b;
+            
+            %Find x value on sigmoid that is 25% of the way to transition point
+            
+            tol = .20;
+            y_transit = (cor_fit.a+cor_fit.d)/2;
+            y_thresh = cor_fit.d+tol*(y_transit-cor_fit.d);
+            
+            %invert
+            thresh(f) = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
+        else
+            thresh(f) = NaN;
+            cor_fit = zeros(1,80);
+            cor_temp = zeros(size(lev));
+            cor_err_temp = zeros(size(lev));
+        end
         %bad
         if nr_flag
             thresh(f) = 120;
@@ -186,17 +181,25 @@ if exist(datapath,"dir")
         hold on
         
         if sum(lev>thresh(f))~=0
-            plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
+            plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',3);
         end
-        if round(thresh(f),-1) ~= 0
-            plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
+        if round(thresh(f),-1) ~= 0 && ~isnan(thresh(f)) && sum(lev<round(thresh(f),-1)) ~= 0
+            plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',3);
+        end
+        if sum(lev<round(thresh(f),-1)) == 0
+            plot(t,wform_plot,'color',clr_yes,'linewidth',3);
+        end
+        if isnan(thresh(f))
+            plot(t,wform_plot,'color',clr_yes,'linewidth',3);
         end
         xlim([0,30])
         hold off
+        set(gca,'FontSize',25);
         yticks(mean(wform_plot));
         yticklabels(round(lev));
         ylim([min(min(wform_plot)),max(max(wform_plot))])
-        ylabel('Sound Level (dB SPL)');
+        ylabel('Sound Level (dB SPL)','FontWeight','bold')
+        xlabel('Time (ms)','FontWeight','bold');
         if freqs(f)==0
             title('Click');
         else
@@ -231,13 +234,14 @@ if exist(datapath,"dir")
     grid on;
     xticks(freqs);
     set(gca,'xscale','log');
+    set(gca,'FontSize',25);
     yticks(0:10:100);
     ylim([0,100]);
     title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
     xlabel('Frequency (Hz)')
     ylabel('Threshold (dB SPL)');
     %% Check if threshold is valid (manually update)
-    threshold_flag = 1;
+    threshold_flag = 0;     % option on = 1  off = 0
     while threshold_flag == 1
         figure(abr_vis);
         threshold_dlg = questdlg('Would you like to manually overwrite any thresholds?', ...
@@ -280,10 +284,10 @@ if exist(datapath,"dir")
                 subplot(ceil(length(freqs)/3),3,f);
                 hold on
                 if sum(lev>thresh(f))~=0
-                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
+                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',3);
                 end
                 if round(thresh(f),-1) ~= 0
-                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
+                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',3);
                 end
                 xlim([0,30])
                 hold off
@@ -322,6 +326,7 @@ if exist(datapath,"dir")
             grid on;
             xticks(freqs);
             set(gca,'xscale','log');
+            set(gca,'FontSize',25);
             yticks(0:10:100);
             ylim([0,100]);
             title(['ABR-Audiogram | ',subject,' | ',condition{2}]);

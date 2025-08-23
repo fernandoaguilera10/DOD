@@ -1,3 +1,6 @@
+%% Set up ROOTdir
+ROOTdir = '/Volumes/FefeSSD/DOD';
+%% Analysis
 % Resample ABR p-file
 fs = 8e3;
 if iscell(x.AD_Data.AD_All_V{1})
@@ -42,7 +45,8 @@ end
 hold off;
 
 % Save template
-cd('D:\DOD\Code Archive\ABR\Peaks\templates');
+outpath = strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR',filesep,'Peaks',filesep,'templates');
+cd(outpath);
 save(template_name, 'points','t','abr','point_names');
 
 

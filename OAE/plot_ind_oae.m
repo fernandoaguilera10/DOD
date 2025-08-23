@@ -23,9 +23,9 @@ end
 figure(fig_num); hold on;
 %plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:),'HandleVisibility','off')
 %plot(data_new.f, data_new.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
-plot(data_new.centerFreq, data_new.bandOAE,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
-plot(data_new.centerFreq, data_new.bandNF, 'x','LineStyle','none', 'linew', 4, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
-plot(data_new.centerFreq, data_new.bandNF,'LineStyle','--', 'linew', 2, 'Color', [colors(CondIND,:),0.50],'HandleVisibility','off');
+plot(data_new.centerFreq, data_new.bandOAE,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+plot(data_new.centerFreq, data_new.bandNF, 'x','LineStyle','none', 'linew', 6, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
+plot(data_new.centerFreq, data_new.bandNF,'LineStyle','--', 'linew', 3, 'Color', [colors(CondIND,:),0.50],'HandleVisibility','off');
 set(gca, 'XScale', 'log');
 xlim([.5, 16])
 ylim(ylimits);
@@ -36,7 +36,7 @@ xlabel(x_units, 'FontWeight', 'bold')
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}))
-set(gca,'FontSize',15);
+set(gca,'FontSize',25);
 set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);

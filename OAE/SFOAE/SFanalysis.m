@@ -1,4 +1,4 @@
-function SFanalysis(datapath,outpath,subject,condition)% SFOAE swept analysis
+function SFanalysis(ROOTdir,datapath,outpath,subject,condition)% SFOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
 % Last Updated: 11 May 2024 by Fernando Aguilera de Alba
@@ -8,18 +8,22 @@ offsetwin = 0.0; % 20ms in paper
 npoints = 512;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Import data file
+cwd = pwd;
 search_file = '*sweptSFOAE*.mat';
+PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
+cd(PRIVdir)
 datafile = load_files(datapath,search_file);
 if isempty(datafile)
     return
 end
-cwd = pwd;
 cd(datapath)
 load(datafile);
 stim = x.sweptSFOAEData.stim;
 %% Import calibration file
 search_calib = '*calib_FPL_raw*.mat';
+cd(PRIVdir)
 calibfile = load_files(datapath,search_calib);
+cd(datapath)
 load(calibfile);
 calib = x.FPLearData; clear x;
 cd(cwd);
