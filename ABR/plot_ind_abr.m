@@ -14,8 +14,8 @@ if strcmp(plot_type,'Thresholds')
     click_threshold = [data.thresholds(1),nan(1,length(data.thresholds)-1)];
     freq_threshold = [nan,data.thresholds(2:end)];
     figure(fig_num);hold on;
-    plot(freq,click_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
-    plot(freq,freq_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
+    plot(freq,click_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
+    plot(freq,freq_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew',3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off')
     if ~isempty(ylimits_threshold)
         ylim(ylimits_threshold);
     end 
@@ -25,8 +25,8 @@ if strcmp(plot_type,'Thresholds')
     xticklabels({'Click', '0.5', '1', '2', '4', '8'});
     legend(legend_string,'Location','southoutside','Orientation','horizontal')
     legend boxoff; grid on;
-    sgtitle(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))),'FontSize', 16,'FontWeight','bold');
-    set(gca,'FontSize',15); set(gca,'xscale','linear'); set(legend,'visible','on');
+    sgtitle(sprintf('ABR Thresholds | %s ', cell2mat(Chins2Run(ChinIND))),'FontSize', 25,'FontWeight','bold');
+    set(gca,'FontSize',25); set(gca,'xscale','linear'); set(legend,'visible','on');
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
@@ -46,7 +46,7 @@ elseif strcmp(plot_type,'Peaks')
     subplot('Position', [0.08,height+0.15, left_width, height]);
     for i=1:2:width(data.peak_amplitude)-1
         % peak-to-peak amplitude
-        plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
+        plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
         % absolute amplitude
         %plot(data.levels, data.peak_amplitude(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
         hold on;
@@ -59,12 +59,12 @@ elseif strcmp(plot_type,'Peaks')
     ylabel(y_units_amp, 'FontWeight', 'bold')
     level_ticks = unique(round(data.levels));
     xticks(level_ticks);
-    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 16,'FontWeight', 'bold'); grid on;
+    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 25,'FontWeight', 'bold'); grid on;
     set(gca,'FontSize',15);
     % Latency plots
     subplot('Position', [0.08, 0.10, left_width, height]);
     for i=1:2:width(data.peak_latency)
-        plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
+        plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
         hold on;
     end
     if ~isempty(ylimits_lat)
@@ -79,22 +79,22 @@ elseif strcmp(plot_type,'Peaks')
     legend_string = {'w1','w2','w3','w4','w5'};
     legend(legend_string,'Location','northoutside','Orientation','horizontal')
     legend boxoff;
-    set(gca,'FontSize',15);
+    set(gca,'FontSize',25);
 
     % Waveform plots
     subplot('Position', [right_width+0.16, 0.10, right_width, 0.80]);
     buff = 1.25*max(max(data.waveforms'))*(1:size(data.waveforms',2));
     wform_plot = data.waveforms'-buff;
-    plot(data.waveforms_time,wform_plot,'k','linewidth',2);
+    plot(data.waveforms_time,wform_plot,'k','linewidth',3);
     for i=1:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 7, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
     end
     for i=2:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 7, 'Color', colors(i/2,:),'MarkerFaceColor', colors(i/2,:), 'MarkerEdgeColor', colors(i/2,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors(i/2,:),'MarkerFaceColor', colors(i/2,:), 'MarkerEdgeColor', colors(i/2,:))
     end
     ylabel(x_units, 'FontWeight', 'bold')
     xlabel(y_units_lat, 'FontWeight', 'bold')
@@ -103,7 +103,7 @@ elseif strcmp(plot_type,'Peaks')
     yticklabels(flip(round(data.levels)));
     ylim([1.05*min(min(wform_plot)),0])
     %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
-    set(gca,'FontSize',15);
+    set(gca,'FontSize',25);
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 %% Export

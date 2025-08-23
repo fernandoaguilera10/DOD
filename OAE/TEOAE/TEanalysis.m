@@ -1,16 +1,18 @@
-function TEanalysis(datapath,outpath,subject,condition)% TEOAE Analysis
+function TEanalysis(ROOTdir,datapath,outpath,subject,condition)% TEOAE Analysis
 % Author: Samantha Hauser
 % Created: May 2023
 % Last Updated: August 2, 2023
 % Purpose:
 % Helpful info:
 %% Import data file
+cwd = pwd;
 search_file = '*TEOAE*.mat';
+PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
+cd(PRIVdir)
 datafile = load_files(datapath,search_file);
 if isempty(datafile)
     return
 end
-cwd = pwd;
 cd(datapath)
 load(datafile);
 stim = x.TEOAEData.stim;

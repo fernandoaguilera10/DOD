@@ -8,7 +8,7 @@ if strcmp(plot_type,'RAM')
     title_str = 'RAM 223 Hz';
     y_units = 'PLV';
     filename = cell2mat([Chins2Run(ChinIND),'_RAM223_',mat2str(data.spl),'dBSPL_',condition{2}]);
-    plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:));
+    plot(data.peaks_locs, data.peaks,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:));
     ylim([0,1]); hold off;
     ylabel(y_units, 'FontWeight', 'bold')
     xlabel(x_units, 'FontWeight', 'bold')
@@ -26,7 +26,7 @@ end
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('EFR (%s) | %s | %.0f dB SPL',title_str, cell2mat(Chins2Run(ChinIND)),data.spl));
-set(gca,'FontSize',15);
+set(gca,'FontSize',25);
 set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);

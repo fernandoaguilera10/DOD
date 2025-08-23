@@ -17,13 +17,13 @@ if exist(outpath,"dir")
         plot_ind_abr(abr_out,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_ind_threshold,[],[])
     elseif strcmp(analysis_type1,'Peaks')
         if strcmp(analysis_type2,'Manual')
-            search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRpeaks*.mat']);
+            search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks*.mat']);
             datafile = load_files(outpath,search_file);
             cd(outpath);
             load(datafile);
             cd(cwd);
         elseif strcmp(analysis_type2,'DTW')
-            search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{1},condition{2},'_ABRpeaks_dtw*.mat']);
+            search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw*.mat']);
             datafile = load_files(outpath,search_file);
             cd(outpath);
             load(datafile);

@@ -60,14 +60,14 @@ if isempty(idx_plot_relative)
             y = get(boxHandles(i), 'YData');
             patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
                 'FaceAlpha', 0.5, 'EdgeColor', 'none');
-            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
             set(gca, 'XTick', []);
-            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
         end
         hold on;
         for z = 1:size(idx,1)
@@ -76,7 +76,7 @@ if isempty(idx_plot_relative)
         legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
         conds_counts_idx =  find(sum(idx)~= 0);
         for i = 1:length(conds_counts_idx)
-            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
+            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 25);
         end
         for cols = 1:length(average.y)
             if ~isempty(average.y{1,cols})
@@ -88,7 +88,7 @@ if isempty(idx_plot_relative)
         legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
         ylabel(y_units, 'FontWeight', 'bold');
         title(sprintf('ABR Thresholds'),'FontWeight','bold');
-        set(gca,'FontSize',15);
+        set(gca,'FontSize',25);
         legend boxoff; hold off; box off;
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);
@@ -230,7 +230,7 @@ if ~isempty(idx_plot_relative)
         timepoints = timepoints(:);
         %daviolinplot(thresholds, 'color', colors, 'violin', 'full', 'scatter', 2,'groups',timepoints);
         boxplot(thresholds, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
-        yline(0, 'k--', 'LineWidth', 1.5);
+        yline(0, 'k--', 'LineWidth', 3);
         % Thickens vertical separator line
         all_lines = findobj(gca, 'Type', 'Line');
         for i = 1:length(all_lines)
@@ -260,20 +260,24 @@ if ~isempty(idx_plot_relative)
             y = get(boxHandles(i), 'YData');
             patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
                 'FaceAlpha', 0.5, 'EdgeColor', 'none');
-            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(capHandles(i), 'Color', thisColor, 'LineWidth', 1.5);
-            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 1.5);
+            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
+            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
             set(gca, 'XTick', []);
-            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 1.5);
+            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
         end
         idx_temp = idx;
         idx = idx(:,2:end);
         hold on;
-        for z = 1:size(idx,1)-1
-            conds_counts(z) = sum(idx(z+1,:));
+        if size(idx,1) > 1
+            for z = 1:size(idx,1)-1
+                conds_counts(z) = sum(idx(z+1,:));
+            end
+        else
+            conds_counts = sum(idx(1,:));
         end
         legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
         conds_counts_idx =  find(sum(idx)~= 0);
@@ -290,7 +294,7 @@ if ~isempty(idx_plot_relative)
         legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
         ylabel(y_units, 'FontWeight', 'bold');
         title(sprintf('ABR Thresholds'),'FontWeight','bold');
-        set(gca,'FontSize',15);
+        set(gca,'FontSize',25);
         legend boxoff; hold off; box off;
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);

@@ -10,18 +10,18 @@ else
     %ROOTdir = 'E:\DOD'; % LYLE 3035 (Analysis)
 end
 %% Subjects and Conditions
-plot_relative_flag = 1;     % Relative to Baseline:  Yes = 1   or  No = 0
-reanalyze = 1;              % 1 = redo analysis      0 = skip analysis
+plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
+reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
 chinroster_filename = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
-chinroster_sheet = 'BLAST';   % 'NOISE' or 'BLAST'
+chinroster_sheet = 'Afagh';   % 'NOISE' or 'BLAST'
 
 if strcmp(chinroster_sheet,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q542'};
+    Chins2Run={'Q541'}; %
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
             % Head Free: 'Q457','Q478','Q493','Q500'
-        % 150 kPa: 'Q463','Q494','Q503'
+        % 150 kPa: 'Q463','Q494','Q503','Q537','Q541'
             % Head Free: 'Q463','Q494'
         % Group 1 (150 kPa w/earplugs + bite bar):'Q537','Q538','Q540','Q541','Q539','Q542','Q543'
 elseif strcmp(chinroster_sheet,'NOISE')
@@ -34,5 +34,8 @@ elseif strcmp(chinroster_sheet,'NOISE')
         % Group 3: 'Q481','Q482','Q483','Q484','Q487','Q488' (10hrs/4 days per week)
         % Group 4: 'Q485','Q486' (10hrs/4 days per week)
         % GROUP 5: 'Q504','Q505' (10hrs/4 days per week)
+else
+    Conds2Run = {strcat('pre',filesep,'Baseline')};
+    Chins2Run={'Q160','Q312','Q316'};
 end
 analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze);

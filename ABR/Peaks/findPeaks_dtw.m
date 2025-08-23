@@ -1,7 +1,7 @@
 function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,CondIND,levels,counter,subplot_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
 tolerance = 20;
 snap_to_localminmax = 0;
-y_units = 'Peak-to-Peak Amplitude (\muV)';
+y_units = 'Amplitude (\muV)';
 x_units = 'Time (ms)';
 frame_sig = 1:length(signal);
 if ~isempty(template)
@@ -46,11 +46,11 @@ if ~isempty(template)
     subplot(length(levels),1,subplot_counter);
     hold on
     plot(t_signal*10^3,signal*10^2,'LineWidth',2,'Color', colors(CondIND,:),'HandleVisibility','off')
-    plot(t_signal(frame_sig(sig_inds))*10^3, signal(sig_inds)*10^2,'+r','MarkerSize',8,'LineWidth',2)
+    plot(t_signal(frame_sig(sig_inds))*10^3, signal(sig_inds)*10^2,'+r','MarkerSize',15,'LineWidth',3)
     subtitle(sprintf('%s dB SPL',num2str(levels(subplot_counter))))
-    set(gca,'FontSize',15); xlim([0,20]); grid on;
+    set(gca,'FontSize',25); xlim([0,20]); grid on;
     %plot(frame_sig(sig_inds), signal(sig_inds),'*r','MarkerSize',6,'LineWidth',2)
-    plot(t_signal(frame_sig)*10^3,template*10^2,'--','LineWidth',2,'color',[0 0 0 0.25])
+    plot(t_signal(frame_sig)*10^3,template*10^2,'--','LineWidth',3,'color',[0 0 0 0.25])
 else
     peaks = nan(1,10);
     latencies = nan(1,10);
@@ -58,10 +58,10 @@ else
     figure(counter);
     subplot(length(levels),1,subplot_counter);
     hold on
-    plot(t_signal*10^3,signal*10^2,'LineWidth',2,'Color', colors(CondIND,:),'HandleVisibility','off')
+    plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
     subtitle(sprintf('%s dB SPL',num2str(levels(subplot_counter))))
-    set(gca,'FontSize',15); xlim([0,20]); grid on;
-    plot(t_signal(frame_sig)*10^3,nan(size(signal)),'--','LineWidth',2,'color',[0 0 0 0.25])
+    set(gca,'FontSize',25); xlim([0,20]); grid on;
+    plot(t_signal(frame_sig)*10^3,nan(size(signal)),'--','LineWidth',3,'color',[0 0 0 0.25])
 end
 ylim(ylim_ind);
 set(gca,'TickLength',[0.005,0])

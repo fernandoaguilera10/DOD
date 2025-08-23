@@ -52,9 +52,9 @@ if ~isempty(idx_plot_relative)  %plot relative to
             figure(counter); hold on;
             %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols+1,:),0.75]);
             %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols+1,:),0.75],'HandleVisibility','off');
-            errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            plot(average.bandF, average.bandOAE{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:),'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
-            plot(average.bandF, zeros(size(average.bandF)),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
+            errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols+1,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
+            plot(average.bandF, average.bandOAE{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols+1,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
+            plot(average.bandF, zeros(size(average.bandF)),'LineStyle','--', 'linew', 3, 'Color', 'k','HandleVisibility','off');
             set(gca, 'XScale', 'log');
             xlim([.5, 16]); xticks([.5, 1, 2, 4, 8, 16]);
             ylabel(y_units, 'FontWeight', 'bold');
@@ -66,7 +66,7 @@ if ~isempty(idx_plot_relative)  %plot relative to
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off;
             ylim(ylimits); grid on;
-            set(gca,'FontSize',15);
+            set(gca,'FontSize',25);
         end
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
