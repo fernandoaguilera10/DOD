@@ -13,8 +13,9 @@ if exist(datapath,"dir")
     cd(datapath);
     %% Chceck frequencies available
     all_datafiles = {dir(fullfile(cd,'p*ABR*.mat')).name}';
-    all_freqs = cellfun(@(x) sscanf(extractAfter(x,'ABR_'),'%d'), all_datafiles);
-    freqs = unique(all_freqs);
+    all_freqs = cellfun(@(x) erase(extractAfter(x,'ABR_'), '.mat'), all_datafiles, 'UniformOutput', false);
+    all_freqs(strcmp(all_freqs,'click')) = {'0'};
+    freqs = unique(str2double(all_freqs));
     %% Fitting Properties
     x = 0:0.1:15;
     maximum = .8;
@@ -52,7 +53,7 @@ if exist(datapath,"dir")
         cor_temp = [];
         cor_err_temp = [];
         nr_flag = false;
-        freqs_datafiles = all_datafiles(all_freqs == freqs(f));
+        freqs_datafiles = all_datafiles(str2double(all_freqs) == freqs(f));
         for d = 1:length(freqs_datafiles)
             load(freqs_datafiles{d})
             fs_orig = x.Stimuli.RPsamprate_Hz;
@@ -341,7 +342,7 @@ if exist(datapath,"dir")
     print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
     %print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
     
-    abr_out.freqs = freqs;
+    abr_out.freqs = freqs';
     abr_out.thresholds = thresh;
     abr_out.subj = subject;
     save([filename,'_ABRthresholds.mat'],'abr_out');
