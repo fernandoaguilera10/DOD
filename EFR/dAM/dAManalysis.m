@@ -34,7 +34,6 @@ bp_window_Hz= [10, 1500]; %band pass filter window
 Filter_HalfWindow_Hz= 12; %low pass cutoff frequency (for demodulation calculation)
 tMin_s= 0;
 tMax_s= 1.5;
-%% NEW
 cwd = pwd;
 search_file = 'p*AMFM*4kHz*.mat';
 if exist(datapath,'dir')
@@ -70,17 +69,45 @@ if exist(datapath,'dir')
         dAM_powNF = db(dAM_powNF);
         dAM_pow_frac = db(dAM_pow_frac);
         dAM_powNF_frac = db(dAM_powNF_frac);
+        %% BAND AVERAGE:
+        fmin = dam_traj_Hz(1);
+        fmax = dam_traj_Hz(find(~isnan(dam_traj_Hz), 1, 'last')); % find last non-nan value
+        edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
+        bandEdges = edges(2:2:end-1);
+        centerFreqs = edges(3:2:end-2);
+        dAM_w = zeros(length(centerFreqs),1);
+        nf_w = zeros(length(centerFreqs),1);
+        % resample / average to 9 center frequencies
+        for z = 1:length(centerFreqs)
+            band = find( dam_traj_Hz >= bandEdges(z) & dam_traj_Hz < bandEdges(z+1));
+            % Do some weighting by SNR
+            SNR = dAM_pow_frac(band) - dAM_powNF_frac(band);
+            weight = (10.^(SNR./10)).^2;
+            dAM_mean(z, 1) = mean(dAM_pow_frac(band));
+            nf_mean(z,1) = mean(dAM_powNF_frac(band));
+            dAM_w(z,1) = sum(weight.*dAM_pow_frac(band))/sum(weight);
+            nf_w(z,1) = sum(weight.*dAM_powNF_frac(band))/sum(weight);
+        end
+        %% SMOOTHING:
+        dAM_smooth = smooth(dam_traj_Hz,dAM_pow_frac,0.1,'loess');
+        nf_smooth = smooth(dam_traj_Hz,dAM_powNF_frac,0.1,'loess');
         %% Plot:
-        blck = [0.25, 0.25, 0.25];
-        rd = [0.8500, 0.3250, 0.0980, 0.5];
+        blck = [0.25, 0.25, 0.25, 0.25];
+        rd = [0.8500, 0.3250, 0.0980, 0.25];
         yl = [237,177,32]/255;
         gr = [0, 192, 0]/255;
         figure;
         hold on;
         title([subject,' | ', num2str(flist),' Hz dAM | ',condition, ' | ',num2str(level_spl), ' dB SPL (n = 200)'],'FontSize',14);
         plot(dam_traj_Hz,dAM_pow_frac,'Color',blck,'linewidth',3,'DisplayName','dAM');    % response
-        plot(dam_traj_Hz,dAM_powNF_frac,'Color',rd,'linestyle','--','linewidth',3,'DisplayName','NF');    % noise floor
-        hold off;  box off;
+        plot(dam_traj_Hz,dAM_powNF_frac,'Color',rd,'linewidth',3,'DisplayName','NF');    % noise floor
+        % band average
+        %plot(centerFreqs, dAM_w, 'o', 'linew', 2, 'MarkerSize', 10, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','DisplayName','dAM band'); % band-average DP
+        %plot(centerFreqs, nf_w, 'x', 'linew', 4, 'MarkerSize', 10, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','DisplayName','NF band'); % band-average noise floor
+        % smoothing
+        plot(dam_traj_Hz,dAM_smooth,'Color','k','linestyle','--','linewidth',3,'HandleVisibility','off');    % response
+        plot(dam_traj_Hz,nf_smooth,'Color','r','linestyle','--','linewidth',3,'HandleVisibility','off');    % noise floor
+        hold off;  box off; xlim([-inf,inf]);
         legend('boxoff');
         ylabel('Power (dB)','FontWeight','bold')
         xlabel('Frequency(Hz)','FontWeight','bold')
@@ -97,6 +124,12 @@ if exist(datapath,'dir')
         efr.dAMpower = dAM_pow_frac(1:idx_nan(1)-1);
         efr.NFpower = dAM_powNF_frac(1:idx_nan(1)-1);
         efr.spl = level_spl;
+        efr.bandaverage.freqs = centerFreqs;
+        efr.bandaverage.dAM = dAM_w;
+        efr.bandaverage.NF = nf_w;
+        efr.smooth.trajectory = dam_traj_Hz(1:idx_nan(1)-1);
+        efr.smooth.dAM = dAM_smooth(1:idx_nan(1)-1);
+        efr.smooth.NF = nf_smooth(1:idx_nan(1)-1);
         save(fname,'efr')
     end
     cd(cwd)
