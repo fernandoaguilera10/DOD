@@ -23,10 +23,12 @@ switch EXPname
                 efr_peak_freq = cell(dim_size);
                 efr_peak_freq_all = cell(dim_size);
             case 'dAM'
-                global efr_trajectory efr_dAMpower efr_NFpower dim_trajectory dim_dAMpower dim_NFpower
+                global efr_trajectory efr_dAMpower efr_NFpower efr_dAMpower_smooth efr_NFpower_smooth dim_trajectory dim_dAMpower dim_NFpower dim_dAMpower_smooth dim_NFpower_smooth
                 efr_trajectory = cell(dim_size);
                 efr_dAMpower = cell(dim_size);
                 efr_NFpower = cell(dim_size);
+                efr_dAMpower_smooth = cell(dim_size);
+                efr_NFpower_smooth = cell(dim_size);
         end
     case 'OAE'
         switch EXPname2
