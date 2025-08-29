@@ -13,11 +13,11 @@ end
 plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
 chinroster_filename = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
-chinroster_sheet = 'Afagh';   % 'NOISE' or 'BLAST'
+chinroster_sheet = 'BLAST';   % 'NOISE' or 'BLAST'
 
 if strcmp(chinroster_sheet,'BLAST')
     Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
-    Chins2Run={'Q541'}; %
+    Chins2Run={'Q539','Q542','Q543','Q544'}; %
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
             % Head Free: 'Q457','Q478','Q493','Q500'
@@ -36,6 +36,6 @@ elseif strcmp(chinroster_sheet,'NOISE')
         % GROUP 5: 'Q504','Q505' (10hrs/4 days per week)
 else
     Conds2Run = {strcat('pre',filesep,'Baseline')};
-    Chins2Run={'Q160','Q312','Q316'};
+    Chins2Run={'Q312'};
 end
 analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze);

@@ -1,4 +1,4 @@
-function WBMEMRanalysis(datapath,outpath,subject,condition)% WBMEMR Analysis
+function WBMEMRanalysis(ROOTdir,datapath,outpath,subject,condition)% WBMEMR Analysis
 
 % DPOAE swept Analysis
 % Author: Samantha Hauser modified code from Hari Bharadwaj
@@ -8,12 +8,14 @@ function WBMEMRanalysis(datapath,outpath,subject,condition)% WBMEMR Analysis
 % Helpful info:
 
 %% Import data
+cwd = pwd;
 search_file = '*memr*.mat';
+PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
+cd(PRIVdir)
 datafile = load_files(datapath,search_file);
 if isempty(datafile)
     return
 end
-cwd = pwd;
 numOfFiles = size(datafile,1);
 %% setting colors
 % Colorblind friendly continuous hue/sat changes
