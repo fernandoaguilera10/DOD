@@ -1,3 +1,4 @@
+%% Manually load ABR file (.mat)
 %% Set up ROOTdir
 ROOTdir = '/Volumes/FefeSSD/DOD';
 %% Analysis
