@@ -6,9 +6,9 @@ function processClick_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Con
 
 %TODO:
 % - Account for NEL latency differences
-% - What if multiple click files? Should user pick the right one?
+
 freq = [0 0.5 1 2 4 8]*10^3;
-levels = [90 80 70 60 50 40];
+levels = [80 70 60 50 40];
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(Conds2Run{CondIND}, filesep);
@@ -65,15 +65,20 @@ for i = 1:size(levels,2)
     end
     fprintf('\n');
 end
-%% Plotting
+%% Dynamic Time Warping (DTW)
 for z = 1:length(freq)
     for j = 1:length(levels)
-        if ~isnan(idx_abr(j,z)) && ~isnan(idx_template(j,z))
-            if freq(z) == 0, freq_str = 'click'; end
-            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+        if freq(z) == 0, freq_str = 'click'; end
+        if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+        if ~isnan(idx_abr(j,z)) && ~isnan(idx_template(j,z)) || ~isnan(idx_abr(j,z)) && ~isnan(idx_template(1,z))      % ABR + template available
             % Load template file
             cd(TEMPLATEdir);
-            template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(j)));
+            % if no other templates available, use template at highest level
+            if ~isnan(idx_template(1,z))
+                template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(1)));
+            else
+                template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(j)));
+            end
             load(template_filename)
             abr_template = abr - mean(abr);
             abr_points = points;
@@ -82,7 +87,7 @@ for z = 1:length(freq)
             if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
             if freq(z) ~= 0, datafiles = {dir(fullfile(cd,['p*',mat2str(freq(z)),'*.mat'])).name}; end
             load(datafiles{idx_abr(j,z)});
-            %% Resample and make sure the level is correct
+            % Resample and make sure the level is correct
             fs = 8e3;
             if iscell(x.AD_Data.AD_All_V{1})
                 abr_data = mean(x.AD_Data.AD_All_V{1}{1}) - mean(mean(x.AD_Data.AD_All_V{1}{1})); % waveform with DC offset removed
@@ -91,17 +96,33 @@ for z = 1:length(freq)
             end
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
-            fig_num = z;
-            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            % Shift template to better match ABR waveform
+            [~,abr_peak_idx] = max(abr_data);
+            [~,template_peak_idx] = max(abr_template);
+            sample_diff = abr_peak_idx - template_peak_idx;
+            if sample_diff > 0      % ABR leading
+                temp = abr_template(1:abs(sample_diff));
+                template_temp = [temp,temp,abr_template(abs(sample_diff)+1:end-abs(sample_diff))];
+                abr_template = template_temp;
+                abr_points(:,1) = abr_points(:,1) + sample_diff/fs;
+                abr_points(:,3) = abr_points(:,3) + sample_diff;
+            else    % template leading
+                temp = abr_template(end-abs(sample_diff)+1:end);
+                template_temp = [abr_template(abs(sample_diff)+1:end-abs(sample_diff)),temp,temp];
+                abr_template = template_temp;
+                abr_points(:,1) = abr_points(:,1) - sample_diff/fs;
+                abr_points(:,3) = abr_points(:,3) - sample_diff;
+            end
+            % DTW and plotting
+            fig_num = (z-1)*length(levels) + j;
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
             abrs.waveforms(j,:) = abr_data*10^2;
             abrs.waveforms_time = abr_t*10^3;
             abrs.levels = levels';
-        elseif ~isnan(idx_abr(j,z)) && isnan(idx_template(j,z))
-            if freq(z) == 0, freq_str = 'click'; end
-            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
+        elseif ~isnan(idx_abr(j,z)) && isnan(idx_template(j,z)) && isnan(idx_template(1,z))     % ABR available + no template
             % Load ABR file
             cd(datapath);
             if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
@@ -116,19 +137,19 @@ for z = 1:length(freq)
             end
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
-            fig_num = z;
-            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,[],[],Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            abr_template = nan(size(abr_data));
+            abr_points = nan(10,3);
+            fig_num = (z-1)*length(levels) + j;
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
             abrs.waveforms(j,:) = abr_data*10^2;
             abrs.waveforms_time = abr_t*10^3;
             abrs.levels = levels';
-        elseif isnan(idx_abr(j,z))
-            if freq(z) == 0, freq_str = 'click'; end
-            if freq(z) ~= 0, freq_str = [num2str(freq(z)), 'Hz']; end
-            fig_num = z;
-            [peaks,latencies] = findPeaks_dtw([],[],[],[],Chins2Run(ChinIND),condition{2},CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+        elseif isnan(idx_abr(j,z))  % ABR unavailable
+            fig_num = (z-1)*length(levels) + j;
+            [peaks,latencies] = findPeaks_dtw([],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = [];
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
