@@ -7,8 +7,9 @@ function processClick_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Con
 %TODO:
 % - Account for NEL latency differences
 
-freq = [0 0.5 1 2 4 8]*10^3;
-levels = [80 70 60 50 40];
+%freq = [0 0.5 1 2 4 8]*10^3;
+freq = 0;
+levels = [80 70 60];
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(Conds2Run{CondIND}, filesep);
@@ -97,9 +98,9 @@ for z = 1:length(freq)
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
             % Shift template to better match ABR waveform
-            [~,abr_peak_idx] = max(abr_data);
-            [~,template_peak_idx] = max(abr_template);
-            sample_diff = abr_peak_idx - template_peak_idx;
+            [xcorr_out, lags] = xcorr(abr_data, abr_template, 'coeff');
+            [~, max_idx] = max(xcorr_out);
+            sample_diff = lags(max_idx);
             if sample_diff > 0      % ABR leading
                 temp = abr_template(1:abs(sample_diff));
                 template_temp = [temp,temp,abr_template(abs(sample_diff)+1:end-abs(sample_diff))];
