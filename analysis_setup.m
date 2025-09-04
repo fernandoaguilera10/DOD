@@ -16,7 +16,7 @@ chinroster_filename = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analy
 chinroster_sheet = 'BLAST';   % 'NOISE' or 'BLAST'
 
 if strcmp(chinroster_sheet,'BLAST')
-    Conds2Run = {strcat('pre',filesep,'Baseline'),strcat('post',filesep,'D3'),strcat('post',filesep,'D14'),strcat('post',filesep,'D28'),strcat('post',filesep,'D56')};
+    Conds2Run = {strcat('pre',filesep,'Baseline')};
     Chins2Run={'Q463'}; 
     % Group 0 ALL: 'Q457','Q463','Q478','Q493','Q494','Q499','Q500','Q503'
         % 75 kPa: 'Q457','Q478','Q493','Q499','Q500'
