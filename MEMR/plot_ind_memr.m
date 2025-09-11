@@ -11,7 +11,7 @@ set(gca, 'XScale', 'log');
 legend(legend_string,'Location','southoutside','Orientation','horizontal')
 legend boxoff
 title(sprintf('%s | %s',EXPname,Chins2Run{ChinIND}));
-set(gca,'FontSize',15);
+set(gca,'FontSize',25);
 set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);
