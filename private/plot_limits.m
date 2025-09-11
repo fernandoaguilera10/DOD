@@ -48,7 +48,7 @@ else    % limits relative to baseline
         case 'ABR'
             switch EXPname2 
                 case 'Thresholds'
-                    limits.avg = [-30,30];
+                    limits.avg = [-40,70];
                     limits.ind = [0,80];
                 case 'Peaks'
                     limits.avg.peaks = [-inf,inf];

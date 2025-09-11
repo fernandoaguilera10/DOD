@@ -2,7 +2,7 @@ function dAManalysis(datapath,outpath,subject,condition)% EFR dAM analysis
 % Author: Satya Parida
 % Updated: July 2025 by Fernando Aguilera de Alba
 % Purpose: Script to import/plot/apply additional processing to dAM_EFR files (chin version)
-smooth_type = 'band';
+smooth_type = 'loess';
 
 flist=4000;%tone carrier in Hz
 fs_stim=97656.25; %TDT sampling rate
