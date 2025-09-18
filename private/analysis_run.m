@@ -207,7 +207,7 @@ for ChinIND=1:length(Chins2Run)
                                 case 'DTW'
                                     %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
                                     %if ~exist(filepath,'dir'), mkdir(filepath), end
-                                    processClick_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks)
+                                    ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks)
                             end
                     end
                 case 'EFR'
