@@ -66,50 +66,50 @@ if ~isempty(template) && all(~isnan(template))
 
     % Plotting
     figure(counter);
-    subplot(length(Conds2Run),1,CondIND);
+    subplot_idx = (CondIND-1)*length(levels) + level_counter;
+    subplot(length(Conds2Run),length(levels),subplot_idx);
     time_plot = t_signal*10^3;
     wform_plot = 10^2*signal;
     peaks_plot = 10^2*signal(sig_inds);
     template_plot = 10^2*template;
     template_peaks = 10^2*latencies_template(:,2);
     hold on
-    plot(time_plot(frame_sig),template_plot,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
     waves_legend = ["I","III","V"];
     for k = 1:num_waves % number of waves I-V
         idx = (2*k-1):(2*k);  % indices for pairs: peak + trough
         plot(time_plot(latencies_template(idx,3)),template_peaks(idx), shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
         plot(time_plot(frame_sig(sig_inds(idx))),peaks_plot(idx), shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5, 'DisplayName', sprintf('Wave %s', waves_legend(k))); % ABR
     end
+    plot(time_plot(frame_sig),template_plot,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
     plot(time_plot,wform_plot,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off');
     set(gca,'FontSize',25); xlim([0,20]); grid on;
 else
     peaks = nan(1,num_peaks);
     latencies = nan(1,num_peaks);
-    % Plotting
-    figure(counter);
-    subplot(length(Conds2Run),1,CondIND);
-    hold on
     plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
 end
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.05, 0.95, 0.95]);
 ylim(ylim_ind);
 hold off
 if CondIND == 1
-    title_str = sprintf('ABR Peaks (DTW) | %s | %s dB SPL | %s ',freq_str,num2str(levels(level_counter)),cell2mat(subject));
+    title_str = sprintf('%s | %s dB SPL | %s ',freq_str,num2str(levels(level_counter)),cell2mat(subject));
     title(title_str,'FontSize', 16,'FontWeight','bold');
+    set(gca,'FontSize',25);
+end
+if subplot_idx == 1
     legend({},'Location','northeast','Orientation','vertical')
     legend box off;
-    set(gca,'FontSize',25); xlim([0,20]); grid on;
+    set(gca,'FontSize',25);
 end
 if CondIND == length(Conds2Run)
-    xlabel(x_units, 'FontWeight', 'bold');
+    xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
 end
-if CondIND == round(length(Conds2Run)/2)
-    ylabel(y_units, 'FontWeight', 'bold');
+if level_counter == 1
+    ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
 end
 if CondIND ~= length(Conds2Run)
     xticklabels([]);
 end
 subtitle(sprintf('%s',condition));
 grid on;
-set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.04, 0.5, 0.94]);
 end
