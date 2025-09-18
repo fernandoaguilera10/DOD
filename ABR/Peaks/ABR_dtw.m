@@ -1,15 +1,16 @@
-function processClick_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind)
+function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind)
 %Author (s): Andrew Sivaprakasam
-%Last Updated: May, 2024
-%Description: Script to process ABR high level clicks using Dynamic Time
-%Warping
+%Last Updated: 11 Sep 2025
+%Description: Script to process ABR waveforms to automatically select peaks
+%using Dynamic Time Warping (DTW)
 
 %TODO:
 % - Account for NEL latency differences
 
 %freq = [0 0.5 1 2 4 8]*10^3;
-freq = 0;
-levels = [80 70 60];
+freq = [0];
+levels = [80];
+template_shift = 'none';        % xcorr = cross-correlation     % peak = first significant peak     % none = no shift
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(Conds2Run{CondIND}, filesep);
@@ -97,23 +98,38 @@ for z = 1:length(freq)
             end
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
-            % Shift template to better match ABR waveform
-            [xcorr_out, lags] = xcorr(abr_data, abr_template, 'coeff');
-            [~, max_idx] = max(xcorr_out);
-            sample_diff = lags(max_idx);
+            %% Shift template to better match ABR waveform
+            switch template_shift
+                case 'xcorr' % XCORR --> max peak
+                    [xcorr_out, lags] = xcorr(abr_data, abr_template, 'coeff');
+                    [~, max_idx] = max(xcorr_out);
+                    sample_diff = lags(max_idx);
+                case 'peak' % First peak
+                minPeakDistance = round(0.001 * fs);    % 1 ms resolution
+                abr_prom_thresh = 3 * median(abs(abr_data));    % 3 std above NF
+                template_prom_thresh = 3 * median(abs(abr_template));    % 3 std above NF
+                [~, locs_abr] = findpeaks(abr_data,'MinPeakProminence',abr_prom_thresh,'MinPeakDistance', minPeakDistance); 
+                [~, locs_template] = findpeaks(abr_template,'MinPeakProminence',template_prom_thresh,'MinPeakDistance', minPeakDistance);
+                sample_diff = locs_abr(1) - locs_template(1);
+                case 'none'
+                    sample_diff = 0;
+            end
+
+            % Shift template or ABR
             if sample_diff > 0      % ABR leading
                 temp = abr_template(1:abs(sample_diff));
                 template_temp = [temp,temp,abr_template(abs(sample_diff)+1:end-abs(sample_diff))];
                 abr_template = template_temp;
                 abr_points(:,1) = abr_points(:,1) + sample_diff/fs;
                 abr_points(:,3) = abr_points(:,3) + sample_diff;
-            else    % template leading
+            elseif sample_diff < 0   % template leading
                 temp = abr_template(end-abs(sample_diff)+1:end);
                 template_temp = [abr_template(abs(sample_diff)+1:end-abs(sample_diff)),temp,temp];
                 abr_template = template_temp;
                 abr_points(:,1) = abr_points(:,1) - sample_diff/fs;
                 abr_points(:,3) = abr_points(:,3) - sample_diff;
             end
+
             % DTW and plotting
             fig_num = (z-1)*length(levels) + j;
             [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));

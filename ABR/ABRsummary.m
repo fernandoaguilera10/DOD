@@ -29,13 +29,12 @@ if exist(outpath,"dir")
             load(datafile);
             cd(cwd);
         end
-        abr_peaks_amp{ChinIND,CondIND} = abrs.plot.peak_amplitude;
-        abr_peaks_lat{ChinIND,CondIND} = abrs.plot.peak_latency;
-        abr_peaks_f{ChinIND,CondIND} = abrs.plot.freq;
-        %abr_peaks_label{ChinIND,CondIND} = abrs.plot.peaks;
-        abr_peaks_level{ChinIND,CondIND} = abrs.plot.levels;
-        abr_peaks_waveform{ChinIND,CondIND} = abrs.plot.waveforms;
-        abr_peaks_waveform_time{ChinIND,CondIND} = abrs.plot.waveforms_time;
+        abr_peaks_amp{ChinIND,CondIND} = abrs.peak_amplitude;
+        abr_peaks_lat{ChinIND,CondIND} = abrs.peak_latency;
+        abr_peaks_f{ChinIND,CondIND} = abrs.freq;
+        abr_peaks_level{ChinIND,CondIND} = abrs.levels;
+        abr_peaks_waveform{ChinIND,CondIND} = abrs.waveforms;
+        abr_peaks_waveform_time{ChinIND,CondIND} = abrs.waveforms_time;
         plot_ind_abr(abrs.plot,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat)
     end
     cd(cwd)
