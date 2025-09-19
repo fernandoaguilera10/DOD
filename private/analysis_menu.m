@@ -12,7 +12,7 @@ switch choice
         if strcmp(EXPname2,'Peaks')
             EXPname3 = questdlg('Select peak picking analysis:', ...
             'ABR Peak Picking Analysis', ...
-            'Manual','DTW','Manual');
+            'Manual','DTW','DTW');
         else
             EXPname3 = [];
         end

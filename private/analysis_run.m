@@ -199,14 +199,12 @@ for ChinIND=1:length(Chins2Run)
                 case 'ABR'
                     switch EXPname2
                         case 'Thresholds'
-                            abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
+                            ABRanalysis_thresholds(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
                         case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
                                     abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
                                 case 'DTW'
-                                    %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
-                                    %if ~exist(filepath,'dir'), mkdir(filepath), end
                                     ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks)
                             end
                     end
