@@ -327,6 +327,7 @@ print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
 abr_out.freqs = freqs';
 abr_out.thresholds = thresh;
 abr_out.subj = subject;
+abr_out.method = 'First vs Second Half XCORR';
 save([filename,'_ABRthresholds.mat'],'abr_out');
 cd(cwd);
 end
