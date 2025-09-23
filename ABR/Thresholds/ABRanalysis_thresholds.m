@@ -9,10 +9,10 @@ if exist(datapath,"dir")
     if isempty(p_datafiles) && ~isempty(a_datafiles)     % run XCORR method (Henry)
         sprintf('Only a-files available - %s (%s).\n',subject,all_Conds2Run{CondIND});
         all_datafiles = a_datafiles;
-        ABR_thresholds_xcorr(ROOTdir,CODEdir,datapath,outpath,subject,all_datafiles,condition)
+        ABR_thresholds_template(ROOTdir,CODEdir,datapath,outpath,subject,all_datafiles,condition)
     elseif ~isempty(p_datafiles)  % run bootstrapping method (Andrew/Sam)
         all_datafiles = p_datafiles;
-        ABR_thresholds_bootstrap(datapath,outpath,subject,all_datafiles,condition)
+        ABR_thresholds_subaverage(datapath,outpath,subject,all_datafiles,condition)
     else
         sprintf('No a-files or p-files available - %s (%s).\n',subject,all_Conds2Run{CondIND});
     end

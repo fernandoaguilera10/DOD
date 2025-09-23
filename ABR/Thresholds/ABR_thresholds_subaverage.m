@@ -1,4 +1,4 @@
-function ABR_thresholds_bootstrap(datapath,outpath,subject,all_datafiles,condition)
+function ABR_thresholds_subaverage(datapath,outpath,subject,all_datafiles,condition)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: Februrary, 2024
 %Description: Script to estimate and process ABR thresholds based on bootstrapped

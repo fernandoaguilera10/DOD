@@ -1,11 +1,11 @@
-function ABR_thresholds_xcorr(ROOTdir,CODEdir,datapath,outpath,subject,all_datafiles,condition)
+function ABR_thresholds_template(ROOTdir,CODEdir,datapath,outpath,subject,all_datafiles,condition)
 % Author (s): Fernando Aguilera de Alba
-% Last Updated: 18 September 2025
+% Last Updated: 23 September 2025
 
 % Description: Script to estimate and process ABR thresholds (a-files only)
-% based on cross-correlation with template (based on Henry et al. 2011)
+% based on cross-correlation with template [1]
 
-% Citation: Henry, Kenneth S., Sushrut Kale, Ryan E. Scheidt, and
+% [1] Henry, Kenneth S., Sushrut Kale, Ryan E. Scheidt, and
 % Michael G. Heinz. “Auditory Brainstem Responses Predict Auditory Nerve
 % Fiber Thresholds and Frequency Selectivity in Hearing Impaired
 % Chinchillas.” Hearing Research 280, nos. 1–2 (2011): 236–44.
@@ -31,54 +31,78 @@ end
 %% Check templates available
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 cd(TEMPLATEdir)
+template_filename = cell(size(freq));
 idx_template = nan(size(freq));
 for z = 1:length(freq)
     if freq(z) == 0, freq_str = 'click'; end
     if freq(z) ~= 0, freq_str = num2str(freq(z)); end
-    template_str = dir(sprintf('*template_thresholds_%s*.mat',freq_str));
-    if ~isempty(template_str)
-        idx_template(z) = length(template_str); % number of templates per stimulus
+    files = dir(fullfile(cd,sprintf('*template_thresholds_%s*.mat',freq_str))); % Search template files
+    files = files(~startsWith({files.name}, '._')); % remove hidden ._ files
+    temp_files = {files.name};
+    if ~isempty(temp_files)
+        idx_template(z) = 0; % confirm template availability
+        template_filename(z) = temp_files;
     end
 end
 %% Load Templates
 templates = [];
-avg_template = [];
 template_level = [];
-avg_template_all = cell(1,length(freq));
+template_all = cell(1,length(freq));
 for z = 1:length(freq)
-    if ~isnan(idx_abr(z)) && ~isnan(idx_template(z))
+    if ~isnan(idx_abr(z))
         if freq(z) == 0, freq_str = 'click'; end
         if freq(z) ~= 0, freq_str = num2str(freq(z)); end
-        cd(TEMPLATEdir);
-        % Load template file
-        template_filename = {dir(fullfile(cd,sprintf('*template_thresholds_%s*.mat',freq_str))).name}';
-        for d = 1:length(template_filename)
-            load(template_filename{d})
-            fs_orig = x.Stimuli.RPsamprate_Hz;
-            temp = x.AD_Data.AD_Avg_V{1};
-            template_level(d) = round(x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB);
-            if iscell(temp)
-                temp = temp{1};
+        
+        % Make template from a-files when not available
+        if isnan(idx_template(z))      
+            cd(strcat(TEMPLATEdir,filesep,'RAW'));
+            files = dir(fullfile(cd,sprintf('*%s*.mat',freq_str))); % Search template files
+            files = files(~startsWith({files.name}, '._')); % remove hidden ._ files
+            raw_filename = {files.name}';
+            for d = 1:length(raw_filename)
+                load(raw_filename{d})
+                fs_orig = x.Stimuli.RPsamprate_Hz;
+                temp = x.AD_Data.AD_Avg_V{1};
+                raw_level(d) = round(x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB);
+                if iscell(temp)
+                    temp = temp{1};
+                end
+                % Demean and resample
+                temp = temp-mean(temp,'all');
+                temp  = temp'./x.AD_Data.Gain;
+                temp = resample(temp, fs, round(fs_orig));
+
+                % Trim and align waveforms to create 8-ms template
+                template_dur = length(temp)/fs*1000; % duration of template in ms
+                duration = 8;   % desired template duration in ms
+                duration_samples = duration/1000*fs;
+                if template_dur > duration
+                    noise_floor = temp(end-duration_samples:end)/max(temp);
+                    NF_threshold = mean(noise_floor) + 3*std(noise_floor);
+                    [~,template_locs] = findpeaks(temp/max(temp),"MinPeakHeight",NF_threshold); % find first peak for reference
+                    template_locs = template_locs(1)-10;
+                    if template_locs < 1; template_locs = 1; end
+                    temp = temp(template_locs:template_locs+duration_samples);
+                end
+                templates(:,d) = temp;
             end
-            % Demean and resample
-            temp = temp-mean(temp,'all');
-            temp  = temp'./x.AD_Data.Gain;
-            temp = resample(temp, fs, round(fs_orig));
-            % Trim template to 8 ms
-            template_dur = length(temp)/fs*1000; % duration of template in ms
-            duration = 8;   % desired template duration in ms
-            duration_samples = duration/1000*fs;
-            if template_dur > duration
-                noise_floor = mean(max(temp(end-duration_samples:end)/max(temp)));
-                [~,template_locs] = findpeaks(temp/max(temp),"MinPeakHeight",noise_floor); % find first peak for reference
-                template_locs = template_locs(1)-10;
-                if template_locs < 1; template_locs = 1; end
-                temp = temp(template_locs:template_locs+duration_samples);
-            end
-            templates(:,d) = temp;
+            idx_template(z) = length(raw_filename);
+            template_all(z) = {templates};
+            avg_template(:,z) = mean(templates,2);
+            % Save template
+            cd(TEMPLATEdir)
+            template.all = {templates};
+            template.avg = mean(templates,2);
+            template.samples = duration_samples;
+            filename = sprintf('template_thresholds_%s.mat',freq_str);
+            save(filename,'template','-mat');
+        elseif ~isnan(idx_template(z)) % Load existing templates
+            load(template_filename{z})
+            template_all(z) = template.all;
+            avg_template(:,z) = template.avg;
+            duration_samples = template.samples;
+            idx_template(z) = width(cell2mat(template.all)); % N size to generate template
         end
-        avg_template(:,z) = mean(templates,2);
-        avg_template_all(z) = {avg_template};
     end
 end
 %% Load ABR files
@@ -125,7 +149,6 @@ for z = 1:length(freq)
             abr_noise = mean(abr_waveforms(end-50:end,:),2);  % average last 50 samples across all levels to represent noise floor
             noise_xcorr = xcorr(avg_template(:,z),abr_noise);
             % Calculate z-score
-            %z_score(z,j) = abs(max(abr_xcorr))/std(noise_xcorr);
             z_score(z,j) = abs(max(abr_xcorr))/std(noise_xcorr);
         end
     end
@@ -171,7 +194,7 @@ for z = 1:length(freq)
             if length(z_score_w(z,:)) > 4      % at least 4 points needed for sigmoid fit
                 cor_fit(z) = {fit(cell2mat(abr_level_all(z))', z_score_w(z,:)',ft)};
                 %Find x value on sigmoid that is 20% of the way to transition point
-                tol = 0.20;
+                tol = 0.50;
                 y_transit = (cor_fit{z}.a+cor_fit{z}.d)/2;
                 y_thresh = cor_fit{z}.d+tol*(y_transit-cor_fit{z}.d);
                 % Estimate threshold
@@ -197,11 +220,13 @@ fit_vis = figure;
 set(fit_vis,'Position',[7 485 809 474])
 thr_vis = figure;
 set(thr_vis,'Position',[7 485 809 474])
+template_vis = figure;
+set(template_vis,'Position',[7 485 809 474])
 clr_no = [0,0,0,.3];
 clr_yes = [0,0,0,1];
 for z = 1:length(freq)
     if ~isnan(idx_abr(z)) && ~isnan(idx_template(z))
-        % ABR Waveforms           *************** CHECK ABR PLOTTING ****************
+        % ABR Waveforms
         figure(abr_vis);
         subplot(ceil(length(freq)/3),3,z);
         wforms = cell2mat(abr_all(z));
@@ -237,7 +262,7 @@ for z = 1:length(freq)
             title([num2str(freq(z)), ' Hz']);
         end
         subtitle(sprintf('Threshold: %.1f dB SPL',thresh(z)));
-        
+
         % Threshold Estimate: Sigmoid Fit
         figure(fit_vis);
         subplot(ceil(length(freq)/3),3,z);
@@ -260,7 +285,7 @@ for z = 1:length(freq)
         hold off
         grid on
         set(gca,'FontSize',15);
-        
+
         % Audiogram
         figure(thr_vis); clf;
         plot(freq,thresh,'*-k','linewidth',2);
@@ -273,6 +298,25 @@ for z = 1:length(freq)
         title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
         xlabel('Frequency (Hz)')
         ylabel('Threshold (dB SPL)');
+
+        % Templates
+        figure(template_vis);
+        subplot(ceil(length(freq)/3),3,z);
+        hold on
+        if freq(z)==0
+            title('Click');
+        else
+            title([num2str(freq(z)), ' Hz']);
+        end
+        template_t = 10^3*(0:(duration_samples))/fs;
+        plot(template_t,10^6*cell2mat(template_all(:,z)),'color',clr_no,'linewidth',2); hold on;
+        plot(template_t,10^6*(avg_template(:,z)),'-k','linewidth',3); hold on;
+        ylabel('Amplitude (\muV)');
+        xlabel('Time (ms)');
+        xlim([0,template_t(end)]);
+        hold off
+        grid on
+        set(gca,'FontSize',15);
     end
 end
 %% Export
