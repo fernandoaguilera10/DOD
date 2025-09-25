@@ -7,9 +7,31 @@ MEMband = [500, 2000];
 ind = (freq >= MEMband(1)) & (freq <= MEMband(2));
 
 endsamps = ceil(stim.clickwin*stim.Fs*1e-3);
-% check how many trials are valid! (assuming data collection interrupted
-% before all 32 trials are completed)
-goodTrials = any(squeeze(stim.resp(:, :, 1, 1)),1);
+%% ************************ CHECK VALID TRIALS ************************************
+% NEED TO APPLY THIS TO ALL LEVELS (ONLY DONE TO HIGHEST LEVEL HERE)
+
+% check how many trials are valid
+allTrials = any(squeeze(stim.resp(:, :, 1, 1)),1);
+goodTrials = zeros(size(allTrials));
+response_all = stim.resp(:, allTrials(allTrials==1),:,:); % extract available trials
+allTrial_length = length(allTrials(allTrials==1));
+temp = nan(allTrial_length,stim.nreps);
+for t = 1:allTrial_length
+    response = squeeze(response_all(end, t, :, 1:endsamps))';  % check response at highest level across all 7 reps for all trials
+    temp(t,:) = var(response);
+    figure; subplot(1,3,1); plot(response);
+    tolerance = 1;
+    subplot(1,3,2); plot(temp(t,:)); yline(tolerance,'r--');
+    idx_good = find(temp(t,:) <= tolerance);
+    idx_bad = find(temp(t,:) > tolerance);
+    good_response = squeeze(response_all(end,t,idx_good,1:endsamps))';
+    bad_response = squeeze(response_all(end,t,idx_bad,1:endsamps))';
+    subplot(1,3,3); hold on; plot(bad_response,'color',[0.9 0.9 0.9]); plot(good_response);
+end
+%% **********************************************************************************
+
+
+% calculate response
 stim.Averages = length(goodTrials(goodTrials==1));
 fprintf(1, ' (n = %d)\n',stim.Averages);
 for k = 1:stim.nLevels
