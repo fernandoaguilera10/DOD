@@ -7,6 +7,7 @@ if isempty(idx_plot_relative)   % limits including baseline
         case 'MEMR'
             limits.avg = [70,105];
             limits.ind = [70,105];
+            limits.threshold = [60,80];
         case 'EFR'
             switch EXPname2
                 case 'RAM'
@@ -34,8 +35,9 @@ else    % limits relative to baseline
             limits.avg = [-60,60];
             limits.ind = [-60,60];
         case 'MEMR'
-            limits.avg = [70,105];
-            limits.ind = [70,105];
+            limits.avg = [45,105];
+            limits.ind = [45,105];
+            limits.threshold = [-10,10];
         case 'EFR'
             switch EXPname2
                 case 'RAM'
