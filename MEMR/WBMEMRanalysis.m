@@ -14,8 +14,7 @@ if isempty(datafile)
     return
 end
 %% Load MEMR template
-
-%% Analysis loop
+% Analysis loop
 numOfFiles = size(datafile,1);
 for i = 1:numOfFiles
     cd(datapath)
@@ -40,7 +39,7 @@ for i = 1:numOfFiles
     xlabel('Frequency (kHz)', 'FontSize', 14, 'FontWeight', 'bold');
     ylabel('Ear canal pressure (dB re: Baseline)', 'FontSize', 14, 'FontWeight', 'bold');
     box off;
-    power = mean(abs(memr.MEM(:, memr.ind)), 2); 
+    power = mean(abs(memr.MEM(memr.ind,:))); 
     deltapow = power - min(power); 
     subplot(1,3,3)
     %plot(memr.elicitor, mean(abs(memr.MEM(:, memr.ind)), 2)*5, 'ok-', 'linew', 2);
@@ -53,7 +52,7 @@ for i = 1:numOfFiles
 
     %% Fitting:
     if length(deltapow) > 4      % at least 4 points needed for exponential fit
-        cor_fit = fit(memr.elicitor', deltapow,'exp1');
+        cor_fit = fit(memr.elicitor', deltapow','exp1');
         a = cor_fit.a;
         b = cor_fit.b;
         x_fit = memr.elicitor(1):memr.elicitor(end);
@@ -74,7 +73,7 @@ for i = 1:numOfFiles
     text(50,2*y_thresh,sprintf('Threshold:\n%.1f dB FPL',thresh));
     %% Export:
     memr.threshold = thresh;
-    memr.deltapow = deltapow;
+    memr.deltapow = deltapow';
     cd(outpath);
     if stim.fc == 7000
         fname = [subject,'_MEMR_HP_',condition,'_',datafile(1:5)];
