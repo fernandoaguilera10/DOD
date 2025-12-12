@@ -16,8 +16,8 @@ elseif strcmp(plot_type,'dAM')
     title_str = 'dAM 4 kHz';
     y_units = 'Power (dB)';
     filename = cell2mat([Chins2Run(ChinIND),'_dAM4kHz_',mat2str(data.spl),'dBSPL_',condition{2}]);
-    plot(data.smooth.f, data.smooth.dAM,'LineStyle','-', 'linew', 3, 'Color', colors(CondIND,:));
-    plot(data.smooth.f, data.smooth.NF,'LineStyle','--', 'linew', 3, 'Color', colors(CondIND,:),'HandleVisibility','off');
+    plot(data.smooth.f, data.smooth.dAM,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 2, 'Color', colors(CondIND,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:));
+    plot(data.smooth.f, data.smooth.NF,'Marker','x','LineStyle','--', 'linew', 2, 'Color', colors(CondIND,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility','off');
     hold off; xlim([-inf,inf]);
     set(gca, 'XScale', 'log')
     ylabel(y_units, 'FontWeight', 'bold')

@@ -102,46 +102,36 @@ if ~isempty(search_files(OUTdir,chinroster_filename).files)
     switch EXPname
         case 'ABR'
             range = col_idx(1):col_idx(1)+conds_length;
-            temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
         case 'EFR'
             range = col_idx(2):col_idx(2)+conds_length;
-            temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
         case 'OAE'
             switch EXPname2
                 case 'DPOAE'
                     range = col_idx(3):col_idx(3)+conds_length;
-                    temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
                 case 'SFOAE'
                     range = col_idx(4):col_idx(4)+conds_length;
-                    temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
                 case 'TEOAE'
                     range = col_idx(5):col_idx(5)+conds_length;
-                    temp = chinroster_temp(:,range);
-                    chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
             end
         case 'MEMR'
             range = col_idx(6):col_idx(6)+conds_length;
-            temp = chinroster_temp(:,range);
-            chinroster.signal = temp(chins_idx,nonzeros(conds_idx));
     end
+    temp = chinroster_temp(:,range);
+    chinroster.signal = temp(chins_idx,:);
 end
 
 %% Check if RAW data has been analyzed
 counter = 0;
 flag = 0;
 chins_idx = [];
-filepath_idx = zeros(length(Chins2Run),length(Conds2Run));
-datapath_idx = zeros(length(Chins2Run),length(Conds2Run));
-subject_idx = zeros(length(Chins2Run),length(Conds2Run));
+filepath_idx = zeros(length(Chins2Run),length(all_Conds2Run));
+datapath_idx = zeros(length(Chins2Run),length(all_Conds2Run));
+subject_idx = zeros(length(Chins2Run),length(all_Conds2Run));
 addpath(strcat(ROOTdir,filesep,'Code Archive'))
 for ChinIND=1:length(Chins2Run)
-    for CondIND=1:length(Conds2Run)
-        filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,Conds2Run{CondIND});
-        datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
+    for CondIND=1:length(all_Conds2Run)
+        filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,all_Conds2Run{CondIND});
+        datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,all_Conds2Run{CondIND});
         calibpath = datapath;
         filepath_files{ChinIND,CondIND} = search_files(filepath,filepath_searchfile).files;  % analyzed raw data files available
         datapath_files{ChinIND,CondIND} = search_files(datapath,datapath_searchfile).files; % raw data files available
@@ -154,7 +144,9 @@ for ChinIND=1:length(Chins2Run)
             datapath_idx(ChinIND,CondIND) = 1;
         end
         if strcmp(chinroster.signal(ChinIND,CondIND),'X') || strcmp(chinroster.signal(ChinIND,CondIND),'x')
-            subject_idx(ChinIND,CondIND) = 1;
+            if ~isempty(find(conds_idx==CondIND))
+                subject_idx(ChinIND,CondIND) = 1;
+            end
         end
     end
 end
@@ -283,7 +275,7 @@ for ChinIND=1:length(Chins2Run)
                     end
                 case 'MEMR'
                     cd(CODEdir)
-                    WBMEMRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.avg,shapes,colors,flag,conds_idx)
+                    WBMEMRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.avg,limits.threshold,shapes,colors,flag,conds_idx)
                     filename = 'MEMR_Average';
             end
             flag = -1;

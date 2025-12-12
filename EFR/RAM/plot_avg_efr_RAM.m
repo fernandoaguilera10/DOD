@@ -188,6 +188,7 @@ if ~isempty(idx_plot_relative)
             %average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
             %plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             %plot(average.peaks_locs{1,cols},average.peaks{1,cols},'*k','linewidth',2)
+            plot(average.peaks_locs{1,cols},average.peaks{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 3, 'MarkerSize', 15, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
             plot(average.peaks_locs{1,cols}, zeros(size(average.peaks_locs{1,cols})),'LineStyle','--', 'linew', 3, 'Color', 'k','HandleVisibility','off');
             ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
@@ -204,6 +205,7 @@ if ~isempty(idx_plot_relative)
                 xticks(round(average.peaks_locs{1,cols}));
                 xlim([0,x_max+200]);
             end
+            xtickangle(90);
             set(gca,'xscale','linear');
             set(gca,'FontSize',25);
         end        
@@ -274,14 +276,20 @@ if ~isempty(idx_plot_relative)
     hold on;
     idx_temp = idx;
     idx = idx(:,2:end);
-    for z = 1:size(idx,1)-1
-        conds_counts(z) = sum(idx(z+1,:));
+    if size(idx,1) > 1
+        for z = 1:size(idx,1)-1
+            conds_counts(z) = sum(idx(z+1,:));
+        end
+    else
+        conds_counts = sum(idx(1,:));
     end
     legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-    conds_counts_idx =  find(sum(idx)~= 0);
+    conds_counts_idx =  find(any(idx, 1));
     for i = 1:length(conds_counts_idx)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
+    valid_idx = isgraphics(legend_handles);
+    legend_handles = legend_handles(valid_idx);
     legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
     ylabel('PLV Shift (re. Baseline)', 'FontWeight', 'bold');
     title(sprintf('EFR Harmonic Contribution (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold');
