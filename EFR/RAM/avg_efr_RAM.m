@@ -62,7 +62,7 @@ elseif ~isempty(idx_plot_relative)
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
                     figure(counter); hold on;
-                    plot(peaks_locs{rows, cols}, peaks{rows, cols}-peaks{rows, idx_plot_relative},'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
+                    %plot(peaks_locs{rows, cols}, peaks{rows, cols}-peaks{rows, idx_plot_relative},'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
                 end
             end
         end

@@ -34,7 +34,7 @@ if isempty(idx_plot_relative)
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; hold off;
             ylim(ylimits); grid on;
-            set(gca,'FontSize',15);
+            set(gca,'FontSize',25);
         end
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);

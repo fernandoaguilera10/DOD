@@ -86,9 +86,10 @@ switch EXPname
                 te_nf_band_spl = cell(dim_size);
         end
     case 'MEMR'
-        global elicitor deltapow
+        global elicitor deltapow threshold
         elicitor = cell(dim_size);
         deltapow = cell(dim_size);
+        threshold = cell(dim_size);
 end
 end
 
