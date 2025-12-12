@@ -2,14 +2,15 @@ function dAManalysis(datapath,outpath,subject,condition)% EFR dAM analysis
 % Author: Satya Parida
 % Updated: July 2025 by Fernando Aguilera de Alba
 % Purpose: Script to import/plot/apply additional processing to dAM_EFR files (chin version)
-smooth_type = 'loess';
-
+smooth_type = 'band';
+noise_flag = 0; % check if including broadband noise stimuli
+t_dur = 1.5; % duration of stimuli in s
 flist=4000;%tone carrier in Hz
 fs_stim=97656.25; %TDT sampling rate
-tvec=1/fs_stim:1/fs_stim:1; %time in s
+tvec=1/fs_stim:1/fs_stim:t_dur; %time in s
 tdat=tvec;
-tvec2=1/fs_stim:1/fs_stim:48321/fs_stim; %duration of each piece. this duration is hard coded to match the number of points in tvec
-tvec3=0.4948+1/fs_stim:1/fs_stim:1; %duration of each piece. %changed the duration such that the first segment ends near 0 amplitude so any small phase shift won't matter
+tvec2=1/fs_stim:1/fs_stim:t_dur/2; %duration of each piece. this duration is hard coded to match the number of points in tvec
+tvec3=tvec2(end)+1/fs_stim:1/fs_stim:t_dur; %duration of each piece. %changed the duration such that the first segment ends near 0 amplitude so any small phase shift won't matter
 aa=length(tvec);
 bb=length(tvec2);
 cc=length(tvec3);
@@ -17,24 +18,30 @@ rftime=.001; %rise fall time in s
 rflen=round(rftime*fs_stim); %length of rise or fall
 rise(1:rflen)=1-(cos(2*pi*(1/(1.33*pi*rftime))*tvec(1:rflen))).^2;
 fall(1:rflen)=rise(rflen:-1:1);
-noisecar=randn(1,length(tvec)); %noise carrier
 tonecar=sin(2*pi*flist*tvec); %tone carrier
-noisecar(find(noisecar>3.5))=3.5; %remove large outliers in noise
-noisecar(find(noisecar<-3.5))=-3.5; %remove large outliers in noise
 
 AMmodfq1(1:length(tvec2))=linspace(4,6.5,length(tvec2));
+fq1 = 2.5; fq2 = 40; fq3 = 1200; % frequencies for pieces in Hz
+%AMmodfq1(1:length(tvec2))=linspace(log2(fq1),log2(fq2),length(tvec2));
 modfqdiff=0.625*(AMmodfq1(2)-AMmodfq1(1)); %the scaling is to match the step size of the second vector  
 AMmodfq1(length(tvec2)+1:length(tvec))=linspace(6.5+modfqdiff,10.5,length(tvec3));
+%AMmodfq1(length(tvec2)+1:length(tvec))=linspace(log2(fq2)+modfqdiff,log2(fq3),length(tvec3));
 AMmoddepth1=1;
 AMfreqvec=2.^AMmodfq1;
-AMmod1=.5*(1-AMmoddepth1*cos(AMfreqvec.*tvec+.001));
-amfmnoisevec(1:length(tvec))=noisecar.*AMmod1;
+AMmod1=0.5*(1-AMmoddepth1*cos(AMfreqvec.*tvec+.001));
 amfmtonevec=tonecar(1:length(tvec)).*AMmod1;
+
+if noise_flag
+    noisecar=randn(1,length(tvec)); %noise carrier
+    noisecar(find(noisecar>3.5))=3.5; %remove large outliers in noise
+    noisecar(find(noisecar<-3.5))=-3.5; %remove large outliers in noise
+    amfmnoisevec(1:length(tvec))=noisecar.*AMmod1;
+end
 
 bp_window_Hz= [10, 1500]; %band pass filter window
 Filter_HalfWindow_Hz= 12; %low pass cutoff frequency (for demodulation calculation)
 tMin_s= 0;
-tMax_s= 1.5;
+tMax_s= t_dur;
 cwd = pwd;
 search_file = 'p*AMFM*4kHz*.mat';
 if exist(datapath,'dir')
@@ -56,10 +63,10 @@ if exist(datapath,'dir')
         bp_filter_ffr= get_filter_designfilt('bp', bp_window_Hz, fs_resp);
         Xorg= (1:length(AMfreqvec))' / fs_stim;
         Yorg= AMfreqvec(:);
+        
         % Make frequency trajectories for plotting/calculations
         dam_traj_Hz= interp1(Xorg(:), Yorg(:), t_ffr(:));
-        dam_traj_Hz(end)= NaN;
-        dam_traj_Hz_NFupper= dam_traj_Hz + 36; %noise floor frequency trajectory
+        dam_traj_Hz_NFupper= dam_traj_Hz + dam_traj_Hz(end); %noise floor frequency trajectory
         exampleEFR = mean(cell2mat(data.AD_Data.AD_All_V{1,1}'));
         exampleEFR= filtfilt(bp_filter_ffr, exampleEFR);
         exampleEFR= detrend(exampleEFR);
@@ -90,7 +97,7 @@ if exist(datapath,'dir')
                 %% Smoothing: band average
                 fmin = dam_traj_Hz(1);
                 fmax = dam_traj_Hz(find(~isnan(dam_traj_Hz), 1, 'last')); % find last non-nan value
-                edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
+                edges = 2 .^ linspace(log2(fmin), log2(fmax), 36);
                 bandEdges = edges(2:2:end-1);
                 centerFreqs = edges(3:2:end-2)';
                 dAM_w = zeros(length(centerFreqs),1);

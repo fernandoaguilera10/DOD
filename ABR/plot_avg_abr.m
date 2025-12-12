@@ -69,14 +69,19 @@ if isempty(idx_plot_relative)
             set(gca, 'XTick', []);
             set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
         end
+        idx_temp = idx;
         hold on;
-        for z = 1:size(idx,1)
-            conds_counts(z) = sum(idx(z,:));
+        if size(idx,1) > 1
+            for z = 1:size(idx,1)
+                conds_counts(z) = sum(idx(z,:));
+            end
+        else
+            conds_counts = sum(idx(1,:));
         end
         legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-        conds_counts_idx =  find(sum(idx)~= 0);
+        conds_counts_idx =  find(any(idx, 1));
         for i = 1:length(conds_counts_idx)
-            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 25);
+            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
         end
         for cols = 1:length(average.y)
             if ~isempty(average.y{1,cols})
@@ -85,6 +90,8 @@ if isempty(idx_plot_relative)
                 legend_string = temp(legend_idx);
             end
         end
+        valid_idx = isgraphics(legend_handles);
+        legend_handles = legend_handles(valid_idx);
         legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
         ylabel(y_units, 'FontWeight', 'bold');
         title(sprintf('ABR Thresholds'),'FontWeight','bold');
@@ -104,6 +111,7 @@ if isempty(idx_plot_relative)
         cd(outpath);
         save(filename,'average');
         print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+        idx = idx_temp;
 %% Peaks
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';
@@ -280,7 +288,7 @@ if ~isempty(idx_plot_relative)
             conds_counts = sum(idx(1,:));
         end
         legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-        conds_counts_idx =  find(idx ~= 0);
+        conds_counts_idx =  find(any(idx, 1));
         for i = 1:length(conds_counts_idx)
             legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
         end

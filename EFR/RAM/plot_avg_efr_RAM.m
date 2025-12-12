@@ -205,6 +205,7 @@ if ~isempty(idx_plot_relative)
                 xticks(round(average.peaks_locs{1,cols}));
                 xlim([0,x_max+200]);
             end
+            xtickangle(90);
             set(gca,'xscale','linear');
             set(gca,'FontSize',25);
         end        
@@ -283,7 +284,7 @@ if ~isempty(idx_plot_relative)
         conds_counts = sum(idx(1,:));
     end
     legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-    conds_counts_idx =  find(idx ~= 0);
+    conds_counts_idx =  find(any(idx, 1));
     for i = 1:length(conds_counts_idx)
         legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
     end
