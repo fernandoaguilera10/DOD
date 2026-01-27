@@ -6,7 +6,7 @@ condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
     cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_EFR_dAM_',condition{2},'_',num2str(level_spl),'dBSPL*.mat']);
-    datafile = load_files(outpath,search_file);
+    datafile = load_files(outpath,search_file,'data');
     cd(outpath);
     load(datafile);
     cd(cwd);

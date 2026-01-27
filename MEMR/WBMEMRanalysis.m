@@ -9,7 +9,7 @@ cwd = pwd;
 search_file = '*memr*.mat';
 PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
 cd(PRIVdir)
-datafile = load_files(datapath,search_file);
+datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
 end

@@ -35,11 +35,8 @@ if exist(outpath,"dir")
         abr_peaks_level{ChinIND,CondIND} = abrs.levels;
         abr_peaks_waveform{ChinIND,CondIND} = abrs.waveforms;
         abr_peaks_waveform_time{ChinIND,CondIND} = abrs.waveforms_time;
-<<<<<<< HEAD
         plot_ind_abr(abrs,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat)
-=======
         plot_ind_abr(abrs.plot,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat)
->>>>>>> 505025198315b98e0029f7d8995364dabb0d518f
     end
     cd(cwd)
 else
