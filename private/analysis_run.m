@@ -245,7 +245,8 @@ for ChinIND=1:length(Chins2Run)
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,EXPname3,flag,conds_idx);                        case 'Peaks'
+                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,EXPname3,flag,conds_idx);
+                        case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
                                     ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
