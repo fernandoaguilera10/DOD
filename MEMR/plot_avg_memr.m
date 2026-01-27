@@ -5,7 +5,7 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.elicitor)
         if ~isempty(average.deltapow{1,cols})
             % Average MEMR
-            figure(length(Chins2Run)+1); subplot(1,2,2); hold on;
+            figure(length(Chins2Run)+1); subplot(1,2,1); hold on;
             errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:),'HandleVisibility','off');
             plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
             xlim(xlimits);xticks(xlimits(1):5:xlimits(2));xtickangle(90);
@@ -20,7 +20,7 @@ if isempty(idx_plot_relative)
             set(gca,'FontSize',25);
             subplot(1,2,2); hold on;
             errorbar(average.threshold{1,cols},average.threshold_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:),'HandleVisibility','off');
-            plot(average.threshold,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'MarkerSize', 20, 'Color', colors(CondIND,:), 'MarkerFaceColor', colors(CondIND,:));
+            plot(average.threshold{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 20, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:));
             ylabel('Threshold (dB FPL)', 'FontWeight', 'bold'); xticklabels([]); xticks([]);
             ylim(thresholdlimits);
             set(gca,'FontSize',25);

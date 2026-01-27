@@ -1,6 +1,6 @@
 %% MEMR by level
-
-function [res] = MEMRbyLevel(stim) = 1;    % plot all reps = 1
+function [res] = MEMRbyLevel(stim)    % plot all reps = 1
+plotTrials_flag = 0;
 bad_trials = 0;
 freq = linspace(200, 8000, 1024);
 MEMband = [500, 2000];

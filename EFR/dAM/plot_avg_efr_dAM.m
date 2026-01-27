@@ -13,8 +13,8 @@ if isempty(idx_plot_relative)
             plot(average.trajectory{1,cols},average.dAMpower{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
             errorbar(average.trajectory{1,cols},average.dAMpower{1,cols},average.dAMpower_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             % NF Power
-            plot(average.trajectory{1,cols},average.NFpower{1,cols},'Marker','x','LineStyle','--', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            errorbar(average.trajectory{1,cols},average.NFpower{1,cols},average.NFpower_std{1,cols},'Marker','x','LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+            %plot(average.trajectory{1,cols},average.NFpower{1,cols},'Marker','x','LineStyle','--', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+            %errorbar(average.trajectory{1,cols},average.NFpower{1,cols},average.NFpower_std{1,cols},'Marker','x','LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             ylabel('Power (dB)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
