@@ -12,7 +12,7 @@ cwd = pwd;
 search_file = '*sweptDPOAE*.mat';
 PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
 cd(PRIVdir)
-datafile = load_files(datapath,search_file);
+datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
 end
@@ -22,7 +22,7 @@ stim = x.sweptDPOAEData.stim;
 %% Import calibration file
 search_calib = '*calib_FPL_raw*.mat';
 cd(PRIVdir)
-calibfile = load_files(datapath,search_calib);
+calibfile = load_files(datapath,search_calib,'calib',datafile);
 cd(datapath)
 load(calibfile);
 calib = x.FPLearData; clear x;
