@@ -60,7 +60,6 @@ elseif ~isempty(idx_plot_relative)
     end
 end
 temp_idx = cellfun(@(x) any(isempty(x)), all_dAMpower);
-all_dAMpower(temp_idx) = {NaN};
 average.trajectory = avg_trajectory;
 average.dAMpower = avg_dAMpower;
 average.NFpower = avg_NFpower;

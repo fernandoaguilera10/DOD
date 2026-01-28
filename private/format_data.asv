@@ -5,13 +5,13 @@
 %% User Input
 clear all; close all; clc;
 if ismac    % Mac
-    DATAdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/RAW/Noise';
-    OUTdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/Data/Noise';
+    DATAdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/RAW/Blast';
+    OUTdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/Data/Blast';
     ROOTdir = '/Volumes/FefeSSD/DOD/Code Archive/private';
 else        % Windows
     DATAdir = 'N/A';
 end
-Conds2Run = ["D7";"D14";"D30"]'; % Define grouping units (e.g., timepoints,conditions)
+Conds2Run = ["D3";"D14";"D28"]'; % Define grouping units (e.g., timepoints,conditions)
 relative_flag = 0;  % 1 = relative to baseline      0 = do not compare to baseline
 %% Script
 [EXPname,EXPname2,search_file] = measure_menu();
@@ -156,7 +156,7 @@ for x_idx = 1:length(x_str)
     for rows = 1:size(data,1)
         for cols = 1:size(data,2)
             %all_y{rows,cols} = nan(1,length(x_str));
-            if ~isempty(data{rows,cols})
+            if ~isempty(data{rows,cols}) || 
                 %all_y{rows,cols}(x_idx) = data{rows,cols}(x_idx);
                 if strcmp(EXPname,'EFR-RAM') && strcmp(EXPname2,'SumPeaks') 
                     y(rows,cols) = data{rows,cols}(2)+data{rows,cols}(1);
