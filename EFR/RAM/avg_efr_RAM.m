@@ -69,7 +69,6 @@ elseif ~isempty(idx_plot_relative)
     end
 end
 temp_idx = cellfun(@(x) any(isempty(x)), all_plv_sum);
-all_plv_sum(temp_idx) = {NaN};
 average.f = avg_f;
 average.plv_env = avg_plv_env;
 average.peaks_locs = avg_peaks_locs;
