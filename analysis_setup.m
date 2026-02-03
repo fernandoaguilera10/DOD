@@ -1,10 +1,11 @@
 clc; close all; clear all; warning off;
 %% ROOT Directory
 if ismac
-    ROOTdir = '/Volumes/FefeSSD/DOD';
+    ROOTdir = '/Users/ipek/Desktop/MATLAB_Heinz/DOD';
 else
     ROOTdir = 'E:\DOD';
 end
+dir(fullfile(ROOTdir,'**','abr_gui_initiate.m'))
 %% Subjects and Conditions
 plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
 reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
