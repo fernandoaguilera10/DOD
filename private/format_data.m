@@ -5,13 +5,13 @@
 %% User Input
 clear all; close all; clc;
 if ismac    % Mac
-    DATAdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/RAW/Noise';
-    OUTdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/Data/Noise';
+    DATAdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/RAW/Blast';
+    OUTdir = '/Users/fernandoaguileradealba/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Purdue/Heinz Lab/Presentations/ARO 2026/Stats/Data/Blast';
     ROOTdir = '/Volumes/FefeSSD/DOD/Code Archive/private';
 else        % Windows
     DATAdir = 'N/A';
 end
-Conds2Run = ["D7";"D14";"D30"]'; % Define grouping units (e.g., timepoints,conditions)
+Conds2Run = ["D3";"D7";"D14"]'; % Define grouping units (e.g., timepoints,conditions)
 relative_flag = 0;  % 1 = relative to baseline      0 = do not compare to baseline
 %% Script
 [EXPname,EXPname2,search_file] = measure_menu();
@@ -34,9 +34,7 @@ switch choice
         search_file = EXPname;
     case 2  % EFR RAM
         EXPname = 'EFR-RAM';
-        efr_ram_options = {'LowPeaks','HighPeaks','SumPeaks','AllPeaks'};
-        choice = listdlg('PromptString','Select EFR RAM analysis: ','ListString',efr_ram_options,'SelectionMode','single','ListSize', [100 80]);
-        EXPname2 = efr_ram_options{choice};
+        EXPname2 = [];
         search_file = 'RAM';
     case 3  % EFR dAM
         EXPname = 'EFR-dAM';
@@ -101,28 +99,17 @@ switch EXPname
         end
 
     case 'EFR-RAM'
-        switch EXPname2
-            case 'LowPeaks'
-                x_str = "1-4";  % low harmonics
-                data = average.all_low_high_peaks;
-                out_filename = strcat(filename,'_LowHarmonics');
-            case 'HighPeaks'
-                x_str = "5-16";  % high harmonics
-                data = average.all_low_high_peaks;
-                out_filename = strcat(filename,'_HighHarmonics');
-            case 'SumPeaks'
-                x_str = "1-16";  % all harmonics
-                data = average.all_low_high_peaks;
-                out_filename = strcat(filename,'_SumHarmonics');
-            case 'AllPeaks'
-                x_str = round(average.peaks_locs{1,1});  % individual harmonics
-                data = average.all_peaks;
-                out_filename = strcat(filename,'_AllHarmonics');
-        end
-    
+            x_str = round(average.peaks_locs{1,1});  % individual harmonics
+            data = average.all_peaks;
+            out_filename = filename;
+
     case 'EFR-dAM'
             x_str = round(average.trajectory{1,1});  % frequency trajectory
-            data = average.all_dAMpower;
+            calcSNR = @(d, n) real(10*log10(d ./ n)); % calculate SNR
+            hasData = ~cellfun(@isempty, average.all_dAMpower) & ~cellfun(@isempty, average.all_NFpower);
+            SNR_dB = cell(size(average.all_dAMpower));
+            SNR_dB(hasData) = cellfun(calcSNR,average.all_dAMpower(hasData),average.all_NFpower(hasData),'UniformOutput', false);
+            data = SNR_dB;
             out_filename = filename;
 
     case 'DPOAE'
@@ -147,6 +134,7 @@ switch EXPname
 end
 end
 function write_table(data,average,Conds2Run,x_str,relative_flag,filename,EXPname,EXPname2,OUTdir)
+cwd = pwd;
 subjects = average.subjects;
 %all_y = cell(size(data));
 y = nan(size(data,1),size(Conds2Run,2)+1);
@@ -201,4 +189,5 @@ writetable(glm_long_table,filename_csv, ...
     'Delimiter', ',', ...
     'QuoteStrings', true, ...
     'WriteVariableNames', true);
+cd(cwd)
 end
