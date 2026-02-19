@@ -10,21 +10,11 @@ if isempty(idx_plot_relative)
             %% Average PLV Spectrum
             figure(counter); hold on;
             % dAM Power
-            plot(average.trajectory{1,cols},average.dAMpower{1,cols},'LineStyle','-','linew', 3,'Color', colors(cols,:));   % Average
-            dAM_upper_std = average.dAMpower{1,cols} + average.dAMpower_std{1,cols};
-            dAM_lower_std = average.dAMpower{1,cols} - average.dAMpower_std{1,cols};
-            %plot(average.trajectory{1,cols},dAM_upper_std,'LineStyle','-','linew', 1,'Color', colors(cols,:),'HandleVisibility','off');   % Upper STD
-            %plot(average.trajectory{1,cols},dAM_lower_std,'LineStyle','-','linew', 1,'Color', colors(cols,:),'HandleVisibility','off');   % Lower STD
-            %patch([average.trajectory{1,cols},fliplr(average.trajectory{1,cols})],[dAM_upper_std, fliplr(dAM_lower_std)],colors(cols,:),'FaceAlpha',0.2,'HandleVisibility','off');
-
+            plot(average.trajectory{1,cols},average.dAMpower{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
+            errorbar(average.trajectory{1,cols},average.dAMpower{1,cols},average.dAMpower_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             % NF Power
-%             plot(average.trajectory{1,cols},average.NFpower{1,cols},'LineStyle','--','linew', 3,'Color', colors(cols,:),'HandleVisibility','off');   % Average
-%             NF_upper_std = average.NFpower{1,cols} + average.NFpower_std{1,cols};
-%             NF_lower_std = average.NFpower{1,cols} - average.NFpower_std{1,cols};
-%             plot(average.trajectory{1,cols},NF_upper_std,'LineStyle','--','linew', 1,'Color', colors(cols,:),'HandleVisibility','off');   % Upper STD
-%             plot(average.trajectory{1,cols},NF_lower_std,'LineStyle','--','linew', 1,'Color', colors(cols,:),'HandleVisibility','off');   % Lower STD
-%             patch([average.trajectory{1,cols},fliplr(average.trajectory{1,cols})],[NF_upper_std, fliplr(NF_lower_std)],colors(cols,:),'FaceAlpha',0.2,'HandleVisibility','off');
-
+            %plot(average.trajectory{1,cols},average.NFpower{1,cols},'Marker','x','LineStyle','--', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
+            %errorbar(average.trajectory{1,cols},average.NFpower{1,cols},average.NFpower_std{1,cols},'Marker','x','LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             ylabel('Power (dB)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
             title(sprintf('EFR (%s) | %.0f dB SPL',title_str,level_spl));
@@ -45,21 +35,10 @@ if ~isempty(idx_plot_relative)
         if ~isempty(average.dAMpower{1,cols})
             figure(counter); hold on;
             % dAM Power
-            plot(average.trajectory{1,cols},average.dAMpower{1,cols},'LineStyle','-','linew', 3,'Color', colors(cols+1,:));   % Average
-            dAM_upper_std = average.dAMpower{1,cols} + average.dAMpower_std{1,cols};
-            dAM_lower_std = average.dAMpower{1,cols} - average.dAMpower_std{1,cols};
-            %plot(average.trajectory{1,cols},dAM_upper_std,'LineStyle','-','linew', 1,'Color', colors(cols+1,:),'HandleVisibility','off');   % Upper STD
-            %plot(average.trajectory{1,cols},dAM_lower_std,'LineStyle','-','linew', 1,'Color', colors(cols+1,:),'HandleVisibility','off');   % Lower STD
-            %patch([average.trajectory{1,cols},fliplr(average.trajectory{1,cols})],[dAM_upper_std, fliplr(dAM_lower_std)],colors(cols,:),'FaceAlpha',0.2,'HandleVisibility','off');
-            
+            plot(average.trajectory{1,cols},average.dAMpower{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));            
+            errorbar(average.trajectory{1,cols},average.dAMpower{1,cols},average.dAMpower_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols+1,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             % NF Power
-%              plot(average.trajectory{1,cols},average.NFpower{1,cols},'LineStyle','--','linew', 3,'Color', colors(cols+1,:),'HandleVisibility','off');   % Average
-%             NF_upper_std = average.NFpower{1,cols} + average.NFpower_std{1,cols};
-%             NF_lower_std = average.NFpower{1,cols} - average.NFpower_std{1,cols};
-%             plot(average.trajectory{1,cols},NF_upper_std,'LineStyle','--','linew', 1,'Color', colors(cols+1,:),'HandleVisibility','off');   % Upper STD
-%             plot(average.trajectory{1,cols},NF_lower_std,'LineStyle','--','linew', 1,'Color', colors(cols+1,:),'HandleVisibility','off');   % Lower STD
-%             patch([average.trajectory{1,cols},fliplr(average.trajectory{1,cols})],[NF_upper_std, fliplr(NF_lower_std)],colors(cols+1,:),'FaceAlpha',0.2,'HandleVisibility','off');
-            
+            % plot(average.trajectory{1,cols},average.NFpower{1,cols},'Marker','x','LineStyle','--', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             plot(average.trajectory{1,cols}, zeros(size(average.trajectory{1,cols})),'LineStyle','--', 'linew', 3, 'Color', 'k','HandleVisibility','off');
             ylabel('Power Shift (re. Baseline)', 'FontWeight', 'bold');
             xlabel(x_units, 'FontWeight', 'bold');
