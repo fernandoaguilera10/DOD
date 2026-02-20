@@ -8,8 +8,8 @@ function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,Co
 % - Account for NEL latency differences
 
 %freq = [0 0.5 1 2 4 8]*10^3;
-freq = [0 4000];
-levels = [80 70 60];
+freq = [4000];
+levels = [80 70 60 50 40];
 template_shift = 'none';        % xcorr = cross-correlation     % peak = first significant peak     % none = no shift
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
@@ -68,6 +68,8 @@ for i = 1:size(levels,2)
     fprintf('\n');
 end
 %% Dynamic Time Warping (DTW)
+all_point_names = {'P1','N1','P2','N2','P3','N3','P4','N4','P5','N5'};
+abr_points = nan(length(all_point_names),3);
 for z = 1:length(freq)
     for j = 1:length(levels)
         if freq(z) == 0, freq_str = 'click'; end
@@ -83,7 +85,8 @@ for z = 1:length(freq)
             end
             load(template_filename)
             abr_template = abr - mean(abr);
-            abr_points = points;
+            idx_abr_points = ismember(all_point_names,point_names);
+            abr_points(idx_abr_points,:) = points;
             % Load ABR file
             cd(datapath);
             if freq(z) == 0, datafiles = {dir(fullfile(cd,'p*click*.mat')).name}; end
