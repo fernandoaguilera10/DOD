@@ -1,4 +1,4 @@
-function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis)
+function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis,freq)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 cwd = pwd;
@@ -29,7 +29,6 @@ if isempty(idx_plot_relative)
         thresholds = thresholds(:);
         frequencies = frequencies(:);
         timepoints = timepoints(:);
-        %daviolinplot(thresholds, 'color', colors, 'violin', 'full', 'scatter', 2,'groups',timepoints);
         boxplot(thresholds, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
         % Thickens vertical separator line
         all_lines = findobj(gca, 'Type', 'Line');
@@ -114,15 +113,17 @@ if isempty(idx_plot_relative)
         idx = idx_temp;
 %% Peaks
     elseif strcmp(plot_type,'Peaks')
+        if freq == 0, freq_str = 'Click'; end
+        if freq ~= 0, freq_str = [mat2str(freq),' Hz']; end
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = 'Peak-to-Peak Amplitude (\muV)';
-            title_str = sprintf('ABR Peak-to-Peak Amplitude');
+            title_str = sprintf('ABR Peak-to-Peak Amplitude (%s)',freq_str);
         elseif strcmp(peak_analysis,'Latency')
-            y_units = 'Time (ms)';
-            title_str = sprintf('ABR Absolute Peak Latency');
+            y_units = 'Latency (ms)';
+            title_str = sprintf('ABR Absolute Peak Latency (%s)',freq_str);
         end
-        for cols = 1:size(average.w1,1)
+        for cols = 1:length(average.w1)
             figure(counter); hold on; % wave 1
             w1 = errorbar(round(average.x{1,cols}), average.w1{1,cols},average.w1_std{1,cols},'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             w1_fit = fillmissing(flip(average.w1{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1_fit = flip(w1_fit);
@@ -131,7 +132,11 @@ if isempty(idx_plot_relative)
             ylabel(y_units, 'FontWeight', 'bold');
             xticks(round(unique(average.x{1,1})));
             xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols)),mat2str(sum(idx(:,conds_idx(cols)))));
+
+            
+            temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
+            legend_idx = find(~cellfun(@isempty,temp));
+            legend_string = temp(legend_idx);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
 
@@ -156,7 +161,7 @@ if isempty(idx_plot_relative)
             ylabel(y_units, 'FontWeight', 'bold'); grid on;
             xlabel(x_units, 'FontWeight', 'bold'); hold off;
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
+            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);    
 
             figure(counter+3); hold on; % wave 4
             w4 = errorbar(round(average.x{1,cols}), average.w4{1,cols},average.w4_std{1,cols},'Marker',shapes(4,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
@@ -194,7 +199,7 @@ if isempty(idx_plot_relative)
             subtitle('Wave I/V'); xlim([-inf,inf]);
             legend(legend_string,'Location','southoutside','Orientation','horizontal');
             legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-            set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+            
         end
         average.subjects = Chins2Run;
         average.conditions = [convertCharsToStrings(all_Conds2Run);idx];

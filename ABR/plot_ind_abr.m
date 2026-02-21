@@ -1,4 +1,4 @@
-function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat)
+function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat,all_freq)
 global legend_string
 legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -30,7 +30,7 @@ if strcmp(plot_type,'Thresholds')
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
-    y_units_amp = 'Peak-to-Peak Amplitude (\muV)';
+    y_units_amp = 'Amplitude (\muV)';
     y_units_lat = 'Latency (ms)';
     if data.freq == 0, freq = 'click'; end
     if data.freq ~= 0, freq = [num2str(data.freq), ' Hz']; end
@@ -40,7 +40,8 @@ elseif strcmp(plot_type,'Peaks')
     left_width = 0.40;  % Left side takes half the figure
     right_width = 0.40; % Right side takes half the figure
     height = 0.375;     % Height for each of the stacked plots
-    fig_num = (ChinIND - 1) * length(all_Conds2Run) + CondIND;
+    FreqIND = find(all_freq == data.freq);
+    fig_num = (ChinIND - 1) * (length(all_freq) * length(all_Conds2Run)) + (FreqIND - 1) * length(all_Conds2Run) + CondIND;
     figure(fig_num);
     % Peak plots
     subplot('Position', [0.08,height+0.15, left_width, height]);
@@ -59,10 +60,10 @@ elseif strcmp(plot_type,'Peaks')
     ylabel(y_units_amp, 'FontWeight', 'bold')
     level_ticks = unique(round(data.levels));
     xticks(level_ticks);
-    sgtitle(sprintf('ABR Peak Amplitude and Latency | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 25,'FontWeight', 'bold'); grid on;
-    set(gca,'FontSize',15);
+    sgtitle(sprintf('ABR Peaks | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 25,'FontWeight', 'bold'); grid on;
+    xticklabels({}); set(gca,'FontSize',25);
     % Latency plots
-    subplot('Position', [0.08, 0.10, left_width, height]);
+    subplot('Position', [0.08, 0.12, left_width, height]);
     for i=1:2:width(data.peak_latency)
         plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
         hold on;
@@ -82,7 +83,7 @@ elseif strcmp(plot_type,'Peaks')
     set(gca,'FontSize',25);
 
     % Waveform plots
-    subplot('Position', [right_width+0.16, 0.10, right_width, 0.80]);
+    subplot('Position', [right_width+0.16, 0.12, right_width, 0.80]);
     buff = 1.25*max(max(data.waveforms'))*(1:size(data.waveforms',2));
     wform_plot = data.waveforms'-buff;
     plot(data.waveforms_time,wform_plot,'k','linewidth',3);
@@ -104,7 +105,7 @@ elseif strcmp(plot_type,'Peaks')
     ylim([1.05*min(min(wform_plot)),0])
     %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
     set(gca,'FontSize',25);
-    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+    set(gcf, 'Units', 'normalized', 'Position', [0.25 0.1 0.5 0.6]);
 end
 %% Export
 cd(outpath);
