@@ -1,4 +1,4 @@
-function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind)
+function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind,freq,levels)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 11 Sep 2025
 %Description: Script to process ABR waveforms to automatically select peaks
@@ -7,9 +7,6 @@ function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,Co
 %TODO:
 % - Account for NEL latency differences
 
-%freq = [0 0.5 1 2 4 8]*10^3;
-freq = [4000];
-levels = [80 70 60 50 40];
 template_shift = 'none';        % xcorr = cross-correlation     % peak = first significant peak     % none = no shift
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');

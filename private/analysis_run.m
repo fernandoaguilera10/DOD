@@ -23,6 +23,9 @@ if strcmp(EXPname,'OAE')
     datapath_searchfile = filepath_searchfile;
 elseif strcmp(EXPname,'ABR')
     datapath_searchfile = '*ABR*.mat';
+    %abr_freq = [0 0.5 1 2 4 8]*10^3;
+    abr_freq = [0 4]*10^3;
+    abr_levels = [80 70 60 50 40];
     switch EXPname2
         case 'Thresholds'
             filepath_searchfile = ['*',EXPname,'thresholds*.mat'];
@@ -197,9 +200,7 @@ for ChinIND=1:length(Chins2Run)
                                 case 'Manual'
                                     abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
                                 case 'DTW'
-                                    %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
-                                    %if ~exist(filepath,'dir'), mkdir(filepath), end
-                                    ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks)
+                                    ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
                             end
                     end
                 case 'EFR'
@@ -249,10 +250,9 @@ for ChinIND=1:length(Chins2Run)
                         case 'Peaks'
                             switch EXPname3
                                 case 'Manual'
-                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
+                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx,abr_freq,abr_levels);
                                 case 'DTW'
-                                    %filepath = strcat(OUTdir,filesep,EXPname,filesep,EXPname3,filesep,condition{2});
-                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx);
+                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx,abr_freq,abr_levels);
                             end
                     end
                 case 'EFR'
