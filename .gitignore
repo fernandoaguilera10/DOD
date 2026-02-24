@@ -1,0 +1,48 @@
+# --- macOS System Files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Windows System Files ---
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+
+# --- Linux System Files ---
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# --- MATLAB & Simulink Specifics ---
+*.asv          # MATLAB Auto-save files
+*.mex* # Compiled MEX binaries (platform dependent)
+*.slxc         # Simulink Cache files
+*.autosave     # General autosaves
+*.p            # Content-obscured (P-code) files
+slprj/         # Simulink project generation folder
+catdir/        # Catalog directories
+mcode/         # Generated C/C++ code from MATLAB
+
+# --- Project & Build Artifacts ---
+DerivedData/
+build/
+dist/
+bin/
+*.log
+*.bak
+*.tmp
+
+# --- IDE & Editors ---
+.recommender/
+.vscode/
+.idea/
+.project
+.settings/
