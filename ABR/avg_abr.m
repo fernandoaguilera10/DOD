@@ -107,7 +107,7 @@ elseif strcmp(analysis_type,'Peaks')
     w1and5_std{1,conds} = [];
     idx = ~cellfun(@isempty,y);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
     if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-        for cols = 1:length(Conds2Run)
+        for cols = 1:length(all_Conds2Run)
             for rows = 1:length(Chins2Run)
                 for i=1:2:width(y{rows,cols})-1
                     if strcmp(peak_analysis,'Amplitude')
@@ -117,26 +117,28 @@ elseif strcmp(analysis_type,'Peaks')
                     end
                 end
                 [~,idx_peaks] = unique(round(x{rows,cols})); idx_peaks = flip(idx_peaks);
-                avg_x{1,cols} = nanmean([avg_x{1,cols}, x{rows, cols}(idx_peaks,:)],2);
-                avg_w1{1,cols} = nanmean([avg_w1{1,cols}, peak{rows, cols}(idx_peaks,1)],2);
-                avg_w2{1,cols} = nanmean([avg_w2{1,cols}, peak{rows, cols}(idx_peaks,2)],2);
-                avg_w3{1,cols} = nanmean([avg_w3{1,cols}, peak{rows, cols}(idx_peaks,3)],2);
-                avg_w4{1,cols} = nanmean([avg_w4{1,cols}, peak{rows, cols}(idx_peaks,4)],2);
-                avg_w5{1,cols} = nanmean([avg_w5{1,cols}, peak{rows, cols}(idx_peaks,5)],2);
-                w1and5 = peak{rows, cols}(idx_peaks,1)./peak{rows, cols}(idx_peaks,5);
-                avg_w1and5{1,cols} = nanmean([avg_w1and5{1,cols}, w1and5],2);
-                all_w1{rows,cols} = peak{rows,cols}(idx_peaks,1);
-                all_w2{rows,cols} = peak{rows,cols}(idx_peaks,2);
-                all_w3{rows,cols} = peak{rows,cols}(idx_peaks,3);
-                all_w4{rows,cols} = peak{rows,cols}(idx_peaks,4);
-                all_w5{rows,cols} = peak{rows,cols}(idx_peaks,5);
-                all_w1and5{rows,cols} = w1and5;
-                w1_std{1,cols} = nanstd(cell2mat(all_w1(:,cols)'),0,2);
-                w2_std{1,cols} = nanstd(cell2mat(all_w2(:,cols)'),0,2);
-                w3_std{1,cols} = nanstd(cell2mat(all_w3(:,cols)'),0,2);
-                w4_std{1,cols} = nanstd(cell2mat(all_w4(:,cols)'),0,2);
-                w5_std{1,cols} = nanstd(cell2mat(all_w5(:,cols)'),0,2);
-                w1and5_std{1,cols} = nanstd(cell2mat(all_w1and5(:,cols)'),0,2);
+                if ~isempty(idx_peaks)
+                    avg_x{1,cols} = nanmean([avg_x{1,cols}, x{rows, cols}(idx_peaks,:)],2);
+                    avg_w1{1,cols} = nanmean([avg_w1{1,cols}, peak{rows, cols}(idx_peaks,1)],2);
+                    avg_w2{1,cols} = nanmean([avg_w2{1,cols}, peak{rows, cols}(idx_peaks,2)],2);
+                    avg_w3{1,cols} = nanmean([avg_w3{1,cols}, peak{rows, cols}(idx_peaks,3)],2);
+                    avg_w4{1,cols} = nanmean([avg_w4{1,cols}, peak{rows, cols}(idx_peaks,4)],2);
+                    avg_w5{1,cols} = nanmean([avg_w5{1,cols}, peak{rows, cols}(idx_peaks,5)],2);
+                    w1and5 = peak{rows, cols}(idx_peaks,1)./peak{rows, cols}(idx_peaks,5);
+                    avg_w1and5{1,cols} = nanmean([avg_w1and5{1,cols}, w1and5],2);
+                    all_w1{rows,cols} = peak{rows,cols}(idx_peaks,1);
+                    all_w2{rows,cols} = peak{rows,cols}(idx_peaks,2);
+                    all_w3{rows,cols} = peak{rows,cols}(idx_peaks,3);
+                    all_w4{rows,cols} = peak{rows,cols}(idx_peaks,4);
+                    all_w5{rows,cols} = peak{rows,cols}(idx_peaks,5);
+                    all_w1and5{rows,cols} = w1and5;
+                    w1_std{1,cols} = nanstd(cell2mat(all_w1(:,cols)'),0,2);
+                    w2_std{1,cols} = nanstd(cell2mat(all_w2(:,cols)'),0,2);
+                    w3_std{1,cols} = nanstd(cell2mat(all_w3(:,cols)'),0,2);
+                    w4_std{1,cols} = nanstd(cell2mat(all_w4(:,cols)'),0,2);
+                    w5_std{1,cols} = nanstd(cell2mat(all_w5(:,cols)'),0,2);
+                    w1and5_std{1,cols} = nanstd(cell2mat(all_w1and5(:,cols)'),0,2);
+                end
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average

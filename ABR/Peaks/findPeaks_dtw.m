@@ -1,7 +1,8 @@
 function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
 tolerance = 5;
-num_waves = 3;
+num_waves = 5;
 num_peaks = num_waves*2;
+waves_legend = ["I","II","III","IV","V"];
 snap_to_localminmax = 1;    % apply time constraint to select peaks/throughs chronologically (t1 < t2) and amplitude constraint to differntiate peaks/throughs
 y_units = 'Amplitude (\muV)';
 x_units = 'Time (ms)';
@@ -16,7 +17,9 @@ if ~isempty(template) && all(~isnan(template))
         warp_ind_temp = find(xi==latencies_template(i,3));
         warp_ind(i) = round(mean(warp_ind_temp));
     end
-    sig_inds = yi(warp_ind);
+    sig_inds = nan(1,length(latencies_template));
+    idx_sig_inds = ~isnan(warp_ind);
+    sig_inds(idx_sig_inds) = yi(warp_ind(idx_sig_inds));
 
     if snap_to_localminmax
         signal = signal(:); % force column
@@ -60,9 +63,12 @@ if ~isempty(template) && all(~isnan(template))
             last_assigned = sig_inds(j);
         end
     end
-
-    peaks = signal(sig_inds)*10^2;
-    latencies = t_signal(sig_inds)*10^3;
+    peaks = nan(length(idx_sig_inds),1);
+    latencies = nan(length(idx_sig_inds),1);
+    peaks_temp = signal(sig_inds(idx_sig_inds))*10^2;
+    latencies_temp= t_signal(sig_inds(idx_sig_inds))*10^3;
+    peaks(idx_sig_inds) = peaks_temp;
+    latencies(idx_sig_inds) = latencies_temp;
 
     % Plotting
     figure(counter);
@@ -70,15 +76,20 @@ if ~isempty(template) && all(~isnan(template))
     subplot(length(Conds2Run),length(levels),subplot_idx);
     time_plot = t_signal*10^3;
     wform_plot = 10^2*signal;
-    peaks_plot = 10^2*signal(sig_inds);
+    peaks_plot = 10^2*signal(sig_inds(idx_sig_inds));
     template_plot = 10^2*template;
     template_peaks = 10^2*latencies_template(:,2);
+    full_peaks_plot = nan(size(template_peaks));
+    full_peaks_plot(idx_sig_inds) = peaks_plot;
     hold on
-    waves_legend = ["I","III","V"];
     for k = 1:num_waves % number of waves I-V
         idx = (2*k-1):(2*k);  % indices for pairs: peak + trough
-        plot(time_plot(latencies_template(idx,3)),template_peaks(idx), shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
-        plot(time_plot(frame_sig(sig_inds(idx))),peaks_plot(idx), shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5, 'DisplayName', sprintf('Wave %s', waves_legend(k))); % ABR
+        if ~any(isnan(latencies_template(idx,3)))
+            plot(time_plot(latencies_template(idx,3)),template_peaks(idx), shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
+        end
+        if ~any(isnan(sig_inds(idx))) && ~any(isnan(full_peaks_plot(idx)))
+            plot(time_plot(frame_sig(sig_inds(idx))),full_peaks_plot(idx), shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5, 'DisplayName', sprintf('Wave %s', waves_legend(k))); % ABR
+        end
     end
     plot(time_plot(frame_sig),template_plot,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
     plot(time_plot,wform_plot,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off');
