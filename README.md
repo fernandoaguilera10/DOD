@@ -5,9 +5,9 @@ Contributors: Michael Heinz, Hari Bharadwaj, Andrew Sivaprakasam, Sam Hauser, Af
 Version: 22 August 2025
 
 1. Auditory brainstem response (ABR) analysis for artifact removal, automated threshold estimation, and manual peak/trough picking.
-2. Envelope frequency response (EFR) analysis for RAM stimuli
+2. Envelope frequency response (EFR) analysis for RAM and dAM stimuli
 3. Otoacoustic emission analysis for swept distortion product (DP), swept stimulus frequency (SF), and transient evoked (TE) based on forward pressure level (FPL) calibration
-4. Wideband middle ear muscle reflex (WBMEMR) analysis for absorbed power change
+4. Wideband middle ear muscle reflex (WBMEMR) analysis for absorbed power change and threshold
 5. Continuous noise aircraft carrier noise generation (Komrower et al., 2019)
 
 
@@ -17,6 +17,7 @@ Lyles-Porter Hall, Room 3064 (Purdue University)
 715 Clinic Dr, West Lafayette, IN, 47906
 Website: https://engineering.purdue.edu/HeinzLab
 GitHub: https://github.com/HeinzLabPurdue
+
 
 
 
