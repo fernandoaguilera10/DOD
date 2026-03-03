@@ -24,7 +24,7 @@ if strcmp(EXPname,'OAE')
 elseif strcmp(EXPname,'ABR')
     datapath_searchfile = '*ABR*.mat';
     %abr_freq = [0 0.5 1 2 4 8]*10^3;
-    abr_freq = [0 4]*10^3;
+    abr_freq = [0]*10^3;
     abr_levels = [80 70 60 50 40];
     switch EXPname2
         case 'Thresholds'

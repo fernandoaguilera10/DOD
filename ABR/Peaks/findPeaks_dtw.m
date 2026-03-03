@@ -1,8 +1,9 @@
 function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
+global vertical_spacing
 tolerance = 5;
 num_waves = 5;
 num_peaks = num_waves*2;
-waves_legend = ["I","II","III","IV","V"];
+waves_legend = ["I","II","III-IV","V","V"];
 snap_to_localminmax = 1;    % apply time constraint to select peaks/throughs chronologically (t1 < t2) and amplitude constraint to differntiate peaks/throughs
 y_units = 'Amplitude (\muV)';
 x_units = 'Time (ms)';
@@ -71,9 +72,6 @@ if ~isempty(template) && all(~isnan(template))
     latencies(idx_sig_inds) = latencies_temp;
 
     % Plotting
-    figure(counter);
-    subplot_idx = (CondIND-1)*length(levels) + level_counter;
-    subplot(length(Conds2Run),length(levels),subplot_idx);
     time_plot = t_signal*10^3;
     wform_plot = 10^2*signal;
     peaks_plot = 10^2*signal(sig_inds(idx_sig_inds));
@@ -81,46 +79,61 @@ if ~isempty(template) && all(~isnan(template))
     template_peaks = 10^2*latencies_template(:,2);
     full_peaks_plot = nan(size(template_peaks));
     full_peaks_plot(idx_sig_inds) = peaks_plot;
+    subplot_idx = (CondIND-1)*length(levels) + level_counter;
+    figure(counter);
+    if level_counter == 1
+        vertical_spacing = 1.2*range(wform_plot);
+    end
+    offset = -(level_counter - 1) * vertical_spacing;
     hold on
     for k = 1:num_waves % number of waves I-V
         idx = (2*k-1):(2*k);  % indices for pairs: peak + trough
+        if level_counter == 1
+            show_in_legend = 'on';
+        else
+            show_in_legend = 'off';
+        end
         if ~any(isnan(latencies_template(idx,3)))
-            plot(time_plot(latencies_template(idx,3)),template_peaks(idx), shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
+            %plot(time_plot(latencies_template(idx,3)),template_peaks(idx)+offset, shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
         end
         if ~any(isnan(sig_inds(idx))) && ~any(isnan(full_peaks_plot(idx)))
-            plot(time_plot(frame_sig(sig_inds(idx))),full_peaks_plot(idx), shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5, 'DisplayName', sprintf('Wave %s', waves_legend(k))); % ABR
+            plot(time_plot(frame_sig(sig_inds(idx))),full_peaks_plot(idx)+offset, shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility', show_in_legend); % ABR
         end
+        legend_string{k} = sprintf('Wave %s', waves_legend(k));
     end
-    plot(time_plot(frame_sig),template_plot,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
-    plot(time_plot,wform_plot,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off');
-    set(gca,'FontSize',25); xlim([0,20]); grid on;
+    %plot(time_plot(frame_sig),template_plot+offset,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
+    plot(time_plot,wform_plot+offset,'LineWidth',3,'Color', [colors(CondIND,:),0.50],'HandleVisibility','off');
+    bar_height = 1; % Set this to a standard amplitude for your experiment
+    scale_x = 1;   % Position
+    if level_counter == 1
+        text(scale_x - 0.5, offset + 1.2*bar_height, sprintf('%g \\muV', bar_height), ...
+            'Rotation', 0, 'HorizontalAlignment', 'center', 'FontSize', 12, 'FontWeight', 'bold');
+    end
+    plot([scale_x, scale_x], [offset, offset + bar_height], 'k', 'LineWidth', 2.5, 'HandleVisibility', 'off');
+    text(-0.05*max(time_plot),offset, sprintf('%d dB', levels(level_counter)), 'FontSize', 18, 'HorizontalAlignment', 'left','FontWeight','bold');
 else
     peaks = nan(1,num_peaks);
     latencies = nan(1,num_peaks);
     plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
 end
-set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.05, 0.95, 0.95]);
-ylim(ylim_ind);
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.25, 0.5, 0.65]);
+ticks = 0:1:round(max(t_signal*10^3), -1);
+xticks(ticks);
+labels = string(ticks);         % Convert all numbers to strings
+labels(mod(ticks, 2) ~= 0) = ""; % Replace odd numbers with an empty string
+xticklabels(labels);
+set(gca,'YColor','none');
+ylim(vertical_spacing*[-1*length(levels),1.2]);
 hold off
-if CondIND == 1
-    title_str = sprintf('%s | %s dB SPL | %s ',freq_str,num2str(levels(level_counter)),cell2mat(subject));
-    title(title_str,'FontSize', 16,'FontWeight','bold');
-    set(gca,'FontSize',25);
-end
-if subplot_idx == 1
-    legend({},'Location','northeast','Orientation','vertical')
-    legend box off;
-    set(gca,'FontSize',25);
-end
-if CondIND == length(Conds2Run)
-    xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
-end
+title_str = sprintf('%s | %s ',cell2mat(subject), condition);
+title(title_str,'FontSize', 16,'FontWeight','bold');
+subtitle(sprintf('%s',freq_str));
 if level_counter == 1
-    ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
+    legend(legend_string,'Location','northeast','Orientation','horizontal','FontSize',15)
+    legend box off;
 end
-if CondIND ~= length(Conds2Run)
-    xticklabels([]);
-end
-subtitle(sprintf('%s',condition));
-grid on;
+set(gca,'FontSize',25); grid on;
+xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
+ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
+xlim([0,20])
 end
