@@ -1,8 +1,8 @@
 ROOTdir = '/Volumes/FefeSSD/DOD';
-Chins2Run='Q503';
+Chins2Run='Q494';
 Conds2Run = strcat('pre',filesep,'Baseline');
-template_freq = 8000;  % Hz
-template_level = 80;   % dB SPL
+template_freq = 0;  % Hz
+template_level = 20;   % dB SPL
 %% Analysis
 cwd = pwd;
 datapath = strcat(ROOTdir,filesep,'Data',filesep,Chins2Run,filesep,'ABR',filesep,Conds2Run);
@@ -51,11 +51,11 @@ if exist(datapath,'dir')
                     xlabel('Time (s)');
                     set(gcf, 'Position', get(0, 'Screensize'));
                     hold on;
-                    % Prompt the user to select waves: I, III, and V (6 points)
-                    num_waves = 3;
+                    % Prompt the user to select waves: I, II, III-IV, and V (8 points)
+                    num_waves = 4;
                     num_peaks = num_waves*2;
                     points = zeros(num_peaks, 3);
-                    point_names = {'P1', 'N1', 'P3', 'N3', 'P5', 'N5'};
+                    point_names = {'P1', 'N1', 'P2', 'N2', 'P3', 'N3', 'P5', 'N5'};
                     for i = 1:num_peaks
                         title(['ABR Template | ',freq_str,' | ',mat2str(template_level),' dB SPL'])
                         subtitle(['Choose ', point_names{i}]);
@@ -77,7 +77,6 @@ if exist(datapath,'dir')
                         outpath = strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR',filesep,'Peaks',filesep,'templates');
                         cd(outpath);
                         save(template_name, 'points','t','abr','point_names');
-                        close figure 1;
                         return;
                     else
                         clf;

@@ -45,13 +45,6 @@ for z = 1:length(freq)
 end
 fprintf('\n\nTemplate Availability\n\n');
 fprintf('%-10s', 'dB SPL');
-% for z = 1:length(idx_template)
-%     if freq(z) == 0
-%         fprintf('%-10s', 'Click');
-%     else
-%         fprintf('%-10s', mat2str(freq(z)));
-%     end
-% end
 fprintf('\n');
 for i = 1:size(levels,2)
     fprintf('%-10s', mat2str(levels(i)));
@@ -75,9 +68,9 @@ for z = 1:length(freq)
             % Load template file
             cd(TEMPLATEdir);
             % if no other templates available, use template at highest level
-            if ~isnan(idx_template(1,z))
+            if ~isnan(idx_template(1,z)) && idx_template(1,z) ~= 1
                 template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(1)));
-            else
+            elseif  ~isnan(idx_template(1,z)) && idx_template(1,z) == 1
                 template_filename = sprintf('template_%s_%sdBSPL.mat',freq_str,mat2str(levels(j)));
             end
             load(template_filename)
@@ -175,12 +168,12 @@ for z = 1:length(freq)
             abrs.waveforms_time = [];
             abrs.levels = levels';
         end
-    end
     %% Export
     cd(outpath);
-    filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str]);
+    filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str,'_',mat2str(levels(j)),'dBSPL']);
     print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
     save(filename,'abrs')
     cd(cwd)
+    end
 end
 end
