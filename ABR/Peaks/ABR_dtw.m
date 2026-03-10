@@ -168,12 +168,12 @@ for z = 1:length(freq)
             abrs.waveforms_time = [];
             abrs.levels = levels';
         end
+    end
     %% Export
     cd(outpath);
-    filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str,'_',mat2str(levels(j)),'dBSPL']);
+    filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str]);
     print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
     save(filename,'abrs')
     cd(cwd)
-    end
 end
 end
