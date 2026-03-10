@@ -2,7 +2,7 @@ ROOTdir = '/Volumes/FefeSSD/DOD';
 Chins2Run='Q494';
 Conds2Run = strcat('pre',filesep,'Baseline');
 template_freq = 0;  % Hz
-template_level = 20;   % dB SPL
+template_level = 80;   % dB SPL
 %% Analysis
 cwd = pwd;
 datapath = strcat(ROOTdir,filesep,'Data',filesep,Chins2Run,filesep,'ABR',filesep,Conds2Run);
