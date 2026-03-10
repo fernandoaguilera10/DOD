@@ -20,38 +20,58 @@ if ~isempty(template) && all(~isnan(template))
 
     if snap_to_localminmax
         signal = signal(:); % force column
+        t_signal = t_signal(:);
+
+        % Time windows for each latency
+        time_windows = [
+        0.007 0.0085   % Wave I
+        0.0085 0.0095  % N1
+        0.0095 0.0105  % Wave III
+        0.0105 0.0115  % N3
+        0.0110 0.0125  % Wave V
+        0.0125 0.0140  % N5
+        ];
 
         % Find peaks
         [~, pks_locs, ~, peaks_p] = findpeaks(signal);
-        threshold = 0.15;
+        threshold = 0.25; % new treshold
         pks = pks_locs(peaks_p/max(peaks_p) > threshold);
 
         % Find valleys (negative peaks)
         [~, vals_locs, ~, vals_p] = findpeaks(-signal);
         vals = vals_locs(vals_p/max(vals_p) > threshold);
-
+        
+        % for debugging
+        pks_threshold = pks;
+        vals_threshold = vals;
+      
         % Snap each latency to nearest local peak or valley
-        max_snap_dist = 5; % samples
+        % max_snap_dist = 5; % samples - we don't need anymore
         last_assigned = -inf; % keep track of most recent assignment
 
         for j = 1:length(sig_inds)
+            % time window for this wave
+            t_min = time_windows(j,1);
+            t_max = time_windows(j,2);
             if mod(j,2)==0  % valleys (N)
                 % only consider valleys after the previous peak
                 prev_peak = sig_inds(j-1);
-                candidate_vals = vals(vals > prev_peak & vals > last_assigned);
+                candidate_vals = vals(vals > prev_peak & vals > last_assigned & t_signal(vals) >= t_min & t_signal(vals) <= t_max);
                 if ~isempty(candidate_vals)
-                    [d, ind] = min(abs(sig_inds(j) - candidate_vals));
-                    if d <= max_snap_dist
-                        sig_inds(j) = candidate_vals(ind);
+                    % update
+                    if ~isempty(candidate_vals)
+                    [~, ind] = min(signal(candidate_vals));
+                    sig_inds(j) = candidate_vals(ind);
                     end
                 end
             else  % peaks (P)
                 % only consider peaks after the last assigned latency
-                candidate_pks = pks(pks > last_assigned);
+                candidate_pks = pks(pks > last_assigned & t_signal(pks) >= t_min & t_signal(pks) <= t_max);
                 if ~isempty(candidate_pks)
-                    [d, ind] = min(abs(sig_inds(j) - candidate_pks));
-                    if d <= max_snap_dist
-                        sig_inds(j) = candidate_pks(ind);
+                    % update
+                    if ~isempty(candidate_pks)
+                    [~, ind] = max(signal(candidate_pks));
+                    sig_inds(j) = candidate_pks(ind);
                     end
                 end
             end
@@ -61,10 +81,38 @@ if ~isempty(template) && all(~isnan(template))
         end
     end
 
+
     peaks = signal(sig_inds)*10^2;
     latencies = t_signal(sig_inds)*10^3;
 
+    %-----------------------Debug Plot-------------------------------
+    figure;
+    plot(t_signal*10^3, signal*10^2,'k','LineWidth',2);
+    hold on; grid on;
+    
+    % threshold peaks
+    plot(t_signal(pks_threshold)*10^3, signal(pks_threshold)*10^2,...
+        'ro','MarkerFaceColor','r','DisplayName','Threshold peaks');
+    
+    % final selected peaks after constraint
+    plot(t_signal(sig_inds)*10^3, signal(sig_inds)*10^2,...
+        'gs','MarkerFaceColor','g','MarkerSize',8,...
+        'DisplayName','Final selected peaks');
+    
+    % show time windows
+    for j = 1:size(time_windows,1)
+        xline(time_windows(j,1)*1000,'--g','HandleVisibility','off');
+        xline(time_windows(j,2)*1000,'--g','HandleVisibility','off');
+    end
+    
+    xlabel('Time (ms)');
+    ylabel('Amplitude (\muV)');
+    xlim([0 20]);
+    title('Debug: Threshold vs Final Peaks');
+    legend show;
+    
     % Plotting
+
     figure(counter);
     subplot_idx = (CondIND-1)*length(levels) + level_counter;
     subplot(length(Conds2Run),length(levels),subplot_idx);

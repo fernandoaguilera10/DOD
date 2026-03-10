@@ -1,0 +1,136 @@
+function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
+tolerance = 5;
+num_waves = 3;
+num_peaks = num_waves*2;
+snap_to_localminmax = 1;    % apply time constraint to select peaks/throughs chronologically (t1 < t2) and amplitude constraint to differntiate peaks/throughs
+y_units = 'Amplitude (\muV)';
+x_units = 'Time (ms)';
+frame_sig = 1:length(signal);
+if ~isempty(template) && all(~isnan(template))
+    norm_factor_signal = max(signal)-min(signal);
+    norm_factor_template = max(template)-min(template);
+    signal_norm = diff(signal/norm_factor_signal);  % derivative of normalized signal
+    template_norm = diff(template/norm_factor_template);    % derivative of normalized template
+    [~, xi, yi] = dtw(template_norm,signal_norm,tolerance);
+    for i = 1:size(latencies_template,1)
+        warp_ind_temp = find(xi==latencies_template(i,3));
+        warp_ind(i) = round(mean(warp_ind_temp));
+    end
+    sig_inds = yi(warp_ind);
+
+    if snap_to_localminmax
+        signal = signal(:); % force column
+        t_signal = t_signal(:);
+
+        % Time windows for each latency
+        time_windows = [ ...
+            0.007 0.008;   % P1: 7–8 ms
+            0.008 0.009;   % N1 example
+            0.009 0.011;   % P3 example
+            0.011 0.013;   % N3 example
+            0.013 0.015;   % P5 example
+            0.015 0.017];  % N5 example
+
+        % Find peaks
+        [~, pks_locs, ~, peaks_p] = findpeaks(signal);
+        threshold = 0.15;
+        pks = pks_locs(peaks_p/max(peaks_p) > threshold);
+
+        [~, pks_locs, ~, peaks_p] = findpeaks(signal);
+        threshold = 0.15;
+        pks = pks_locs(peaks_p/max(peaks_p) > threshold);
+
+        [~, vals_locs, ~, vals_p] = findpeaks(-signal);
+        vals = vals_locs(vals_p/max(vals_p) > threshold);
+
+        % Find valleys (negative peaks)
+        [~, vals_locs, ~, vals_p] = findpeaks(-signal);
+        vals = vals_locs(vals_p/max(vals_p) > threshold);
+
+        % Snap each latency to nearest local peak or valley
+        max_snap_dist = 5; % samples
+        last_assigned = -inf; % keep track of most recent assignment
+
+        for j = 1:length(sig_inds)
+            % time window for this wave
+            t_min = time_windows(j,1);
+            t_max = time_windows(j,2);
+            if mod(j,2)==0  % valleys (N)
+                % only consider valleys after the previous peak
+                prev_peak = sig_inds(j-1);
+                candidate_vals = vals(vals > prev_peak & vals > last_assigned & t_signal(vals) >= t_min & t_signal(vals) <= t_max);
+                if ~isempty(candidate_vals)
+                    [d, ind] = min(abs(sig_inds(j) - candidate_vals));
+                    if d <= max_snap_dist
+                        sig_inds(j) = candidate_vals(ind);
+                    end
+                end
+            else  % peaks (P)
+                % only consider peaks after the last assigned latency
+                candidate_pks = pks(pks > last_assigned & t_signal(pks) >= t_min & t_signal(pks) <= t_max);
+                if ~isempty(candidate_pks)
+                    [d, ind] = min(abs(sig_inds(j) - candidate_pks));
+                    if d <= max_snap_dist
+                        sig_inds(j) = candidate_pks(ind);
+                    end
+                end
+            end
+
+            % update last assigned latency
+            last_assigned = sig_inds(j);
+        end
+    end
+
+
+    peaks = signal(sig_inds)*10^2;
+    latencies = t_signal(sig_inds)*10^3;
+
+    % Plotting
+    figure(counter);
+    subplot_idx = (CondIND-1)*length(levels) + level_counter;
+    subplot(length(Conds2Run),length(levels),subplot_idx);
+    time_plot = t_signal*10^3;
+    wform_plot = 10^2*signal;
+    peaks_plot = 10^2*signal(sig_inds);
+    template_plot = 10^2*template;
+    template_peaks = 10^2*latencies_template(:,2);
+    hold on
+    waves_legend = ["I","III","V"];
+    for k = 1:num_waves % number of waves I-V
+        idx = (2*k-1):(2*k);  % indices for pairs: peak + trough
+        plot(time_plot(latencies_template(idx,3)),template_peaks(idx), shapes(k),'Color', [0.60,0.60,0.60],'MarkerFaceColor', [0.60,0.60,0.60],'MarkerSize', 12,'LineWidth', 1.5,'HandleVisibility','off'); % template
+        plot(time_plot(frame_sig(sig_inds(idx))),peaks_plot(idx), shapes(k),'Color', colors(k+4,:),'MarkerFaceColor', colors(k+4,:),'MarkerSize', 12,'LineWidth', 1.5, 'DisplayName', sprintf('Wave %s', waves_legend(k))); % ABR
+    end
+    plot(time_plot(frame_sig),template_plot,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
+    plot(time_plot,wform_plot,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off');
+    set(gca,'FontSize',25); xlim([0,20]); grid on;
+else
+    peaks = nan(1,num_peaks);
+    latencies = nan(1,num_peaks);
+    plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
+end
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.05, 0.95, 0.95]);
+ylim(ylim_ind);
+hold off
+if CondIND == 1
+    title_str = sprintf('%s | %s dB SPL | %s ',freq_str,num2str(levels(level_counter)),cell2mat(subject));
+    title(title_str,'FontSize', 16,'FontWeight','bold');
+    set(gca,'FontSize',25);
+end
+if subplot_idx == 1
+    legend({},'Location','northeast','Orientation','vertical')
+    legend box off;
+    set(gca,'FontSize',25);
+end
+if CondIND == length(Conds2Run)
+    xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
+end
+if level_counter == 1
+    ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
+end
+if CondIND ~= length(Conds2Run)
+    xticklabels([]);
+end
+subtitle(sprintf('%s',condition));
+grid on;
+end
