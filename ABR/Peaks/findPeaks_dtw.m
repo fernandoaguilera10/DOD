@@ -136,10 +136,12 @@ if ~isempty(template) && all(~isnan(template))
                 title(sprintf('%s @ %d dB SPL - Manual Edit Mode',freq_str,levels(level_counter)));
                 set(gca,'FontSize',12);
                 legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                 drawnow;
 
                 % Ask user to click a point or finish
                 uiwait(msgbox({'Left-click peak to edit. Right-click or press Enter to skip.'}, 'Select to Edit','modal'));
+                figure(999);
                 [x_old, ~, button] = ginput(1);
                 if isempty(button) || button==3
                     break; % finish editing
@@ -174,9 +176,11 @@ if ~isempty(template) && all(~isnan(template))
                 end
                 title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                 legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                 % Now allow user to pick a new point: loop until they accept or cancel
                 editing_slot_done = false;
                 while ~editing_slot_done
+                    figure(999);
                     [x_new, ~, btn2] = ginput(1);
                     if isempty(btn2) || btn2==3
                         % cancel this edit, revert highlight and exit inner loop
@@ -219,6 +223,7 @@ if ~isempty(template) && all(~isnan(template))
                     title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                     drawnow;
                     legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                    set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                     % Ask user to accept or redo
                     choice = questdlg('Accept this selection for the chosen slot?', 'Confirm Selection', 'Accept','Redo','Cancel','Accept');
                     switch choice
@@ -239,13 +244,14 @@ if ~isempty(template) && all(~isnan(template))
                             title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                             drawnow;
                             legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                            set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                             sig_inds_constrained = sig_inds_manual;
                         case 'Redo'
                             % revert to old and continue editing (or keep old until user picks new)
                             sig_inds_manual(sel_idx_in_sig_inds) = old_idx;
                             % re-highlight original
                             if isvalid(hsel), delete(hsel); end
-                            hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',12, 'LineWidth',2, 'MarkerFaceColor','y');
+                            hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
                             drawnow;
                             % continue loop to pick another point
                         case 'Cancel'
@@ -323,12 +329,12 @@ if ~isempty(template) && all(~isnan(template))
         latencies = nan(1,num_peaks);
         plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
     end
-    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.25, 0.5, 0.65]);
+    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.025, 0.25, 0.5, 0.65]);
     ticks = 0:1:round(max(t_signal*10^3), -1);
     xticks(ticks);
     labels = string(ticks);         % Convert all numbers to strings
     labels(mod(ticks, 2) ~= 0) = ""; % Replace odd numbers with an empty string
-    xticklabels(labels);
+    xticklabels(labels); xtickangle(0);
     set(gca,'YColor','none');
     ylim(vertical_spacing*[-1*length(levels),1.2]);
     hold off

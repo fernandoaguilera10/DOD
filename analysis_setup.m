@@ -11,7 +11,7 @@ else
 end
 %% Subjects and Conditions
 plot_relative_flag = 0;     % Relative to Baseline:  Yes = 1   or  No = 0
-reanalyze = 0;              % 1 = redo analysis      0 = skip analysis
+reanalyze = 1;              % 1 = redo analysis      0 = skip analysis
 chinroster_filename = 'DOD_ChinRoster.xlsx';    % saved under OUTdir (i.e. Analysis)
 chinroster_sheet = 'BLAST';   % 'NOISE' or 'BLAST'
 
