@@ -1,14 +1,14 @@
 # DOD
-Data analysis for ABR, EFR, OAE, and MEMR (MATLAB, R2022b) for data analysis of DOD project
+Data analysis for ABR, EFR, OAE, and MEMR (MATLAB, R2025b)
 Author: Fernando Aguilera de Alba (https://github.com/fernandoaguilera10)
-Contributors: Michael Heinz, Hari Bharadwaj, Andrew Sivaprakasam, Sam Hauser, Afagh Farhadi
-Version: 22 August 2025
+Contributors: Michael Heinz, Hari Bharadwaj, Andrew Sivaprakasam, Sam Hauser, Afagh Farhadi, Ipek Yuzcelik
+Version: 16 March 2026
 
-1. Auditory brainstem response (ABR) analysis for artifact removal, automated threshold estimation, and manual peak/trough picking.
-2. Envelope frequency response (EFR) analysis for RAM and dAM stimuli
-3. Otoacoustic emission analysis for swept distortion product (DP), swept stimulus frequency (SF), and transient evoked (TE) based on forward pressure level (FPL) calibration
-4. Wideband middle ear muscle reflex (WBMEMR) analysis for power growth and threshold
-5. Continuous noise aircraft carrier noise generation (Komrower et al., 2019)
+1. Auditory brainstem response (ABR): automated threshold estimation and automated peak/trough picking with manual overwrite
+2. Envelope frequency response (EFR): phase locking value (PLV) for RAM stimulus and signal-to-noise ratio (SNR) for dAM stimulus
+3. Otoacoustic emissions (OAEs): swept distortion product (DP), swept stimulus frequency (SF), and transient evoked (TE) based on forward pressure level (FPL) calibration
+4. Wideband middle ear muscle reflex (WBMEMR): growth function and threshold
+5. Aircraft carrier noise generation (Komrower et al., 2019)
 
 
 
