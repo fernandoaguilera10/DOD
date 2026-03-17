@@ -132,6 +132,7 @@ if ~isempty(template) && all(~isnan(template))
                 ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
                 xlim([0,20]); grid on;
                 legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                 drawnow;
 
                 % Ask user to click a point or finish
@@ -183,6 +184,7 @@ if ~isempty(template) && all(~isnan(template))
                 end
                 title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                 legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                 % Now allow user to pick a new point: loop until they accept or cancel
                 editing_slot_done = false;
                 while ~editing_slot_done
@@ -229,6 +231,7 @@ if ~isempty(template) && all(~isnan(template))
                     title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                     drawnow;
                     legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                    set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                     % Ask user to accept or redo
                     choice = questdlg('Accept this selection for the chosen slot?', 'Confirm Selection', 'Accept','Redo','Cancel','Accept');
                     switch choice
@@ -249,6 +252,7 @@ if ~isempty(template) && all(~isnan(template))
                             title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                             drawnow;
                             legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
+                            set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                             sig_inds_constrained = sig_inds_manual;
                         case 'Redo'
                             % revert to old and continue editing (or keep old until user picks new)
