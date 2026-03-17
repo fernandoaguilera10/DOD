@@ -34,7 +34,6 @@ if ~isempty(template) && all(~isnan(template))
         [~, pks_locs, ~, peaks_p] = findpeaks(signal_col);
         threshold = 0.15;
         pks = pks_locs(peaks_p/max(peaks_p) > threshold);
-
         [~, vals_locs, ~, vals_p] = findpeaks(-signal_col);
         vals = vals_locs(vals_p/max(vals_p) > threshold);
 
@@ -54,7 +53,6 @@ if ~isempty(template) && all(~isnan(template))
         last_peak_amp = inf;
         sig_inds_raw = sig_inds;
         sig_inds_constrained = sig_inds;
-
         for j = 1:length(sig_inds_constrained)
             wave_num = ceil(j/2);
             win_min = idx_windows(wave_num, 1);
@@ -82,12 +80,10 @@ if ~isempty(template) && all(~isnan(template))
 
             else  % Peaks (Odd indices)
                 candidate_pks = pks(pks > last_assigned & pks >= win_min & pks <= win_max);
-
                 if ~isempty(candidate_pks) && ~isnan(sig_inds_constrained(j))
                     % Priority 1: highest amplitude within snap radius of DTW index
                     near_mask = abs(candidate_pks - sig_inds_constrained(j)) <= max_snap_dist;
                     near_candidates = candidate_pks(near_mask);
-
                     if ~isempty(near_candidates)
                         % Pick highest amplitude peak among nearby candidates
                         [~, ind] = max(signal_col(near_candidates));
@@ -106,42 +102,54 @@ if ~isempty(template) && all(~isnan(template))
             end
         end
         
-
         % Prepare manual editing variables and plotting flags
         sig_inds_manual = sig_inds_constrained; % initialize manual copy
         plot_constrained = true; % assume plotting enabled for manual edit UI
         if plot_constrained
             done_editing = false;
-            fprintf('Interactive edit: left-click to select a peak/trough to edit. Right-click or Enter to finish.\n');
             % Precompute indices displayed (idx_sig_inds expected to exist in context)
             if ~exist('idx_sig_inds','var') || isempty(idx_sig_inds)
                 % fallback: display all indices
                 idx_sig_inds = 1:length(sig_inds_constrained);
             end
-
             while ~done_editing
                 figure(999); clf;
-                plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.55, 0.03, 0.4, 0.9]);
+                plot(10^3*t_signal,10^2*signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
                 % DTW raw: open marker (use sig_inds_raw)
-                plot(t_signal(sig_inds_raw(idx_sig_inds)), signal(sig_inds_raw(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1,'HandleVisibility','off');
+                plot(10^3*t_signal(sig_inds_raw(idx_sig_inds)), 10^2*signal(sig_inds_raw(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1,'HandleVisibility','off');
                 % DTW constrained: filled green markers
-                plot(t_signal(sig_inds_constrained(idx_sig_inds)), signal(sig_inds_constrained(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
+                plot(10^3*t_signal(sig_inds_constrained(idx_sig_inds)), 10^2*signal(sig_inds_constrained(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
                 % Manual edits: red filled squares for entries that differ from constrained
                 manual_changed = sig_inds_manual ~= sig_inds_constrained;
                 if any(manual_changed(idx_sig_inds))
                     changed_idx = idx_sig_inds(manual_changed(idx_sig_inds));
-                    plot(t_signal(sig_inds_manual(changed_idx)), signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
+                    plot(10^3*t_signal(sig_inds_manual(changed_idx)), 10^2*signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
                 end
-                xlim([0,0.02]);
                 title(sprintf('%s @ %d dB SPL - Manual Edit Mode',freq_str,levels(level_counter)));
                 set(gca,'FontSize',12);
+                xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
+                ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
+                xlim([0,20]); grid on;
                 legend({'DTW Peak','Manual Peak'}, 'Location','northeast'); legend box off;
                 set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.25, 0.4, 0.65]);
                 drawnow;
 
                 % Ask user to click a point or finish
-                uiwait(msgbox({'Left-click peak to edit. Right-click or press Enter to skip.'}, 'Select to Edit','modal'));
-                figure(999);
+                % Prompt the user once at the beginning of the interactive loop
+                if  level_counter == 1 && CondIND == 1
+                    uiwait(msgbox({...
+                        'For each level, use the window on the RIGHT to manually overwrite automatically selected peaks and troughs for waves I, II, III–IV, and V.'; ...
+                        ''; ...
+                        'Instructions:'; ...
+                        '1. Left-click a peak/trough to edit its position (RED)'; ...
+                        '2. Left-click a NEW peak/trough to change its position (GREEN)'; ...
+                        '3. Right-click or press Enter to finish editing'; ...
+                        ''; ...
+                        'Note: A window on the LEFT will show ABR waveforms and peaks/throughs across all levels.'}, ...
+                        'Manual Edit: Select Peaks/Troughs', 'modal'));
+                end
+                figure(999); 
                 [x_old, ~, button] = ginput(1);
                 if isempty(button) || button==3
                     break; % finish editing
@@ -166,7 +174,7 @@ if ~isempty(template) && all(~isnan(template))
 
                 % Highlight selected slot
                 figure(999);
-                hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5,'MarkerFaceColor','r');
+                hsel = plot(10^3*t_signal(sig_inds_manual(sel_idx_in_sig_inds)), 10^2*signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5,'MarkerFaceColor','r');
                 drawnow;
                 if mod(sel_idx_in_sig_inds,2)==1
                     pt_type = 'Peak';
@@ -205,15 +213,15 @@ if ~isempty(template) && all(~isnan(template))
                     figure(999);
                     % refresh plots
                     clf;
-                    plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
+                    plot(10^3*t_signal,10^2*signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
                     manual_changed = sig_inds_manual ~= sig_inds_constrained & ~isnan(sig_inds_manual);
                     if any(manual_changed(idx_sig_inds))
                         changed_idx = find(manual_changed == 1);
-                        plot(t_signal(sig_inds_manual(changed_idx)), signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
+                        plot(10^3*t_signal(sig_inds_manual(changed_idx)), 10^2*signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
                     end
                     % Highlight current edited point
-                    plot(t_signal(sig_inds_constrained(sel_idx_in_sig_inds)), signal(sig_inds_constrained(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
-                    xlim([0,0.02]);
+                    plot(10^3*t_signal(sig_inds_constrained(sel_idx_in_sig_inds)), 10^2*signal(sig_inds_constrained(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
+                    xlim([0,20]);
                     if mod(sel_idx_in_sig_inds,2)==1
                         pt_type = 'Peak';
                     else
@@ -231,10 +239,10 @@ if ~isempty(template) && all(~isnan(template))
                             editing_slot_done = true;
                             if isvalid(hsel), delete(hsel); end
                             clf;
-                            plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
-                            plot(t_signal(sig_inds_raw(idx_sig_inds)), signal(sig_inds_raw(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1,'HandleVisibility','off');
-                            plot(t_signal(sig_inds_manual(idx_sig_inds)), signal(sig_inds_manual(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
-                            xlim([0,0.02]);
+                            plot(10^3*t_signal,10^2*signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
+                            plot(10^3*t_signal(sig_inds_raw(idx_sig_inds)), 10^2*signal(sig_inds_raw(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1,'HandleVisibility','off');
+                            plot(10^3*t_signal(sig_inds_manual(idx_sig_inds)), 10^2*signal(sig_inds_manual(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
+                            xlim([0,20]);
                             if mod(sel_idx_in_sig_inds,2)==1
                                 pt_type = 'Peak';
                             else
@@ -251,7 +259,7 @@ if ~isempty(template) && all(~isnan(template))
                             sig_inds_manual(sel_idx_in_sig_inds) = old_idx;
                             % re-highlight original
                             if isvalid(hsel), delete(hsel); end
-                            hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
+                            hsel = plot(10^3*t_signal(sig_inds_manual(sel_idx_in_sig_inds)), 10^2*signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',12, 'LineWidth',2, 'MarkerFaceColor','y');
                             drawnow;
                             % continue loop to pick another point
                         case 'Cancel'
@@ -261,12 +269,6 @@ if ~isempty(template) && all(~isnan(template))
                             editing_slot_done = true;
                     end                    
                 end % while ~editing_slot_done
-
-                % After finishing editing one slot, ask whether to continue editing others
-                cont = questdlg('Continue editing other peaks/valleys?', 'Continue?', 'Yes','No','Yes');
-                if strcmp(cont,'No')
-                    done_editing = true;
-                end
             end % while ~done_editing
 
             % After editing, ensure sig_inds_manual maintains monotonic ordering and validity
@@ -314,7 +316,7 @@ if ~isempty(template) && all(~isnan(template))
             end
             legend_string{k} = sprintf('Wave %s', waves_legend(k));
         end
-        plot(time_plot(frame_sig),template_plot+offset,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
+        %plot(time_plot(frame_sig),template_plot+offset,'--','LineWidth',3,'color',[0 0 0 0.25],'HandleVisibility','off');
         plot(time_plot,wform_plot+offset,'LineWidth',3,'Color', [colors(CondIND,:),0.50],'HandleVisibility','off');
         bar_height = 1; % Set this to a standard amplitude for your experiment
         scale_x = 1;   % Position
@@ -329,7 +331,7 @@ if ~isempty(template) && all(~isnan(template))
         latencies = nan(1,num_peaks);
         plot(t_signal*10^3,signal*10^2,'LineWidth',3,'Color', colors(CondIND,:),'HandleVisibility','off')
     end
-    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.025, 0.25, 0.5, 0.65]);
+    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.01, 0.03, 0.5, 0.9]);
     ticks = 0:1:round(max(t_signal*10^3), -1);
     xticks(ticks);
     labels = string(ticks);         % Convert all numbers to strings
@@ -345,7 +347,7 @@ if ~isempty(template) && all(~isnan(template))
         legend(legend_string,'Location','northeast','Orientation','horizontal','FontSize',15)
         legend box off;
     end
-    set(gca,'FontSize',25); grid on;
+    set(gca,'FontSize',15); grid on;
     xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
     ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
     xlim([0,20])
