@@ -45,4 +45,4 @@ bin/
 .vscode/
 .idea/
 .project
-.settings/
+.settings/*.asv

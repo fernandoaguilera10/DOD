@@ -124,8 +124,12 @@ for z = 1:length(freq)
             end
 
             % DTW and plotting
+<<<<<<< HEAD
             %fig_num = (z-1)*length(levels) + j;
             fig_num = (ChinIND-1)*length(freq) + z;
+=======
+            fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
+>>>>>>> d372f747d13519d7cfec4fd31e2a9ef1572b4812
             [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
@@ -150,7 +154,11 @@ for z = 1:length(freq)
             abr_t = (1:length(abr_data))/fs;
             abr_template = nan(size(abr_data));
             abr_points = nan(10,3);
+<<<<<<< HEAD
             fig_num = (z-1)*length(levels) + j;
+=======
+            fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
+>>>>>>> d372f747d13519d7cfec4fd31e2a9ef1572b4812
             [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
@@ -159,7 +167,11 @@ for z = 1:length(freq)
             abrs.waveforms_time = abr_t*10^3;
             abrs.levels = levels';
         elseif isnan(idx_abr(j,z))  % ABR unavailable
+<<<<<<< HEAD
             fig_num = (z-1)*length(levels) + j;
+=======
+            fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
+>>>>>>> d372f747d13519d7cfec4fd31e2a9ef1572b4812
             [peaks,latencies] = findPeaks_dtw([],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
             abrs.freq = [];
             abrs.peak_amplitude(j,:) = peaks;
@@ -175,5 +187,9 @@ for z = 1:length(freq)
     print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
     save(filename,'abrs')
     cd(cwd)
+<<<<<<< HEAD
+=======
+    close figure 999;
+>>>>>>> d372f747d13519d7cfec4fd31e2a9ef1572b4812
 end
 end
