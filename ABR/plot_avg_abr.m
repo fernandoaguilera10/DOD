@@ -123,7 +123,9 @@ if isempty(idx_plot_relative)
             y_units = 'Latency (ms)';
             title_str = sprintf('ABR Absolute Peak Latency (%s)',freq_str);
         end
-        for cols = 1:length(average.w1)
+        valid_cols = cellfun(@(c) ~(isempty(c) || (isnumeric(c) && isequal(size(c),[0 0]))), average.w1);
+        cols_idx = find(any(valid_cols, 1));
+        for cols = cols_idx
             figure(counter); hold on; % wave 1
             w1 = errorbar(round(average.x{1,cols}), average.w1{1,cols},average.w1_std{1,cols},'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             w1_fit = fillmissing(flip(average.w1{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1_fit = flip(w1_fit);

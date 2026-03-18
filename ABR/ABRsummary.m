@@ -67,16 +67,20 @@ if average_flag == 1
             if freq(z) == 0, filename = 'ABR_PeakLatency_Average_dtw_click'; end
             if freq(z) ~= 0, filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
             plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
-            outpath = strcat(OUTdir,filesep,'ABR');
-            cd(outpath)
-            if freq(z) == 0, filename = 'ABR_Waveforms_click'; end
-            if freq(z) ~= 0, filename = ['ABR_Waveforms_',mat2str(freq(z))]; end
+            % Waveforms
             waveforms.x = abr_peaks_waveform_time;
             waveforms.y = abr_peaks_waveform;
             waveforms.freq = abr_peaks_f;
             waveforms.levels = abr_peaks_level;
             waveforms.subjects = Chins2Run;
             waveforms.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+            plot_abr_waveform(waveforms,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,freq(z));
+            
+            outpath = strcat(OUTdir,filesep,'ABR');
+            cd(outpath)
+            if freq(z) == 0, filename = 'ABR_Waveforms_click'; end
+            if freq(z) ~= 0, filename = ['ABR_Waveforms_',mat2str(freq(z))]; end
+
             save(filename,'waveforms');
             cd(cwd);
         end
