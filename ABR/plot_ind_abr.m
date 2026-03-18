@@ -47,7 +47,7 @@ elseif strcmp(plot_type,'Peaks')
     subplot('Position', [0.08,height+0.15, left_width, height]);
     for i=1:2:width(data.peak_amplitude)-1
         % peak-to-peak amplitude
-        plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
+        plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:));
         % absolute amplitude
         %plot(data.levels, data.peak_amplitude(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
         hold on;
@@ -65,7 +65,7 @@ elseif strcmp(plot_type,'Peaks')
     % Latency plots
     subplot('Position', [0.08, 0.12, left_width, height]);
     for i=1:2:width(data.peak_latency)
-        plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
+        plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:))
         hold on;
     end
     if ~isempty(ylimits_lat)
@@ -90,12 +90,12 @@ elseif strcmp(plot_type,'Peaks')
     for i=1:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        %plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:))
     end
     for i=2:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        %plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors(i/2,:),'MarkerFaceColor', colors(i/2,:), 'MarkerEdgeColor', colors(i/2,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors(i/2+4,:),'MarkerFaceColor', colors(i/2+4,:), 'MarkerEdgeColor', colors(i/2+4,:))
     end
     ylabel(x_units, 'FontWeight', 'bold')
     xlabel(y_units_lat, 'FontWeight', 'bold')
@@ -103,9 +103,8 @@ elseif strcmp(plot_type,'Peaks')
     yticks(flip(mean(wform_plot)));
     yticklabels(flip(round(data.levels)));
     ylim([1.05*min(min(wform_plot)),0])
-    %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.25, 0.20, 0.50, 0.50]);
     set(gca,'FontSize',25);
-    set(gcf, 'Units', 'normalized', 'Position', [0.25 0.1 0.5 0.6]);
+    set(gcf, 'Units', 'normalized', 'Position', [0.01 0.1 0.7 0.9]);
 end
 %% Export
 cd(outpath);

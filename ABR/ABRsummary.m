@@ -1,4 +1,4 @@
-function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1, analysis_type2,average_flag,conds_idx,freq,levels)% ABR summary
+function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels)% ABR summary
 global abr_f abr_thresholds abr_peaks_amp abr_peaks_lat abr_peaks_f abr_peaks_label abr_peaks_level abr_peaks_waveform abr_peaks_waveform_time
 cwd = pwd;
 %% INDIVIDUAL PLOTS
@@ -17,25 +17,13 @@ if exist(outpath,"dir")
         plot_ind_abr(abr_out,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_ind_threshold,[],[],[])
     elseif strcmp(analysis_type1,'Peaks')
         for z = 1:length(freq)
-            if strcmp(analysis_type2,'Manual')
-                if freq(z) == 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_manual_click*.mat']); end
-                if freq(z) ~= 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_manual_',mat2str(freq(z)),'*.mat']); end
-                cd(PRIVATEdir)
-                datafile = load_files(outpath,search_file,'data');
-                if ~isempty(datafile)
-                    cd(outpath);
-                    load(datafile);
-                    abrs = abrs.plot;
-                end
-            elseif strcmp(analysis_type2,'DTW')
-                if freq(z) == 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_click*.mat']); end
-                if freq(z) ~= 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',mat2str(freq(z)),'*.mat']); end
-                cd(PRIVATEdir)
-                datafile = load_files(outpath,search_file,'data');
-                if ~isempty(datafile)
-                    cd(outpath);
-                    load(datafile);
-                end
+            if freq(z) == 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_click.mat']); end
+            if freq(z) ~= 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',mat2str(freq(z)),'.mat']); end
+            cd(PRIVATEdir)
+            datafile = load_files(outpath,search_file,'data');
+            if ~isempty(datafile)
+                cd(outpath);
+                load(datafile);
             end
             cd(cwd)
             if ~isempty(datafile)
@@ -65,38 +53,20 @@ if average_flag == 1
         plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative,[])
     elseif strcmp(analysis_type1,'Peaks')
         for z = 1:length(freq)
-            if strcmp(analysis_type2,'Manual')
-                % Peak-to-peak amplitude
-                fig_num_avg = ((ChinIND - 1) * length(Conds2Run) + CondIND)+1;
-                [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
-                outpath = strcat(OUTdir,filesep,'ABR');
-                if freq(z) == 0, filename = 'ABR_PeakAmplitude_Average_manual_click'; end
-                if freq(z) ~= 0, filename = ['ABR_PeakAmplitude_Average_manual_',mat2str(freq(z))]; end
-                cd()
-                plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z))
-                % Peak latency
-                fig_num_avg = ((ChinIND - 1) * length(Conds2Run) + CondIND)+7;
-                [average,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
-                outpath = strcat(OUTdir,filesep,'ABR'); cd(cwd);
-                if freq(z) == 0, filename = 'ABR_PeakLatency_Average_manual_click'; end
-                if freq(z) ~= 0, filename = ['ABR_PeakLatency_Average_manual_',mat2str(freq(z))]; end
-                plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
-            elseif strcmp(analysis_type2,'DTW')
-                % Peak-to-peak amplitude
-                fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +1;
-                [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
-                outpath = strcat(OUTdir,filesep,'ABR');
-                if freq(z) == 0, filename = 'ABR_PeakAmplitude_Average_dtw_click'; end
-                if freq(z) ~= 0, filename = ['ABR_PeakAmplitude_Average_dtw_',mat2str(freq(z))]; end
-                plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z))
-                % Peak latency
-                fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +7;
-                [average,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
-                outpath = strcat(OUTdir,filesep,'ABR'); cd(cwd);
-                if freq(z) == 0, filename = 'ABR_PeakLatency_Average_dtw_click'; end
-                if freq(z) ~= 0, filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
-                plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
-            end
+            % Peak-to-peak amplitude
+            fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +1;
+            [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
+            outpath = strcat(OUTdir,filesep,'ABR');
+            if freq(z) == 0, filename = 'ABR_PeakAmplitude_Average_dtw_click'; end
+            if freq(z) ~= 0, filename = ['ABR_PeakAmplitude_Average_dtw_',mat2str(freq(z))]; end
+            plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z))
+            % Peak latency
+            fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +7;
+            [average,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
+            outpath = strcat(OUTdir,filesep,'ABR'); cd(cwd);
+            if freq(z) == 0, filename = 'ABR_PeakLatency_Average_dtw_click'; end
+            if freq(z) ~= 0, filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
+            plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
             outpath = strcat(OUTdir,filesep,'ABR');
             cd(outpath)
             if freq(z) == 0, filename = 'ABR_Waveforms_click'; end

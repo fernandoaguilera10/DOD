@@ -2,7 +2,8 @@ function file_out = load_files(path,filename,file_type,datafile)
     cwd = pwd;
     if exist(path,'dir')
         cd(path);
-        file_out = dir(fullfile(cd,filename));
+        files_all = dir(fullfile(cd,filename));
+        file_out = files_all(~contains({files_all.name}, '._'));
         if length(file_out) < 1 || isempty(file_out)
             fprintf('No analyzed files for this subject.\n')
             cd(cwd);

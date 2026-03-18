@@ -13,7 +13,7 @@ if ~isempty(plot_relative)
 else
     idx_plot_relative = [];
 end
-[EXPname, EXPname2, EXPname3] = analysis_menu; % select analysis type: ABR, EFR, OAE, MEMR
+[EXPname, EXPname2] = analysis_menu; % select analysis type: ABR, EFR, OAE, MEMR
 limits = plot_limits(EXPname,EXPname2,idx_plot_relative); % define plot limits
 [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2); % define subdirectories based on ROOTdir
 addpath(genpath(CODEdir));
@@ -30,12 +30,7 @@ elseif strcmp(EXPname,'ABR')
         case 'Thresholds'
             filepath_searchfile = ['*',EXPname,'thresholds*.mat'];
         case 'Peaks'
-            switch EXPname3
-                case 'Manual'
-                    filepath_searchfile = ['*',EXPname,'peaks*.mat'];
-                case 'DTW'
-                    filepath_searchfile = ['*',EXPname,'peaks_dtw*.mat'];
-            end
+            filepath_searchfile = ['*',EXPname,'peaks_dtw*.mat'];
     end
 elseif strcmp(EXPname,'EFR')
     efr_level_temp = questdlg('Select EFR level:', ...
@@ -196,12 +191,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Thresholds'
                             abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
                         case 'Peaks'
-                            switch EXPname3
-                                case 'Manual'
-                                    abr_peaks_setup(ROOTdir,CODEdir,datapath,filepath,Chins2Run{ChinIND},condition{2})
-                                case 'DTW'
-                                    ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
-                            end
+                            ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
                     end
                 case 'EFR'
                     switch EXPname2
@@ -246,14 +236,9 @@ for ChinIND=1:length(Chins2Run)
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,EXPname3,flag,conds_idx);
+                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,flag,conds_idx);
                         case 'Peaks'
-                            switch EXPname3
-                                case 'Manual'
-                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx,abr_freq,abr_levels);
-                                case 'DTW'
-                                    ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,EXPname3,flag,conds_idx,abr_freq,abr_levels);
-                            end
+                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,flag,conds_idx,abr_freq,abr_levels);
                     end
                 case 'EFR'
                     switch EXPname2
