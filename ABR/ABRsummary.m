@@ -27,6 +27,12 @@ if exist(outpath,"dir")
             end
             cd(cwd)
             if ~isempty(datafile)
+                if any(mean(abs(abrs.peak_amplitude)) > 10)
+                    abrs.peak_amplitude = abrs.peak_amplitude/10^2; % convert V to microV
+                end
+                if any(mean(abrs.peak_latency) > 1000)
+                    abrs.peak_latency = abrs.peak_latency/10^3; % convert s to ms
+                end
                 abr_peaks_amp{ChinIND,CondIND} = abrs.peak_amplitude;
                 abr_peaks_lat{ChinIND,CondIND} = abrs.peak_latency;
                 abr_peaks_f{ChinIND,CondIND} = abrs.freq;
@@ -46,27 +52,27 @@ if average_flag == 1
     if strcmp(analysis_type1,'Thresholds')
         fig_num_avg = length(Chins2Run)+1;
         % Plot individual lines
-        [average,idx] = avg_abr(abr_f,abr_thresholds,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,[]);
+        [thresholds,idx] = avg_abr(abr_f,abr_thresholds,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,[]);
         % Plot average lines
         outpath = strcat(OUTdir,filesep,'ABR');
         filename = 'ABR_Thresholds_Average_dBSPL';
-        plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative,[])
+        plot_avg_abr(thresholds,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative,[])
     elseif strcmp(analysis_type1,'Peaks')
         for z = 1:length(freq)
             % Peak-to-peak amplitude
             fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +1;
-            [average,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
+            [amplitudes,idx] = avg_abr(abr_peaks_level,abr_peaks_amp,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
             outpath = strcat(OUTdir,filesep,'ABR');
             if freq(z) == 0, filename = 'ABR_PeakAmplitude_Average_dtw_click'; end
             if freq(z) ~= 0, filename = ['ABR_PeakAmplitude_Average_dtw_',mat2str(freq(z))]; end
-            plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z))
+            plot_avg_abr(amplitudes,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z))
             % Peak latency
             fig_num_avg = (ChinIND - 1) * (length(freq) * length(all_Conds2Run)) +  length(all_Conds2Run) + CondIND +7;
-            [average,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
+            [latencies,idx] = avg_abr(abr_peaks_level,abr_peaks_lat,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
             outpath = strcat(OUTdir,filesep,'ABR'); cd(cwd);
             if freq(z) == 0, filename = 'ABR_PeakLatency_Average_dtw_click'; end
             if freq(z) ~= 0, filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
-            plot_avg_abr(average,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
+            plot_avg_abr(latencies,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z))
             % Waveforms
             waveforms.x = abr_peaks_waveform_time;
             waveforms.y = abr_peaks_waveform;
@@ -74,13 +80,11 @@ if average_flag == 1
             waveforms.levels = abr_peaks_level;
             waveforms.subjects = Chins2Run;
             waveforms.conditions = [convertCharsToStrings(all_Conds2Run);idx];
-            plot_abr_waveform(waveforms,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,[],idx_plot_relative,freq(z));
-            
+            plot_abr_waveform(waveforms,amplitudes,latencies,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_peaks,idx_plot_relative,freq(z));
             outpath = strcat(OUTdir,filesep,'ABR');
             cd(outpath)
             if freq(z) == 0, filename = 'ABR_Waveforms_click'; end
             if freq(z) ~= 0, filename = ['ABR_Waveforms_',mat2str(freq(z))]; end
-
             save(filename,'waveforms');
             cd(cwd);
         end

@@ -90,12 +90,12 @@ elseif strcmp(plot_type,'Peaks')
     for i=1:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes((i+1)/2,:),'LineStyle','none', 'MarkerSize', 10, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', 'none', 'MarkerEdgeColor', colors((i+1)/2+4,:),'LineWidth', 2)
     end
     for i=2:2:width(data.peak_latency)
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 15, 'Color', colors(i/2+4,:),'MarkerFaceColor', colors(i/2+4,:), 'MarkerEdgeColor', colors(i/2+4,:))
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(i/2,:),'LineStyle','none', 'MarkerSize', 10, 'Color', colors(i/2+4,:),'MarkerFaceColor', 'none', 'MarkerEdgeColor', colors(i/2+4,:),'LineWidth', 2)
     end
     ylabel(x_units, 'FontWeight', 'bold')
     xlabel(y_units_lat, 'FontWeight', 'bold')
