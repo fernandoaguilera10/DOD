@@ -34,7 +34,7 @@ if isempty(idx_plot_relative)
                         latencies_all{rows, cols}(l, waves) = {valid_cells{rows}(l)};
 
                         % individual latencies
-                        plot(waveforms.x{rows,cols},waveforms.y{rows,cols}(l,:),'LineStyle','-', 'linew', 1, 'Color', [colors(cols,:),0.05],'HandleVisibility','off');
+                        plot(waveforms.x{rows,cols},waveforms.y{rows,cols}(l,:),'LineStyle','-', 'linew', 1, 'Color', [colors(cols,:),0.1],'HandleVisibility','off');
                         fs = waveforms.x{rows,cols}(3)-waveforms.x{rows,cols}(2);
                         t_idx = round(latencies_all{rows, cols}{l,waves}/fs);
                         if ~isnan(t_idx) && ~isempty(t_idx)
