@@ -25,7 +25,7 @@ if isempty(idx_plot_relative)
                     limits.avg = [-5,65];
                     limits.ind = [0,80];
                 case 'Peaks'
-                    limits.avg.peaks = [-inf,inf];
+                    limits.avg.peaks = [-4,6];
                     limits.ind.peaks = [-4,6];
                     limits.avg.latency = [-inf,inf];
                     limits.ind.latency = [-inf,inf];
