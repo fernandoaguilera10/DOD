@@ -18,17 +18,14 @@ if isempty(idx_plot_relative)
             for waves = 1:length(w_names)
                 for cols = cols_idx
                     for rows = 1:length(Chins2Run)
-
-                        %% FIX ISSUE WITH TIMEPOINTS! 
-
-                        % average waveforms
+                        % all waveforms
                         valid_cells = waveforms.y(:,cols);
                         waveforms_all(rows, cols) = {valid_cells{rows}(l, :)};
-                        % averake peaks
+                        % all peaks
                         y_cell = amplitudes.(w_names{waves});
                         valid_cells = y_cell(:,cols);
                         amplitudes_all{rows, cols}(l, waves) = {valid_cells{rows}(l)};
-                        % average latencies
+                        % all latencies
                         y_cell = latencies.(w_names{waves});
                         valid_cells = y_cell(:,cols);
                         latencies_all{rows, cols}(l, waves) = {valid_cells{rows}(l)};
@@ -59,6 +56,7 @@ if isempty(idx_plot_relative)
                         end
 
                     end
+                    
                     % plot average waveform
                     if waves == 1
                         figure(counter+l+6); hold on;
@@ -75,14 +73,6 @@ if isempty(idx_plot_relative)
                         legend_string = temp(legend_idx);
                         legend(legend_string,'Location','southoutside','Orientation','horizontal');
                         legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-                    end
-
-                    % plot average latencies
-                    figure(counter+l+6); hold on;
-                    t_idx = round(latencies_avg(waves)/fs);
-                    if ~isnan(t_idx) && ~isempty(t_idx)
-                        %plot(latencies_avg(waves), waveforms_avg(t_idx), shapes(waves),'MarkerSize',10,'LineWidth', 2.5, 'MarkerEdgeColor', colors(cols,:),'MarkerFaceColor',colors(cols,:),'HandleVisibility','off');
-                        %xline(latencies_avg(waves), '--', 'LineWidth', 2, 'Color', colors(cols,:),'HandleVisibility','off');
                     end
                 end
             end
