@@ -1,4 +1,4 @@
-function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,CondIND,colors,shapes,ylimits_ind,freq,levels)
+function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,colors,shapes,ylimits_ind,freq,levels)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 11 Sep 2025
 %Description: Script to process ABR waveforms to automatically select peaks
@@ -10,7 +10,7 @@ function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,Conds2Run,Co
 template_shift = 'none';        % xcorr = cross-correlation     % peak = first significant peak     % none = no shift
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
-condition = strsplit(Conds2Run{CondIND}, filesep);
+condition = strsplit(all_Conds2Run{CondIND}, filesep);
 %% Check ABR levels and templates available
 % Check all ABR levels available
 idx_abr = nan(length(levels),length(freq));
