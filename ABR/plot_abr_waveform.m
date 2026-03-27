@@ -14,7 +14,6 @@ if isempty(idx_plot_relative)
         amplitudes_all = cell(length(Chins2Run),length(all_Conds2Run));
         latencies_all = cell(length(Chins2Run),length(all_Conds2Run));
         for l = 1:length(waveforms.levels{1,1})
-            figure(counter+l+6); hold on;
             for waves = 1:length(w_names)
                 for cols = cols_idx
                     for rows = 1:length(Chins2Run)
@@ -31,6 +30,7 @@ if isempty(idx_plot_relative)
                         latencies_all{rows, cols}(l, waves) = {valid_cells{rows}(l)};
 
                         % individual latencies
+                        figure(counter+l+6); hold on;
                         plot(waveforms.x{rows,cols},waveforms.y{rows,cols}(l,:),'LineStyle','-', 'linew', 1, 'Color', [colors(cols,:),0.05],'HandleVisibility','off');
                         fs = waveforms.x{rows,cols}(3)-waveforms.x{rows,cols}(2);
                         t_idx = round(latencies_all{rows, cols}{l,waves}/fs);

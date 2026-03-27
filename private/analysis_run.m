@@ -189,7 +189,7 @@ for ChinIND=1:length(Chins2Run)
                 case 'ABR'
                     switch EXPname2
                         case 'Thresholds'
-                            abr_out = ABR_audiogram_chin(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
+                            ABR_thresholds(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
                         case 'Peaks'
                             ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
                     end
