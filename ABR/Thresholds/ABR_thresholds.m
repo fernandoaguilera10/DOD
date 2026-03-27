@@ -1,6 +1,6 @@
-function abr_out = ABR_audiogram_chin(datapath,outpath,subject,all_Conds2Run,CondIND)
+function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND)
 %Author (s): Andrew Sivaprakasam
-%Last Updated: Februrary, 2024
+%Last Updated: 25 March 2026 - FA
 %Description: Script to estimate and process ABR thresholds based on bootstrapped
 %cross-corelation (loosely-based on Luke Shaheen ARO2024 presentation)
 close all; cwd = pwd; addpath(cwd);
@@ -26,25 +26,14 @@ if exist(datapath,"dir")
     startPoints = [maximum, steep, mid, start];
     fops = fitoptions('Method','NonLinearLeastSquares','Lower',[0.8, 0, 1, 0],'Upper',[1, inf, 100, inf],'StartPoint',startPoints);
     ft = fittype(sigmoid,'options',fops);
-    
-    % sigmoid = 'a./(1+exp(-b*(x-c)))+d';
-    % startPoints = [maximum, steep, mid, start];
-    % fops = fitoptions('Method','NonLinearLeastSquares','Lower',[-inf, 0, 1],'Upper',[1, inf, 80],'StartPoint',startPoints);
-    % ft = fittype(sigmoid,'options',fops);
-    
-    % sig_fit = fit(ranks_ord, sig_data,ft);
-    % sig_model = sig_fit(x);
-    
-    
     %% Load the files for a given freq
     % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
     % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
     
     abr_vis = figure;
-    set(abr_vis,'Position',[411 105 1387 808])
-    
+    set(abr_vis, 'Units', 'Normalized', 'OuterPosition', [0.35, 0.025, 0.65, 0.9]);
     fit_vis = figure;
-    set(fit_vis,'Position',[7 485 809 474])
+    set(fit_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.45, 0.35, 0.4725]);
     
     for f = 1:length(freqs)
         
@@ -195,7 +184,7 @@ if exist(datapath,"dir")
         end
         xlim([0,30])
         hold off
-        set(gca,'FontSize',25);
+        set(gca,'FontSize',15);
         yticks(mean(wform_plot));
         yticklabels(round(lev));
         ylim([min(min(wform_plot)),max(max(wform_plot))])
@@ -228,19 +217,22 @@ if exist(datapath,"dir")
         %     yline(thresh,'r--','linewidth',2);
     end
     thr_vis = figure;
-    set(thr_vis,'Position',[7 485 809 474])
+    set(thr_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.025, 0.35, 0.425]);
     figure(thr_vis)
-    %subplot(ceil(length(freqs)/3),3,f+1);
-    plot(freqs,thresh,'*-k','linewidth',2);
+    freqs_plot = freqs/1000;
+    freqs_plot(freqs_plot == 0) = freqs_plot(2)/2;
+    plot(freqs_plot,thresh,'*-k','linewidth',2);
     grid on;
-    xticks(freqs);
+    xticks(freqs_plot);
+    xticklabels({'Click','0.5','1','2','4','8'});
     set(gca,'xscale','log');
-    set(gca,'FontSize',25);
+    set(gca,'FontSize',15);
     yticks(0:10:100);
-    ylim([0,100]);
-    title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
-    xlabel('Frequency (Hz)')
-    ylabel('Threshold (dB SPL)');
+    ylim([0,90]);
+    title(['ABR Thresholds | ',subject,' | ',condition{2}]);
+    xlabel('Frequency (Hz)','FontWeight','bold');
+    ylabel('Threshold (dB SPL)','FontWeight','bold');
+    
     %% Check if threshold is valid (manually update)
     threshold_flag = 0;     % option on = 1  off = 0
     while threshold_flag == 1
@@ -321,13 +313,12 @@ if exist(datapath,"dir")
                 hold off
                 grid on
             end
-            set(thr_vis,'Position',[7 485 809 474])
             figure(thr_vis);  clf;
             plot(freqs,thresh,'*-k','linewidth',2);
             grid on;
             xticks(freqs);
             set(gca,'xscale','log');
-            set(gca,'FontSize',25);
+            set(gca,'FontSize',15);
             yticks(0:10:100);
             ylim([0,100]);
             title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
