@@ -1,4 +1,4 @@
-function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
+function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,delay,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
 global vertical_spacing
 tolerance = 5;
 num_waves = 5;
@@ -8,6 +8,9 @@ y_units = 'Amplitude (\muV)';
 x_units = 'Time (ms)';
 t_signal = t_signal*10^3; % convert to ms
 signal = signal*10^2; % converto to microV
+delay = delay*10^3; % convert to ms
+%t_signal = t_signal-delay; % shift to account for NEL delay
+
 if ~isempty(template) && all(~isnan(template))
     signal_norm = signal/range(signal);  % normalized signal
     template_norm = template/range(template);    % normalized template
@@ -44,7 +47,8 @@ if ~isempty(template) && all(~isnan(template))
             3.4, 4.6;   % Wave III
             4.0, 5.2;   % Wave IV
             5.1, 6.5];  % Wave V
-        ms_windows = ms_windows + 5 + (level_counter - 1) * 0.08; % 5ms delay for NEL and 0.075 ms delay per le
+        %ms_windows = ms_windows + delay + (level_counter - 1) * 0.08; % account for NEL delay and 0.08 ms delay as level decreases
+        ms_windows = ms_windows + (level_counter - 1) * 0.08; % account for NEL delay and 0.08 ms delay as level decreases
         idx_windows = round(ms_windows * 1e-3 * fs);
 
         % 3. Run DTW Snapping Logic
