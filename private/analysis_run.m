@@ -166,6 +166,55 @@ datapath_dir = cell(size(datapath_dir_temp));
 filepath_dir(filepath_idx==1) = filepath_dir_temp(filepath_idx==1);
 datapath_dir(datapath_idx==1) = datapath_dir_temp(datapath_idx==1);
 define_global_vars(Chins2Run,all_Conds2Run,EXPname,EXPname2);
+
+% Estimate NEL delay
+if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
+    nel_delay_file = fullfile(OUTdir,'ABR',['ABR_NEL_delay_' chinroster_sheet '.mat']);
+    % Always initialise for current subjects/timepoints
+    nel_delay.delay_ms     = nan(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.nel          = nan(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.is_estimated = false(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.subjects     = Chins2Run(:);
+    nel_delay.timepoints   = all_Conds2Run;
+    if exist(nel_delay_file,'file')
+        tmp   = load(nel_delay_file,'nel_delay');
+        saved = tmp.nel_delay;
+        % Map saved entries to current indices by subject and timepoint name
+        for s = 1:length(Chins2Run)
+            saved_s = find(strcmp(saved.subjects, Chins2Run{s}), 1);
+            if isempty(saved_s), continue; end
+            for t = 1:length(all_Conds2Run)
+                saved_t = find(strcmp(saved.timepoints, all_Conds2Run{t}), 1);
+                if isempty(saved_t), continue; end
+                nel_delay.delay_ms(s,t)     = saved.delay_ms(saved_s, saved_t);
+                nel_delay.nel(s,t)          = saved.nel(saved_s, saved_t);
+                nel_delay.is_estimated(s,t) = saved.is_estimated(saved_s, saved_t);
+            end
+        end
+        fprintf('  [NEL] Loaded existing ABR_NEL_delay.mat (%d subjects, %d timepoints mapped)\n', ...
+            length(Chins2Run), length(all_Conds2Run));
+    end
+    for ChinIND=1:length(Chins2Run)
+        for CondIND=1:length(all_Conds2Run)
+            if datapath_idx(ChinIND,CondIND) && isnan(nel_delay.delay_ms(ChinIND,CondIND))
+                nel_delay = get_nel_delay(ROOTdir,datapath_dir{ChinIND,CondIND},Chins2Run,ChinIND,all_Conds2Run,CondIND,nel_delay,nel_delay_file);
+            end
+        end
+    end
+
+    % Build expected matrix from chinroster: true where animal has 'X' for that timepoint
+    nel_expected = false(length(Chins2Run), length(all_Conds2Run));
+    for s = 1:length(Chins2Run)
+        for t = 1:length(all_Conds2Run)
+            if strcmp(chinroster.signal(s,t),'X') || strcmp(chinroster.signal(s,t),'x')
+                nel_expected(s,t) = true;
+            end
+        end
+    end
+    nel_delay = prompt_missing_nel(nel_delay, Chins2Run, all_Conds2Run, nel_delay_file, nel_expected);
+end
+
+
 for ChinIND=1:length(Chins2Run)
     conds_idx = find(subject_idx(ChinIND,:)==1);
     Conds2Run = all_Conds2Run(conds_idx);
@@ -191,7 +240,7 @@ for ChinIND=1:length(Chins2Run)
                         case 'Thresholds'
                             ABR_thresholds(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
                         case 'Peaks'
-                            ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
+                            ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
                     end
                 case 'EFR'
                     switch EXPname2

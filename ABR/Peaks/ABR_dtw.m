@@ -1,4 +1,4 @@
-function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,colors,shapes,ylimits_ind,freq,levels)
+function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,ylimits_ind,freq,levels)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 11 Sep 2025
 %Description: Script to process ABR waveforms to automatically select peaks
@@ -92,20 +92,6 @@ for z = 1:length(freq)
             abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
             abr_t = (1:length(abr_data))/fs;
 
-            % Calculate NEL delay using inverse filter b coefficients (channel 2)
-            b = x.invfilterdata.b_chan2;
-            if ~isempty(b)
-                [~, peak_idx] = max(abs(b));
-                if isempty(peak_idx)
-                    nel_delay = 0;
-                else
-                    delay_samples = peak_idx - 1;
-                    nel_delay = delay_samples / round(x.Stimuli.RPsamprate_Hz);
-                end
-            else
-                nel_delay = 0;
-            end
-
             % Check if MetaData exists
             if isfield(x,'MetaData') && ~isempty(x.MetaData)
                 abrs.nel = str2double(x.MetaData.NEL(end));
@@ -151,7 +137,7 @@ for z = 1:length(freq)
 
             % DTW and plotting
             fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
-            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath);
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
@@ -176,7 +162,7 @@ for z = 1:length(freq)
             abr_template = nan(size(abr_data));
             abr_points = nan(10,3);
             fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
-            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath);
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
@@ -185,7 +171,7 @@ for z = 1:length(freq)
             abrs.levels = levels';
         elseif isnan(idx_abr(j,z))  % ABR unavailable
             fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
-            [peaks,latencies] = findPeaks_dtw([],[],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z));
+            [peaks,latencies] = findPeaks_dtw([],[],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath);
             abrs.freq = [];
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
