@@ -6,8 +6,8 @@ function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND)
 close all; cwd = pwd; addpath(cwd);
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 fs = 8e3; %resampled to 8e3
-samps = 400;
-iters = 200;
+samps = 400; % ABR trials per group for bootstraping
+iters = 200; % bootstrap iterations 
 %% Change into directory
 if exist(datapath,"dir")
     cd(datapath);
@@ -18,14 +18,15 @@ if exist(datapath,"dir")
     freqs = unique(str2double(all_freqs));
     %% Fitting Properties
     x = 0:0.1:15;
-    maximum = .8;
-    mid =6;
-    steep = 1.3;
-    start = 0.01;
+    maximum = 0.8;
+    %mid = 6;
+    %steep = 1.3;
+    %start = 0.01;
+    mid = 15;
+    steep = 0.05;
+    start = 0;
     sigmoid = '(a-d)./(1+exp(-b*(x-c)))+d';
     startPoints = [maximum, steep, mid, start];
-    fops = fitoptions('Method','NonLinearLeastSquares','Lower',[0.8, 0, 1, 0],'Upper',[1, inf, 100, inf],'StartPoint',startPoints);
-    ft = fittype(sigmoid,'options',fops);
     %% Load the files for a given freq
     % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
     % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
@@ -118,9 +119,6 @@ if exist(datapath,"dir")
         fops = fitoptions('Method','NonLinearLeastSquares','Lower',[0.4, 0, min(lev), 0],'Upper',[1, inf, 100, inf],'StartPoint',startPoints);
         ft = fittype(sigmoid,'options',fops);
         
-        %if correlation is very low across the board, no response.
-        %TODO think about how to save an NR
-        
         if max(cor_temp)<0.3
             nr_flag = true;
         end
@@ -128,20 +126,16 @@ if exist(datapath,"dir")
             cor_temp = cor_temp/max(cor_temp); %normalize
             cor_fit = fit(lev', cor_temp',ft);
             
-            %Threshold estimate is the transition point of the sigmoid:
-            %     thresh(f) = cor_fit.c;
-            %
-            %     tol = 4;
-            %     c_y = (cor_fit.a+cor_fit.d)/2;
-            %     y = (c_y-cor_fit.d)*tol;
-            %     thresh(f) = cor_fit.c-y/cor_fit.b;
-            
             %Find x value on sigmoid that is 25% of the way to transition point
+            % tol = .20;
+            % y_transit = (cor_fit.a+cor_fit.d)/2;
+            % y_thresh = cor_fit.d+tol*(y_transit-cor_fit.d);
             
-            tol = .20;
-            y_transit = (cor_fit.a+cor_fit.d)/2;
-            y_thresh = cor_fit.d+tol*(y_transit-cor_fit.d);
-            
+            % Estimate threshold at rising portion of sigmoid (SH)
+            ci = confint(cor_fit); % look at a confidence interval around d (baseline of sigmoid)
+            max_d = ci(2,4);
+            y_thresh= cor_fit.d + 0.1; % go a little above d?
+
             %invert
             thresh(f) = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
         else
@@ -171,23 +165,23 @@ if exist(datapath,"dir")
         hold on
         
         if sum(lev>thresh(f))~=0
-            plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',3);
+            plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
         end
         if round(thresh(f),-1) ~= 0 && ~isnan(thresh(f)) && sum(lev<round(thresh(f),-1)) ~= 0
-            plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',3);
+            plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
         end
         if sum(lev<round(thresh(f),-1)) == 0
-            plot(t,wform_plot,'color',clr_yes,'linewidth',3);
+            plot(t,wform_plot,'color',clr_yes,'linewidth',2);
         end
         if isnan(thresh(f))
-            plot(t,wform_plot,'color',clr_yes,'linewidth',3);
+            plot(t,wform_plot,'color',clr_yes,'linewidth',2);
         end
         xlim([0,30])
         hold off
         set(gca,'FontSize',15);
         yticks(mean(wform_plot));
         yticklabels(round(lev));
-        ylim([min(min(wform_plot)),max(max(wform_plot))])
+        ylim([0.9*min(min(wform_plot)),1.03*max(max(wform_plot))])
         ylabel('Sound Level (dB SPL)','FontWeight','bold')
         xlabel('Time (ms)','FontWeight','bold');
         if freqs(f)==0
@@ -277,16 +271,16 @@ if exist(datapath,"dir")
                 subplot(ceil(length(freqs)/3),3,f);
                 hold on
                 if sum(lev>thresh(f))~=0
-                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',3);
+                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
                 end
                 if round(thresh(f),-1) ~= 0
-                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',3);
+                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
                 end
                 xlim([0,30])
                 hold off
                 yticks(mean(wform_plot));
                 yticklabels(round(lev));
-                ylim([min(min(wform_plot)),max(max(wform_plot))])
+                ylim([0.9*min(min(wform_plot)),1.05*max(max(wform_plot))])
                 ylabel('Sound Level (dB SPL)');
                 if freqs(f)==0
                     title('Click');

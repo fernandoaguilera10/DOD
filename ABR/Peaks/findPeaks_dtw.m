@@ -1,4 +1,4 @@
-function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template)
+function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_template,nel_delay,subject,condition,Conds2Run,CondIND,ChinIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template,outpath)
 global vertical_spacing
 tolerance = 5;
 num_waves = 5;
@@ -8,6 +8,13 @@ y_units = 'Amplitude (\muV)';
 x_units = 'Time (ms)';
 t_signal = t_signal*10^3; % convert to ms
 signal = signal*10^2; % converto to microV
+if ~isnan(nel_delay.delay_ms(ChinIND,CondIND))
+    delay = nel_delay.delay_ms(ChinIND,CondIND); % NEL delay
+else
+    delay = 0;
+end
+t_signal = t_signal-delay; % shift to account for NEL delay
+
 if ~isempty(template) && all(~isnan(template))
     signal_norm = signal/range(signal);  % normalized signal
     template_norm = template/range(template);    % normalized template
@@ -23,7 +30,6 @@ if ~isempty(template) && all(~isnan(template))
     sig_inds(idx_sig_inds) = yi(warp_ind(idx_sig_inds));
 
     % DTW Constraints
-    plot_constrained = 1;
     if snap_to_localminmax
 
         % 1. Setup Signal and Basic Findpeaks
@@ -37,15 +43,51 @@ if ~isempty(template) && all(~isnan(template))
         [~, vals_locs, ~, vals_p] = findpeaks(-signal_col);
         vals = vals_locs(vals_p/max(vals_p) > threshold);
 
+        % Derivative-based critical points: zero crossings of 1st derivative
+        % Peak: + to - transition; Trough: - to + transition
+        dsignal = diff(signal_col);
+        crit_peaks   = find(dsignal(1:end-1) > 0 & dsignal(2:end) < 0) + 1;
+        crit_troughs = find(dsignal(1:end-1) < 0 & dsignal(2:end) > 0) + 1;
+
         % 2. Define Latency Windows (Adjusted for NEL delay)
-        % Expected latency windows in ms: [min_ms, max_ms]
-        ms_windows = [ 1.4, 2.4;   % Wave I
+        % Load peak memory for adaptive windows
+        mem_file = fullfile(fileparts(fileparts(fileparts(outpath))), ['ABR_peak_latency_memory_' freq_str '.mat']);
+        min_obs = 3;
+        pt_names        = {'P1','N1','P2','N2','P3','N3','P4','N4','P5','N5'};
+        pt_edited_names = strcat(pt_names, '_edited');
+        if exist(mem_file, 'file')
+            tmp = load(mem_file, 'peak_memory');
+            peak_memory = tmp.peak_memory;
+        else
+            peak_memory = struct('log', table('Size',[0,25], ...
+                'VariableTypes', [{'string','string','string','double'}, repmat({'double'},1,10), repmat({'logical'},1,10), {'double'}], ...
+                'VariableNames', [{'Subject','Condition','Date','Level_dBSPL'}, pt_names, pt_edited_names, {'Pct_edited'}]));
+        end
+
+        % Default fixed windows per wave [min_ms, max_ms]
+        ms_windows_default = [ 1.4, 2.4;   % Wave I
             2.4, 3.5;   % Wave II
             3.4, 4.6;   % Wave III
             4.0, 5.2;   % Wave IV
             5.1, 6.5];  % Wave V
-        ms_windows = ms_windows + 5 + (level_counter - 1) * 0.08; % 5ms delay for NEL and 0.075 ms delay per le
-        idx_windows = round(ms_windows * 1e-3 * fs);
+        ms_windows_default = ms_windows_default + (level_counter - 1) * 0.08;
+
+        % Build per-point 10x2 windows; override with adaptive windows from memory
+        pt_ms_windows = nan(10, 2);
+        for j = 1:10
+            w = ceil(j/2);
+            pt_ms_windows(j,:) = ms_windows_default(w,:);  % default
+            if height(peak_memory.log) >= min_obs
+                obs = peak_memory.log.(pt_names{j});
+                obs = obs(~isnan(obs));
+                if length(obs) >= min_obs
+                    center  = mean(obs);
+                    half_w  = max(0.5, 2 * std(obs));
+                    pt_ms_windows(j,:) = [center - half_w, center + half_w];
+                end
+            end
+        end
+        idx_windows = round((pt_ms_windows + delay) * fs);  % 10x2, raw sample indices
 
         % 3. Run DTW Snapping Logic
         max_snap_dist = 3; % samples - search radius around DTW index
@@ -55,9 +97,8 @@ if ~isempty(template) && all(~isnan(template))
         sig_inds_constrained = sig_inds;
 
         for j = 1:length(sig_inds_constrained)
-            wave_num = ceil(j/2);
-            win_min = idx_windows(wave_num, 1);
-            win_max = idx_windows(wave_num, 2);
+            win_min = idx_windows(j, 1);
+            win_max = idx_windows(j, 2);
 
             if mod(j,2) == 0  % Valleys (Even indices)
                 candidate_vals = vals(vals > last_assigned & vals >= win_min & vals <= win_max);
@@ -106,29 +147,40 @@ if ~isempty(template) && all(~isnan(template))
         end
 
         % Prepare manual editing variables and plotting flags
+        sig_inds_auto   = sig_inds_constrained; % snapshot of algorithm selection before any manual edits
         sig_inds_manual = sig_inds_constrained; % initialize manual copy
         plot_constrained = true; % assume plotting enabled for manual edit UI
         if plot_constrained
             done_editing = false;
 
-            % Precompute indices displayed (idx_sig_inds expected to exist in context)
-            if ~exist('idx_sig_inds','var') || isempty(idx_sig_inds)
-                % fallback: display all indices
-                idx_sig_inds = 1:length(sig_inds_constrained);
-            end
-
             while ~done_editing
                 figure(999); clf;
                 set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.15, 0.4, 0.65]);
                 plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
-                % DTW constrained: filled green markers
-                plot(t_signal(sig_inds_constrained(idx_sig_inds)), signal(sig_inds_constrained(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
-                % Manual edits: red filled squares for entries that differ from constrained
+                % DTW constrained: filled green markers (per-wave shape)
+                for k = 1:num_waves
+                    pair = [(2*k-1), 2*k];
+                    valid = pair(idx_sig_inds(pair));
+                    if ~isempty(valid)
+                        plot(t_signal(sig_inds_constrained(valid)), signal(sig_inds_constrained(valid)), shapes(k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g', 'HandleVisibility','off');
+                    end
+                end
+                % Manual edits: red filled markers for entries that differ from constrained
                 manual_changed = sig_inds_manual ~= sig_inds_constrained;
                 if any(manual_changed(idx_sig_inds))
-                    changed_idx = idx_sig_inds(manual_changed(idx_sig_inds));
-                    plot(t_signal(sig_inds_manual(changed_idx)), signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
+                    for k = 1:num_waves
+                        pair = [(2*k-1), 2*k];
+                        ch = pair(manual_changed(pair) & idx_sig_inds(pair));
+                        if ~isempty(ch)
+                            plot(t_signal(sig_inds_manual(ch)), signal(sig_inds_manual(ch)), shapes(k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r', 'HandleVisibility','off');
+                        end
+                    end
                 end
+                % Legend: one entry per wave shape
+                for k = 1:num_waves
+                    plot(nan, nan, shapes(k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g', 'DisplayName', sprintf('Wave %s', waves_legend(k)));
+                end
+                legend('Location','northeast','Orientation','horizontal','FontSize',11); legend box off;
                 set(gca,'FontSize',12);
                 xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
                 ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
@@ -171,8 +223,9 @@ if ~isempty(template) && all(~isnan(template))
                 end
 
                 % Highlight selected slot
+                wave_k = ceil(sel_idx_in_sig_inds/2);
                 figure(999);
-                hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5,'MarkerFaceColor','r');
+                hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), shapes(wave_k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5,'MarkerFaceColor','r', 'HandleVisibility','off');
                 if mod(sel_idx_in_sig_inds,2)==1
                     pt_type = 'Peak';
                 else
@@ -192,8 +245,19 @@ if ~isempty(template) && all(~isnan(template))
                         break;
                     end
 
-                    % Map new click to nearest sample index
+                    % Snap click to nearest critical point (1st-derivative zero crossing)
                     [~, new_idx_time] = min(abs(t_signal - x_new));
+                    if mod(sel_idx_in_sig_inds, 2) == 1  % Peak slot: + to - derivative
+                        if ~isempty(crit_peaks)
+                            [~, snap] = min(abs(crit_peaks - new_idx_time));
+                            new_idx_time = crit_peaks(snap);
+                        end
+                    else  % Trough slot: - to + derivative
+                        if ~isempty(crit_troughs)
+                            [~, snap] = min(abs(crit_troughs - new_idx_time));
+                            new_idx_time = crit_troughs(snap);
+                        end
+                    end
                     [~, rel_editable] = min(abs(sig_inds_manual - idx_time));
                     % Map back to index within sig_inds arrays
                     if editable_positions(rel_editable) ~= 0
@@ -205,22 +269,27 @@ if ~isempty(template) && all(~isnan(template))
                     old_idx = sig_inds_manual(sel_idx_in_sig_inds);
                     sig_inds_manual(sel_idx_in_sig_inds) = chosen_idx;
 
-                    % Refresh plot
+                    % Refresh plot — zoomed in around new selection to verify peak/trough placement
+                    zoom_w = 2; % ms half-width
+                    t_sel = t_signal(chosen_idx);
                     figure(999);
                     clf;
                     plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
                     set(gca,'FontSize',12);
                     xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
                     ylabel(y_units, 'FontWeight', 'bold','FontSize',20);
-                    xlim([0,20]); grid on;
+                    xlim([t_sel - zoom_w, t_sel + zoom_w]); grid on;
 
                     manual_changed = sig_inds_manual ~= sig_inds_constrained & ~isnan(sig_inds_manual);
                     if any(manual_changed(idx_sig_inds))
                         changed_idx = find(manual_changed == 1);
-                        plot(t_signal(sig_inds_manual(changed_idx)), signal(sig_inds_manual(changed_idx)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g','DisplayName',sprintf('New %s',pt_type));
+                        for j = changed_idx(:)'
+                            k = ceil(j/2);
+                            plot(t_signal(sig_inds_manual(j)), signal(sig_inds_manual(j)), shapes(k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g', 'DisplayName','New selection');
+                        end
                     end
                     % Highlight current edited point
-                    plot(t_signal(sig_inds_constrained(sel_idx_in_sig_inds)), signal(sig_inds_constrained(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r','DisplayName',sprintf('Previous %s',pt_type));
+                    plot(t_signal(sig_inds_constrained(sel_idx_in_sig_inds)), signal(sig_inds_constrained(sel_idx_in_sig_inds)), shapes(wave_k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r', 'DisplayName','Previous selection');
                     if mod(sel_idx_in_sig_inds,2)==1
                         pt_type = 'Peak';
                     else
@@ -238,7 +307,13 @@ if ~isempty(template) && all(~isnan(template))
                             if isvalid(hsel), delete(hsel); end
                             clf;
                             plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
-                            plot(t_signal(sig_inds_manual(idx_sig_inds)), signal(sig_inds_manual(idx_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g');
+                            for k = 1:num_waves
+                                pair = [(2*k-1), 2*k];
+                                valid = pair(idx_sig_inds(pair));
+                                if ~isempty(valid)
+                                    plot(t_signal(sig_inds_manual(valid)), signal(sig_inds_manual(valid)), shapes(k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','g', 'HandleVisibility','off');
+                                end
+                            end
                             title(sprintf('%s @ %d dB SPL - Current Peaks',freq_str, levels(level_counter)));
                             set(gca,'FontSize',12);
                             xlabel(x_units, 'FontWeight', 'bold','FontSize',20);
@@ -250,7 +325,7 @@ if ~isempty(template) && all(~isnan(template))
                             sig_inds_manual(sel_idx_in_sig_inds) = old_idx;
                             % re-highlight original
                             if isvalid(hsel), delete(hsel); end
-                            hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), '^k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r');
+                            hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), shapes(wave_k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5, 'MarkerFaceColor','r', 'HandleVisibility','off');
                             editing_slot_done = false;
                         case 'Cancel'
                             % revert change and exit editing for this slot
@@ -269,6 +344,24 @@ if ~isempty(template) && all(~isnan(template))
             sig_inds = sig_inds_manual;
             peaks(idx_sig_inds) = signal(sig_inds(idx_sig_inds));
             latencies(idx_sig_inds) = t_signal(sig_inds(idx_sig_inds));
+
+            % Save confirmed latencies to memory log (table row per waveform)
+            new_obs = nan(1, 10);
+            for j = 1:10
+                if ~isnan(latencies(j))
+                    new_obs(j) = latencies(j);
+                end
+            end
+            was_edited   = sig_inds_manual ~= sig_inds_auto;           % 1x10 logical
+            n_valid      = sum(idx_sig_inds);                           % number of detected points
+            pct_edited   = 100 * sum(was_edited(idx_sig_inds)) / max(n_valid, 1);
+            new_row = [table(string(cell2mat(subject)), string(condition), string(datestr(now,'yyyy-mm-dd HH:MM:SS')), levels(level_counter), ...
+                'VariableNames', {'Subject','Condition','Date','Level_dBSPL'}), ...
+                array2table(new_obs,                   'VariableNames', pt_names), ...
+                array2table(was_edited,                'VariableNames', pt_edited_names), ...
+                table(pct_edited,                      'VariableNames', {'Pct_edited'})];
+            peak_memory.log = [peak_memory.log; new_row];
+            save(mem_file, 'peak_memory');
 
             % Plotting selected peaks/troughs
             
