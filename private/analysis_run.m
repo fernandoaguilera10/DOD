@@ -171,11 +171,12 @@ define_global_vars(Chins2Run,all_Conds2Run,EXPname,EXPname2);
 if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
     nel_delay_file = fullfile(OUTdir,'ABR',['ABR_NEL_delay_' chinroster_sheet '.mat']);
     % Always initialise for current subjects/timepoints
-    nel_delay.delay_ms     = nan(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.nel          = nan(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.is_estimated = false(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.subjects     = Chins2Run(:);
-    nel_delay.timepoints   = all_Conds2Run;
+    nel_delay.delay_ms      = nan(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.nel           = nan(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.is_estimated  = false(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.nel_confirmed = false(length(Chins2Run), length(all_Conds2Run));
+    nel_delay.subjects      = Chins2Run(:);
+    nel_delay.timepoints    = all_Conds2Run;
     if exist(nel_delay_file,'file')
         tmp   = load(nel_delay_file,'nel_delay');
         saved = tmp.nel_delay;
@@ -189,6 +190,9 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
                 nel_delay.delay_ms(s,t)     = saved.delay_ms(saved_s, saved_t);
                 nel_delay.nel(s,t)          = saved.nel(saved_s, saved_t);
                 nel_delay.is_estimated(s,t) = saved.is_estimated(saved_s, saved_t);
+                if isfield(saved, 'nel_confirmed')
+                    nel_delay.nel_confirmed(s,t) = saved.nel_confirmed(saved_s, saved_t);
+                end
             end
         end
         fprintf('  [NEL] Loaded existing ABR_NEL_delay.mat (%d subjects, %d timepoints mapped)\n', ...
