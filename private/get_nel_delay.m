@@ -95,6 +95,8 @@ else
         Chins2Run{ChinIND}, all_Conds2Run{CondIND});
 end
 
+nel_delay.nel_confirmed(ChinIND, CondIND) = ismember(nel_delay.nel(ChinIND, CondIND), [1 2]);
+
 clear x tmp
 
 %% Estimate delay for entries where NEL is known but delay is NaN
@@ -110,11 +112,16 @@ for s = 1:size(nel_delay.delay_ms, 1)
                     nel_delay.subjects{s}, nel_delay.timepoints{t}, ...
                     nel_delay.delay_ms(s,t), nel_delay.nel(s,t));
             else
+                % Empirically measured defaults (Heinz Lab, Purdue)
                 if nel_delay.nel(s,t) == 1   % NEL 1
                     nel_delay.delay_ms(s,t) = 4.9;
-                else                        % NEL 2
+                else                         % NEL 2
                     nel_delay.delay_ms(s,t) = 4.4;
                 end
+                nel_delay.is_estimated(s,t) = true;
+                fprintf('  [NEL DELAY] PREDETERMINED delay for %s (%s): %.3f ms (NEL%d default)\n', ...
+                    nel_delay.subjects{s}, nel_delay.timepoints{t}, ...
+                    nel_delay.delay_ms(s,t), nel_delay.nel(s,t));
             end
         end
     end

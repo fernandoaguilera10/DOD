@@ -6,10 +6,10 @@ function nel_delay = prompt_missing_nel(nel_delay, Chins2Run, all_Conds2Run, nel
 % same NEL number.
 
 cond_t_idx    = 1:length(all_Conds2Run);
-fully_missing = isnan(nel_delay.nel) & isnan(nel_delay.delay_ms);
-fully_missing = fully_missing & nel_expected;
+fully_missing = isnan(nel_delay.nel) & isnan(nel_delay.delay_ms) & nel_expected;
+nel_uncertain = ~isnan(nel_delay.nel) & ~nel_delay.nel_confirmed & nel_expected;
 
-if ~any(fully_missing(:))
+if ~any(fully_missing(:)) && ~any(nel_uncertain(:))
     return
 end
 
@@ -50,7 +50,7 @@ fig = figure('Name','Missing NEL Numbers','NumberTitle','off', ...
     'MenuBar','none','ToolBar','none','Resize','on');
 
 uicontrol(fig,'Style','text', ...
-    'String','Enter NEL (1 or 2) in red cells.  Green = already known.  Grey = not measured (N/A).', ...
+    'String','Enter NEL (1 or 2) in red/yellow cells.  Green = confirmed.  Yellow = estimated (editable).  Grey = N/A.', ...
     'Units','normalized','Position',[0.02 0.88 0.96 0.10], ...
     'HorizontalAlignment','left','FontSize',10);
 
@@ -64,9 +64,10 @@ uit = uitable(fig, ...
     'FontSize',11);
 
 %% Cell styling
-style_unavailable = uistyle('BackgroundColor',[0.91 0.91 0.93],'FontColor',[0.62 0.62 0.65]);  % soft cool grey
-style_known       = uistyle('BackgroundColor',[0.82 0.96 0.86],'FontColor',[0.13 0.55 0.27],'FontWeight','bold');  % soft mint green
-style_missing     = uistyle('BackgroundColor',[1.00 0.87 0.85],'FontColor',[0.80 0.22 0.18],'FontWeight','bold');  % warm coral
+style_unavailable = uistyle('BackgroundColor',[0.91 0.91 0.93],'FontColor',[0.62 0.62 0.65]);                     % soft cool grey
+style_confirmed   = uistyle('BackgroundColor',[0.82 0.96 0.86],'FontColor',[0.13 0.55 0.27],'FontWeight','bold'); % soft mint green (confirmed from MetaData)
+style_uncertain   = uistyle('BackgroundColor',[1.00 0.97 0.75],'FontColor',[0.65 0.45 0.00],'FontWeight','bold'); % soft amber (estimated, editable)
+style_missing     = uistyle('BackgroundColor',[1.00 0.87 0.85],'FontColor',[0.80 0.22 0.18],'FontWeight','bold'); % warm coral
 for s = 1:nSubs
     for ci = 1:nConds
         t = cond_t_idx(ci);
@@ -74,8 +75,10 @@ for s = 1:nSubs
             addStyle(uit, style_unavailable, 'cell', [s, ci]);
         elseif fully_missing(s,t)
             addStyle(uit, style_missing, 'cell', [s, ci]);
+        elseif nel_uncertain(s,t)
+            addStyle(uit, style_uncertain, 'cell', [s, ci]);
         else
-            addStyle(uit, style_known, 'cell', [s, ci]);
+            addStyle(uit, style_confirmed, 'cell', [s, ci]);
         end
     end
 end
@@ -90,11 +93,11 @@ if ~ishandle(fig), return; end
 updated = get(uit,'Data');
 close(fig);
 
-%% Write user inputs back (only for fully missing entries)
+%% Write user inputs back (fully missing and uncertain entries)
 for s = 1:nSubs
     for ci = 1:nConds
         t = cond_t_idx(ci);
-        if fully_missing(s,t)
+        if fully_missing(s,t) || nel_uncertain(s,t)
             nel_num = str2double(updated{s,ci});
             if ismember(nel_num, [1 2])
                 nel_delay.nel(s,t) = nel_num;
