@@ -53,7 +53,11 @@ properties (Access = public)
     DescLabel               matlab.ui.control.Label
     % ── Analysis tab ───────────────────────────────────────────────────────
     AnalysisPlaceholderPanel matlab.ui.container.Panel
-    AnalysisLogArea         matlab.ui.control.TextArea
+    AnalysisInnerTG         matlab.ui.container.TabGroup
+    % ── Average tab ────────────────────────────────────────────────────────
+    AverageTab              matlab.ui.container.Tab
+    AveragePlaceholderPanel matlab.ui.container.Panel
+    AverageInnerTG          matlab.ui.container.TabGroup
     % ── Status tab ─────────────────────────────────────────────────────────
     RefreshStatusBtn        matlab.ui.control.Button
     StatusTable             matlab.ui.control.Table
@@ -145,13 +149,16 @@ methods (Access = private)
         app.TabGroup = uitabgroup(app.UIFigure, 'Position',[0 0 FIG_W TAB_H]);
         app.SetupTab    = uitab(app.TabGroup,'Title','  Setup  ');
         app.AnalysisTab = uitab(app.TabGroup,'Title','  Analysis  ');
+        app.AverageTab  = uitab(app.TabGroup,'Title','  Average  ');
         app.StatusTab   = uitab(app.TabGroup,'Title','  Data Status  ');
         app.SetupTab.BackgroundColor    = app.clr_bg;
         app.AnalysisTab.BackgroundColor = app.clr_bg;
+        app.AverageTab.BackgroundColor  = app.clr_bg;
         app.StatusTab.BackgroundColor   = app.clr_bg;
 
         buildSetupTab(app,    PAD, FIG_W, TAB_H);
         buildAnalysisTab(app, PAD, FIG_W, TAB_H);
+        buildAverageTab(app,  PAD, FIG_W, TAB_H);
         buildStatusTab(app,   PAD, FIG_W, TAB_H);
     end
 
@@ -298,35 +305,37 @@ methods (Access = private)
         app.h_sub_btns  = {};
     end
 
-    function buildAnalysisTab(app, PAD, FIG_W, TAB_H)
-        % ── Placeholder panel (figures will be embedded here in a future release) ──
-        LOG_H = round((TAB_H - 30 - 3*PAD) * 0.35);   % lower 35%: log
-        FIG_H_PNL = TAB_H - 30 - 3*PAD - LOG_H;       % upper 65%: figures
+    function buildAnalysisTab(app, ~, FIG_W, TAB_H)
+        INNER_H = TAB_H - 30;   % subtract outer tab bar (~30 px)
+        build_figure_tab(app, app.AnalysisTab, FIG_W, INNER_H, ...
+            'placeholder', app, 'AnalysisPlaceholderPanel', ...
+            'tabgroup',    app, 'AnalysisInnerTG');
+    end
 
-        app.AnalysisPlaceholderPanel = uipanel(app.AnalysisTab, ...
-            'Title','Figures','FontSize',9,'FontWeight','bold', ...
-            'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
-            'Position',[PAD PAD+LOG_H+PAD FIG_W-2*PAD FIG_H_PNL]);
+    function buildAverageTab(app, ~, FIG_W, TAB_H)
+        INNER_H = TAB_H - 30;
+        build_figure_tab(app, app.AverageTab, FIG_W, INNER_H, ...
+            'placeholder', app, 'AveragePlaceholderPanel', ...
+            'tabgroup',    app, 'AverageInnerTG');
+    end
 
-        lbl = uilabel(app.AnalysisPlaceholderPanel, ...
-            'Text', ['Configure your analysis in the Setup tab, then click ' ...
-                     '"Run Analysis". ' newline newline ...
-                     'Figures will be embedded here in a future release. ' ...
-                     'During this release they appear as floating windows.'], ...
-            'Position',[20 round(0.3*FIG_H_PNL) FIG_W-2*PAD-40 round(0.35*FIG_H_PNL)], ...
-            'FontSize',11,'FontColor',[0.45 0.45 0.45],'WordWrap','on', ...
-            'HorizontalAlignment','center');
-        %#ok<NASGU> lbl not stored — static informational label
+    function build_figure_tab(app, parent_tab, W, H, ~, ~, ph_prop, ~, ~, tg_prop)
+        % Build the shared placeholder + inner-tabgroup structure used by
+        % both the Analysis and Average tabs.
+        msg = ['Run analysis from the Setup tab.' newline ...
+               'Individual figures will appear here per subject/condition.'];
 
-        % ── Console log (diary output redirected here when analysis runs) ────
-        uilabel(app.AnalysisTab, 'Text','Console output:', ...
-            'Position',[PAD PAD+LOG_H-2 120 18],'FontSize',9, ...
-            'FontColor',[0.45 0.45 0.45]);
+        ph = uipanel(parent_tab, ...
+            'BorderType','none','BackgroundColor',app.clr_bg, ...
+            'Position',[0 0 W H]);
+        uilabel(ph, 'Text',msg, ...
+            'Position',[0 round(H/2-30) W 60], ...
+            'FontSize',12,'FontColor',[0.55 0.55 0.55], ...
+            'HorizontalAlignment','center','WordWrap','on');
+        app.(ph_prop) = ph;
 
-        app.AnalysisLogArea = uitextarea(app.AnalysisTab, ...
-            'Value',{''},'Editable',false, ...
-            'Position',[PAD PAD FIG_W-2*PAD LOG_H], ...
-            'FontSize',9,'FontColor',app.clr_black);
+        tg = uitabgroup(parent_tab, 'Position',[0 0 W H], 'Visible','off');
+        app.(tg_prop) = tg;
     end
 
     function buildStatusTab(app, PAD, FIG_W, TAB_H)
@@ -510,15 +519,29 @@ methods (Access = private)
         end
         save_last_settings(app, Chins2Run, Conds2Run);
 
-        % Switch to Analysis tab so the user sees output as it runs
+        % Clear any figures from a previous run, switch to Analysis tab
+        clearEmbeddedFigures(app);
         app.TabGroup.SelectedTab = app.AnalysisTab;
-        app.AnalysisLogArea.Value = {''};
+        app.RunButton.Enable = 'off';
         drawnow;
 
-        delete(app);
+        % Build embed callbacks — analysis_run will call these after each step
+        embed_fns.analysis = @(figs, label) embed_in_analysis(app, figs, label);
+        embed_fns.average  = @(figs, label) embed_in_average(app, figs, label);
+
         clc;
-        analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, ...
-            sheet, plot_relative_flag, reanalyze, EXPname, EXPname2, show_figs);
+        try
+            analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, ...
+                sheet, plot_relative_flag, reanalyze, EXPname, EXPname2, show_figs, embed_fns);
+        catch ME
+            if isvalid(app)
+                uialert(app.UIFigure, ME.message, 'Analysis Error');
+            end
+        end
+
+        if isvalid(app)
+            app.RunButton.Enable = 'on';
+        end
     end
 
     function DataStatusButtonPushed(app)
@@ -946,6 +969,89 @@ methods (Access = private)
                 addStyle(app.StatusTable, s_obj, 'cell', [si, ci+1]);
             end
         end
+    end
+
+    % ── Figure embedding ───────────────────────────────────────────────────
+
+    function embed_in_analysis(app, figs, label)
+        if ~isvalid(app), return; end
+        figs = figs(isvalid(figs));
+        if isempty(figs), return; end
+        app.AnalysisPlaceholderPanel.Visible = 'off';
+        app.AnalysisInnerTG.Visible = 'on';
+        inner_tab = uitab(app.AnalysisInnerTG, 'Title', label);
+        embed_figures_in_tab(app, figs, inner_tab);
+        app.AnalysisInnerTG.SelectedTab = inner_tab;
+        app.TabGroup.SelectedTab = app.AnalysisTab;
+        drawnow;
+    end
+
+    function embed_in_average(app, figs, label)
+        if ~isvalid(app), return; end
+        figs = figs(isvalid(figs));
+        if isempty(figs), return; end
+        app.AveragePlaceholderPanel.Visible = 'off';
+        app.AverageInnerTG.Visible = 'on';
+        inner_tab = uitab(app.AverageInnerTG, 'Title', label);
+        embed_figures_in_tab(app, figs, inner_tab);
+        app.AverageInnerTG.SelectedTab = inner_tab;
+        app.TabGroup.SelectedTab = app.AverageTab;
+        drawnow;
+    end
+
+    function embed_figures_in_tab(app, figs, parent_tab)
+        % Arrange figures in a 2-column grid inside a scrollable panel.
+        PAD = 6;
+        tg_pos = app.AnalysisInnerTG.Position;   % same size for both inner TGs
+        W  = tg_pos(3);
+        VH = tg_pos(4) - 30;   % subtract inner tab bar
+        fw = floor((W - 3*PAD) / 2);
+        fh = max(260, round(VH * 0.85));
+
+        % Filter to figures that have axes
+        valid_figs = figs(arrayfun(@(f) isvalid(f) && ...
+            ~isempty(findall(f,'Type','axes')), figs));
+        n = numel(valid_figs);
+        if n == 0, return; end
+
+        n_rows  = ceil(n / 2);
+        total_h = max(VH, n_rows * (fh + PAD) + PAD);
+
+        scroll = uipanel(parent_tab, ...
+            'Scrollable','on','BorderType','none', ...
+            'BackgroundColor',app.clr_bg, ...
+            'Position',[0 0 W VH]);
+
+        for i = 1:n
+            fig = valid_figs(i);
+            col = mod(i-1, 2);
+            row = floor((i-1) / 2);
+            x   = PAD + col * (fw + PAD);
+            % Stack rows from top: row 0 is highest y
+            y   = total_h - PAD - (row+1)*(fh+PAD) + PAD;
+
+            sub_p = uipanel(scroll, ...
+                'Position',[x y fw fh], ...
+                'BackgroundColor','white', ...
+                'Title', get(fig,'Name'), 'FontSize',8);
+
+            axs = findall(fig, 'Type', 'axes');
+            new_axs = copyobj(axs, sub_p);
+            for j = 1:numel(new_axs)
+                new_axs(j).Units = 'normalized';
+            end
+            close(fig);
+        end
+    end
+
+    function clearEmbeddedFigures(app)
+        % Remove all inner tabs in both Analysis and Average tabgroups
+        delete(app.AnalysisInnerTG.Children);
+        delete(app.AverageInnerTG.Children);
+        app.AnalysisInnerTG.Visible = 'off';
+        app.AverageInnerTG.Visible  = 'off';
+        app.AnalysisPlaceholderPanel.Visible = 'on';
+        app.AveragePlaceholderPanel.Visible  = 'on';
     end
 
 end % private methods

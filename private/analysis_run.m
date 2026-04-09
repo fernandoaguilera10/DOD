@@ -1,4 +1,4 @@
-function analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze)
+function analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze,EXPname_in,EXPname2_in,show_figs_in,embed_fns_in)
 cwd = pwd;
 %% Define plotting parameters
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
@@ -13,7 +13,29 @@ if ~isempty(plot_relative)
 else
     idx_plot_relative = [];
 end
-[EXPname, EXPname2] = analysis_menu; % select analysis type: ABR, EFR, OAE, MEMR
+if nargin >= 8 && ~isempty(EXPname_in)
+    EXPname  = EXPname_in;
+    EXPname2 = EXPname2_in;
+else
+    [EXPname, EXPname2] = analysis_menu; % select analysis type: ABR, EFR, OAE, MEMR
+end
+% Figure visibility flags (default: hide analysis figs, show ind + avg)
+if nargin >= 10 && ~isempty(show_figs_in)
+    show_figs = show_figs_in;
+else
+    show_figs.analysis = false;
+    show_figs.ind      = true;
+    show_figs.avg      = true;
+end
+% In-app embedding: when embed_fns is supplied, force all figures invisible
+% so they get routed into the app tabs instead of floating windows.
+use_embed = nargin >= 11 && ~isempty(embed_fns_in) && isstruct(embed_fns_in);
+if use_embed
+    embed_fns         = embed_fns_in;
+    show_figs.analysis = false;
+    show_figs.ind      = false;
+    show_figs.avg      = false;
+end
 limits = plot_limits(EXPname,EXPname2,idx_plot_relative); % define plot limits
 [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2); % define subdirectories based on ROOTdir
 addpath(genpath(CODEdir));
@@ -33,10 +55,7 @@ elseif strcmp(EXPname,'ABR')
             filepath_searchfile = ['*',EXPname,'peaks_dtw*.mat'];
     end
 elseif strcmp(EXPname,'EFR')
-    efr_level_temp = questdlg('Select EFR level:', ...
-            'EFR Level', ...
-            '65 dB SPL','80 dB SPL','80 dB SPL');
-    efr_level = str2double(efr_level_temp(1:2));
+    efr_levels = [];   % detected automatically per subject/condition from saved filenames
     switch EXPname2
         case 'dAM'
             filepath_searchfile = '*EFR_dAM*.mat';
@@ -193,6 +212,12 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
                 if isfield(saved, 'nel_confirmed')
                     nel_delay.nel_confirmed(s,t) = saved.nel_confirmed(saved_s, saved_t);
                 end
+                % Guard against inconsistent state: if NEL number is unknown
+                % (cleared by user) but a stale delay was left behind, reset it
+                if isnan(nel_delay.nel(s,t)) && ~nel_delay.nel_confirmed(s,t)
+                    nel_delay.delay_ms(s,t)     = NaN;
+                    nel_delay.is_estimated(s,t) = false;
+                end
             end
         end
         fprintf('  [NEL] Loaded existing ABR_NEL_delay.mat (%d subjects, %d timepoints mapped)\n', ...
@@ -229,7 +254,27 @@ for ChinIND=1:length(Chins2Run)
         subject_check = subject_idx(ChinIND,CondIND);
         condition = strsplit(all_Conds2Run{CondIND}, filesep);
         cd(CODEdir);
-        if file_check == 0 && data_check == 1 && subject_check == 1 || reanalyze == 1  % convert RAW data for analysis for no existing analyzed file
+        % Branch 2: move files from Data/RAW into subject/condition folder
+        if data_check == 0 && subject_check == 1
+            datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,all_Conds2Run{CondIND});
+            if ~exist(datapath, 'dir')
+                fprintf('\nCreating data directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
+                mkdir(datapath);
+            end
+            sourcepath = strcat(DATAdir,filesep,'RAW');
+            cd(CODEdir)
+            move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
+            % Update so Branch 1 can run in this same pass
+            new_dp = search_files(datapath,datapath_searchfile);
+            if ~isempty(new_dp.files)
+                datapath_idx(ChinIND,CondIND) = 1;
+                datapath_dir{ChinIND,CondIND} = new_dp.dir;
+                data_check = 1;
+            end
+        end
+
+        % Branch 1: convert RAW data to analyzed format
+        if file_check == 0 && data_check == 1 && subject_check == 1 || reanalyze == 1
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
             filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,all_Conds2Run{CondIND});
             datapath = datapath_dir{ChinIND,CondIND};
@@ -238,6 +283,8 @@ for ChinIND=1:length(Chins2Run)
                 fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
                 mkdir(filepath);
             end
+            if use_embed, pre_figs_b1 = findall(0,'Type','figure'); end
+            set(0,'DefaultFigureVisible', onoff(show_figs.analysis));
             switch EXPname
                 case 'ABR'
                     switch EXPname2
@@ -267,16 +314,23 @@ for ChinIND=1:length(Chins2Run)
                 case 'MEMR'
                     WBMEMRanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
-        elseif data_check == 0 && subject_check == 1   % move files from Data/RAW directory into individual folder
-            datapath = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,all_Conds2Run{CondIND});
-            if ~exist(datapath, 'dir')
-                fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
-                mkdir(datapath);
+            set(0,'DefaultFigureVisible','on');
+            if use_embed
+                new_figs = setdiff(findall(0,'Type','figure'), pre_figs_b1);
+                new_figs = new_figs(isvalid(new_figs));
+                if ~isempty(new_figs)
+                    lbl = sprintf('%s | %s', Chins2Run{ChinIND}, condition{end});
+                    embed_fns.analysis(new_figs, lbl);
+                end
             end
-            sourcepath = strcat(DATAdir,filesep,'RAW');
-            cd(CODEdir)
-            move_files(Chins2Run,all_Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir);
-        elseif file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
+            % Mark analyzed file as available so Branch 3 runs in this same pass
+            filepath_idx(ChinIND,CondIND) = 1;
+            filepath_dir{ChinIND,CondIND} = filepath;
+            file_check = 1;
+        end
+
+        % Branch 3: load analyzed data and run summary/averaging
+        if file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
             counter = counter+1;
             if counter == sum(sum(subject_idx))
                 flag = 1;
@@ -284,6 +338,8 @@ for ChinIND=1:length(Chins2Run)
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
             filepath = filepath_dir{ChinIND,CondIND};
             datapath = datapath_dir{ChinIND,CondIND};
+            if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
+            set(0,'DefaultFigureVisible', onoff(show_figs.ind || show_figs.avg));
             switch EXPname
                 case 'ABR'
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
@@ -294,6 +350,18 @@ for ChinIND=1:length(Chins2Run)
                             ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,flag,conds_idx,abr_freq,abr_levels);
                     end
                 case 'EFR'
+                    % Auto-detect level from saved filenames (use first found, fallback 80)
+                    switch EXPname2
+                        case 'dAM', lvl_pattern = '*EFR_dAM*.mat';
+                        case 'RAM', lvl_pattern = '*EFR_RAM*.mat';
+                    end
+                    lvl_files = dir(fullfile(filepath, lvl_pattern));
+                    lvl_files = lvl_files(~strncmp({lvl_files.name},'._',2));
+                    efr_level = 80;  % fallback
+                    if ~isempty(lvl_files)
+                        tok = regexp(lvl_files(1).name,'_(\d+)dBSPL','tokens');
+                        if ~isempty(tok), efr_level = str2double(tok{1}{1}); end
+                    end
                     switch EXPname2
                         case 'dAM'
                             cd(CODEdir)
@@ -316,6 +384,15 @@ for ChinIND=1:length(Chins2Run)
                     cd(CODEdir)
                     WBMEMRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.avg,limits.threshold,shapes,colors,flag,conds_idx)
                     filename = 'MEMR_Average';
+            end
+            set(0,'DefaultFigureVisible','on');
+            if use_embed
+                new_figs = setdiff(findall(0,'Type','figure'), pre_figs_b3);
+                new_figs = new_figs(isvalid(new_figs));
+                if ~isempty(new_figs)
+                    lbl = sprintf('%s %s', EXPname, EXPname2);
+                    embed_fns.average(new_figs, lbl);
+                end
             end
             flag = -1;
         end
@@ -367,4 +444,9 @@ if flag == -1
         fprintf('\n');
     end
 end
+end
+
+function s = onoff(tf)
+% Return 'on' or 'off' string from a logical value
+if tf, s = 'on'; else, s = 'off'; end
 end
