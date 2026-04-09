@@ -1,10 +1,11 @@
 classdef APAT_app < matlab.apps.AppBase
 %APAT_APP  Auditory Physiology Analysis Toolkit — App Designer version.
 %
-%   Organises the analysis launcher into three tabs:
-%     Setup     – user profile and project settings
-%     Analysis  – subject / condition / measure selection + run controls
-%     Status    – embedded data-analysis progress table
+%   Three-tab workflow:
+%     1. Setup    – configure user, project, subjects, conditions,
+%                   options, and auditory measure; then click Run Analysis
+%     2. Analysis – figures appear here as each subject is processed
+%     3. Status   – data-availability table across subjects × conditions
 %
 %   Run:  APAT_app
 
@@ -35,7 +36,7 @@ properties (Access = public)
     RosterDropdown          matlab.ui.control.DropDown
     ExpLabel                matlab.ui.control.Label
     SheetDropdown           matlab.ui.control.DropDown
-    % ── Analysis tab ───────────────────────────────────────────────────────
+    % ── Setup tab (continued) ──────────────────────────────────────────────
     SubjectsPanel           matlab.ui.container.Panel
     SelectAllBtn            matlab.ui.control.Button
     ClearSubjBtn            matlab.ui.control.Button
@@ -50,6 +51,9 @@ properties (Access = public)
     MeasuresPanel           matlab.ui.container.Panel
     DescTitleLabel          matlab.ui.control.Label
     DescLabel               matlab.ui.control.Label
+    % ── Analysis tab ───────────────────────────────────────────────────────
+    AnalysisPlaceholderPanel matlab.ui.container.Panel
+    AnalysisLogArea         matlab.ui.control.TextArea
     % ── Status tab ─────────────────────────────────────────────────────────
     RefreshStatusBtn        matlab.ui.control.Button
     StatusTable             matlab.ui.control.Table
@@ -73,6 +77,9 @@ properties (Access = private)
     clr_black; clr_gold; clr_gold_dk; clr_bg; clr_panel; clr_btn
     % Measure-button layout constants
     n_meas; meas_h; meas_gap
+    % Panel height constants (set in buildSetupTab, used by helpers)
+    layout_row2_h       % height of Subjects/Conditions/Options row
+    layout_meas_h       % height of MeasuresPanel
 end
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -149,100 +156,104 @@ methods (Access = private)
     end
 
     function buildSetupTab(app, PAD, FIG_W, TAB_H)
-        USER_W = 200;  ROW_H = 150;
-        row_y  = TAB_H - 30 - PAD - ROW_H;   % 30 = tab bar
+        % ── Row heights and y positions (bottom → top) ──────────────────────
+        ROW1_H = 130;   % User + Project Settings
+        ROW2_H = 200;   % Subjects + Conditions + Options
+        % MeasuresPanel fills the remaining space at the bottom
+        MEAS_H = TAB_H - 30 - PAD - ROW1_H - PAD - ROW2_H - PAD - PAD;
+
+        app.layout_row2_h = ROW2_H;
+        app.layout_meas_h = MEAS_H;
+
+        meas_y  = PAD;
+        row2_y  = meas_y  + MEAS_H  + PAD;
+        row1_y  = row2_y  + ROW2_H  + PAD;
+
+        USER_W = 200;
+        SP_X   = PAD + USER_W + PAD;
+        SP_W   = FIG_W - SP_X - PAD;
 
         % ── User panel ──────────────────────────────────────────────────────
         app.UserPanel = uipanel(app.SetupTab, ...
             'Title','User','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
-            'Position',[PAD row_y USER_W ROW_H]);
+            'Position',[PAD row1_y USER_W ROW1_H]);
 
         app.ProfileDropdown = uidropdown(app.UserPanel, ...
             'Items',{'(no profiles)'},'Value','(no profiles)', ...
-            'Position',[8 92 USER_W-22 26], ...
+            'Position',[8 80 USER_W-22 26], ...
             'FontSize',11,'FontWeight','bold', ...
             'ValueChangedFcn', @(~,~) ProfileDropdownChanged(app));
 
         app.NewUserBtn = uibutton(app.UserPanel,'push','Text','New User', ...
-            'Position',[8 56 USER_W-22 26],'FontSize',9,'BackgroundColor',app.clr_btn, ...
+            'Position',[8 48 USER_W-22 26],'FontSize',9,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) NewUserButtonPushed(app));
 
         app.SaveUserBtn = uibutton(app.UserPanel,'push','Text','Save User', ...
-            'Position',[8 20 USER_W-22 26],'FontSize',9,'BackgroundColor',app.clr_btn, ...
+            'Position',[8 16 USER_W-22 26],'FontSize',9,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) SaveUserButtonPushed(app));
 
         % ── Project settings panel ──────────────────────────────────────────
-        SP_X = PAD + USER_W + PAD;  SP_W = FIG_W - SP_X - PAD;
-
         app.ProjectPanel = uipanel(app.SetupTab, ...
             'Title','Project Settings','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
-            'Position',[SP_X row_y SP_W ROW_H]);
+            'Position',[SP_X row1_y SP_W ROW1_H]);
 
         uilabel(app.ProjectPanel,'Text','Root Directory:', ...
-            'Position',[8 104 108 20],'FontSize',9);
+            'Position',[8 90 110 20],'FontSize',9);
         app.RootDirField = uieditfield(app.ProjectPanel,'text','Value','', ...
-            'Position',[122 102 SP_W-240 24],'FontSize',9,'BackgroundColor','white');
+            'Position',[122 88 SP_W-240 24],'FontSize',9,'BackgroundColor','white');
         app.BrowseBtn = uibutton(app.ProjectPanel,'push','Text','Browse...', ...
-            'Position',[SP_W-110 100 92 28],'FontSize',9,'BackgroundColor',app.clr_btn, ...
+            'Position',[SP_W-110 86 92 28],'FontSize',9,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) BrowseButtonPushed(app));
 
         uilabel(app.ProjectPanel,'Text','Subject Roster:', ...
-            'Position',[8 68 108 20],'FontSize',9);
+            'Position',[8 56 110 20],'FontSize',9);
         app.RosterDropdown = uidropdown(app.ProjectPanel, ...
             'Items',{'(set root directory first)'},'Value','(set root directory first)', ...
-            'Position',[122 66 SP_W-140 24],'FontSize',9, ...
+            'Position',[122 54 SP_W-140 24],'FontSize',9, ...
             'ValueChangedFcn', @(~,~) RosterDropdownChanged(app));
 
         uilabel(app.ProjectPanel,'Text','Experiment:', ...
-            'Position',[8 32 90 20],'FontSize',9);
+            'Position',[8 22 90 20],'FontSize',9);
         app.SheetDropdown = uidropdown(app.ProjectPanel, ...
             'Items',{'(load chinroster first)'},'Value','(load chinroster first)', ...
-            'Position',[122 30 round(SP_W*0.45) 24],'FontSize',10,'FontWeight','bold', ...
+            'Position',[122 20 round(SP_W*0.45) 24],'FontSize',10,'FontWeight','bold', ...
             'ValueChangedFcn', @(~,~) SheetDropdownChanged(app));
-    end
 
-    function buildAnalysisTab(app, PAD, FIG_W, TAB_H)
-        ROW2_H = 215;  ROW3_H = 155;  ROW4_H = 105;
-        COMB_H = ROW3_H + PAD + ROW4_H;
-
-        row4_y = PAD;
-        row2_y = row4_y + COMB_H + PAD;
-
+        % ── Subjects ────────────────────────────────────────────────────────
         subj_w  = round((FIG_W - 3*PAD) * 0.55);
         right_w = FIG_W - 3*PAD - subj_w;
         opt_w2  = 190;
         cond_w  = right_w - PAD - opt_w2;
 
-        % ── Subjects ────────────────────────────────────────────────────────
-        app.SubjectsPanel = uipanel(app.AnalysisTab, ...
+        app.SubjectsPanel = uipanel(app.SetupTab, ...
             'Title','Subjects','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
             'Position',[PAD row2_y subj_w ROW2_H]);
 
         app.SelectAllBtn = uibutton(app.SubjectsPanel,'push','Text','Select All', ...
-            'Position',[round(0.02*subj_w) 6 round(0.31*subj_w) 28], ...
+            'Position',[round(0.02*subj_w) 6 round(0.31*subj_w) 26], ...
             'FontSize',8.5,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) SelectAllButtonPushed(app));
         app.ClearSubjBtn = uibutton(app.SubjectsPanel,'push','Text','Clear', ...
-            'Position',[round(0.35*subj_w) 6 round(0.31*subj_w) 28], ...
+            'Position',[round(0.35*subj_w) 6 round(0.31*subj_w) 26], ...
             'FontSize',8.5,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) ClearButtonPushed(app));
         app.RefreshSubjBtn = uibutton(app.SubjectsPanel,'push','Text','Refresh', ...
-            'Position',[round(0.68*subj_w) 6 round(0.29*subj_w) 28], ...
+            'Position',[round(0.68*subj_w) 6 round(0.29*subj_w) 26], ...
             'FontSize',8.5,'BackgroundColor',app.clr_btn, ...
             'ButtonPushedFcn', @(~,~) RefreshButtonPushed(app));
 
         % ── Conditions ──────────────────────────────────────────────────────
-        app.ConditionsPanel = uipanel(app.AnalysisTab, ...
+        app.ConditionsPanel = uipanel(app.SetupTab, ...
             'Title','Conditions','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
             'Position',[PAD+subj_w+PAD row2_y cond_w ROW2_H]);
 
         % ── Options ─────────────────────────────────────────────────────────
         opt_x = PAD + subj_w + PAD + cond_w + PAD;
-        app.OptionsPanel = uipanel(app.AnalysisTab, ...
+        app.OptionsPanel = uipanel(app.SetupTab, ...
             'Title','Options','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
             'Position',[opt_x row2_y opt_w2 ROW2_H]);
@@ -269,22 +280,53 @@ methods (Access = private)
             'FontSize',9,'Value',ck_defaults(5));
 
         % ── Auditory Measures ────────────────────────────────────────────────
-        app.MeasuresPanel = uipanel(app.AnalysisTab, ...
+        app.MeasuresPanel = uipanel(app.SetupTab, ...
             'Title','Auditory Measures','FontSize',9,'FontWeight','bold', ...
             'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
-            'Position',[PAD row4_y FIG_W-2*PAD COMB_H]);
+            'Position',[PAD meas_y FIG_W-2*PAD MEAS_H]);
 
         panel_w = FIG_W - 2*PAD;
         app.DescTitleLabel = uilabel(app.MeasuresPanel, 'Text','', ...
-            'Position',[round(0.17*panel_w) round(0.60*COMB_H) round(0.81*panel_w) round(0.09*COMB_H)], ...
+            'Position',[round(0.17*panel_w) round(0.60*MEAS_H) round(0.81*panel_w) round(0.09*MEAS_H)], ...
             'FontSize',9,'FontWeight','bold','FontColor',app.clr_black);
         app.DescLabel = uilabel(app.MeasuresPanel, 'Text','', ...
-            'Position',[round(0.17*panel_w) round(0.05*COMB_H) round(0.81*panel_w) round(0.51*COMB_H)], ...
+            'Position',[round(0.17*panel_w) round(0.05*MEAS_H) round(0.81*panel_w) round(0.51*MEAS_H)], ...
             'FontSize',9,'FontColor',app.clr_gold_dk,'WordWrap','on');
 
         % Measure/subtype buttons built after MEASURES is initialised
         app.h_meas_btns = gobjects(0);
         app.h_sub_btns  = {};
+    end
+
+    function buildAnalysisTab(app, PAD, FIG_W, TAB_H)
+        % ── Placeholder panel (figures will be embedded here in a future release) ──
+        LOG_H = round((TAB_H - 30 - 3*PAD) * 0.35);   % lower 35%: log
+        FIG_H_PNL = TAB_H - 30 - 3*PAD - LOG_H;       % upper 65%: figures
+
+        app.AnalysisPlaceholderPanel = uipanel(app.AnalysisTab, ...
+            'Title','Figures','FontSize',9,'FontWeight','bold', ...
+            'BackgroundColor',app.clr_panel,'BorderColor',app.clr_gold, ...
+            'Position',[PAD PAD+LOG_H+PAD FIG_W-2*PAD FIG_H_PNL]);
+
+        lbl = uilabel(app.AnalysisPlaceholderPanel, ...
+            'Text', ['Configure your analysis in the Setup tab, then click ' ...
+                     '"Run Analysis". ' newline newline ...
+                     'Figures will be embedded here in a future release. ' ...
+                     'During this release they appear as floating windows.'], ...
+            'Position',[20 round(0.3*FIG_H_PNL) FIG_W-2*PAD-40 round(0.35*FIG_H_PNL)], ...
+            'FontSize',11,'FontColor',[0.45 0.45 0.45],'WordWrap','on', ...
+            'HorizontalAlignment','center');
+        %#ok<NASGU> lbl not stored — static informational label
+
+        % ── Console log (diary output redirected here when analysis runs) ────
+        uilabel(app.AnalysisTab, 'Text','Console output:', ...
+            'Position',[PAD PAD+LOG_H-2 120 18],'FontSize',9, ...
+            'FontColor',[0.45 0.45 0.45]);
+
+        app.AnalysisLogArea = uitextarea(app.AnalysisTab, ...
+            'Value',{''},'Editable',false, ...
+            'Position',[PAD PAD FIG_W-2*PAD LOG_H], ...
+            'FontSize',9,'FontColor',app.clr_black);
     end
 
     function buildStatusTab(app, PAD, FIG_W, TAB_H)
@@ -299,7 +341,7 @@ methods (Access = private)
     end
 
     function buildMeasureButtons(app)
-        COMB_H  = 268;
+        COMB_H  = app.layout_meas_h;
         FIG_W   = 940;  PAD = 8;
         panel_w = FIG_W - 2*PAD;
 
@@ -465,6 +507,11 @@ methods (Access = private)
             save_profiles_to_file(app);
         end
         save_last_settings(app, Chins2Run, Conds2Run);
+
+        % Switch to Analysis tab so the user sees output as it runs
+        app.TabGroup.SelectedTab = app.AnalysisTab;
+        app.AnalysisLogArea.Value = {''};
+        drawnow;
 
         delete(app);
         clc;
@@ -632,9 +679,10 @@ methods (Access = private)
         n = numel(labels);
         if n == 0, return; end
         app.h_cond_checks = gobjects(1, n);
-        item_h = max(18, min(28, floor((0.78 * 215 - 8) / n)));
+        ROW2_H = app.layout_row2_h;
+        item_h = max(18, min(28, floor((0.78 * ROW2_H - 8) / n)));
         for ci = 1:n
-            y_pos = 215 - 24 - ci * (item_h + 2);
+            y_pos = ROW2_H - 24 - ci * (item_h + 2);
             app.h_cond_checks(ci) = uicheckbox(app.ConditionsPanel, ...
                 'Text',labels{ci},'Value',true, ...
                 'Position',[10 y_pos 160 item_h], ...
@@ -690,7 +738,7 @@ methods (Access = private)
         if isempty(app.h_meas_btns) || ~any(isvalid(app.h_meas_btns)), return; end
         m = app.state.measure_idx;
         k = app.state.subtype_idx;
-        COMB_H = 268;
+        COMB_H = app.layout_meas_h;
 
         for mi = 1:app.n_meas
             if ~isvalid(app.h_meas_btns(mi)), continue; end
