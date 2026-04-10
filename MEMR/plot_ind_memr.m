@@ -3,6 +3,7 @@ global legend_string
 legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 figure(ChinIND);
+if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
 subplot(1,4,[1,3]); hold on;
 plot(data.elicitor, data.deltapow,'Marker',shapes(CondIND,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(CondIND,:), 'MarkerFaceColor', colors(CondIND,:));
 xlim(xlimits); xticks(xlimits(1):5:xlimits(2)); xtickangle(90);
@@ -21,5 +22,5 @@ set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);
 filename = cell2mat([Chins2Run(ChinIND),'_MEMR_WB_',condition{2}]);
-print(figure(ChinIND),[filename,'_figure'],'-dpng','-r300');
+print(ChinIND,[filename,'_figure'],'-dpng','-r300');
 end

@@ -4,11 +4,16 @@ legend_string = [];
 x_units = 'Frequency (Hz)';
 title_str = 'RAM 223 Hz';
 if isempty(idx_plot_relative)
+    figure(counter);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})
             row_idx{cols} = find(~cellfun('isempty', average.peaks_locs(:, cols)));
             %% Average PLV Spectrum
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 3, 'MarkerSize', 15, 'Color', colors(cols,:), 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{row_idx{1,cols}(1),cols});
             plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols,:),'LineStyle','-', 'linew', 3,'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
@@ -29,7 +34,9 @@ if isempty(idx_plot_relative)
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV at Low and High Freqs
-    figure(counter+1); hold on;
+    figure(counter+1);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf; hold on;
     freq_labels = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
     num_freqs = length(freq_labels);
     [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
@@ -108,7 +115,9 @@ if isempty(idx_plot_relative)
     set(gca, 'XTickLabel', freq_labels);
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV Sum
-    figure(counter+2); hold on;
+    figure(counter+2);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf; hold on;
     num_freqs = 1;
     [num_subjects, num_timepoints] = size(average.all_plv_sum);
     peaks = [];
@@ -181,9 +190,14 @@ if isempty(idx_plot_relative)
 end
 %% Plot relative to Baseline
 if ~isempty(idx_plot_relative)
+    figure(counter);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.peaks)
         if ~isempty(average.peaks_locs{1,cols})
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             errorbar(average.peaks_locs{1,cols},average.peaks{1,cols},average.peaks_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 3, 'MarkerSize', 15, 'Color', colors(cols+1,:), 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
             %average.efr_fit = fillmissing(average.peaks{1,cols},'linear','SamplePoints',average.peaks_locs{1,cols});
             %plot(average.peaks_locs{1,cols},average.efr_fit,'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2,'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
@@ -212,7 +226,9 @@ if ~isempty(idx_plot_relative)
     end
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV at Low and High Freqs
-    figure(counter+1); hold on;
+    figure(counter+1);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf; hold on;
     freq_labels = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
     num_freqs = length(freq_labels);
     [num_subjects, num_timepoints] = size(average.all_low_high_peaks);
@@ -300,7 +316,9 @@ if ~isempty(idx_plot_relative)
     set(gca, 'XTickLabel', freq_labels);
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
     %% Average PLV Sum
-    figure(counter+2); hold on;
+    figure(counter+2);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf; hold on;
     num_freqs = 1;
     [num_subjects, num_timepoints] = size(average.all_plv_sum);
     peaks = [];
@@ -374,11 +392,11 @@ if ~isempty(idx_plot_relative)
     idx = idx_temp;
 end
 average.subjects = Chins2Run;
-average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
 %% Export
 cd(outpath);
 save(filename,'average');
-print(figure(counter),[filename,'_figure'],'-dpng','-r300');
-print(figure(counter+1),[filename,'_PLVharmonics_figure'],'-dpng','-r300');
-print(figure(counter+2),[filename,'_PLVsum_figure'],'-dpng','-r300');
+print(counter,[filename,'_figure'],'-dpng','-r300');
+print(counter+1,[filename,'_PLVharmonics_figure'],'-dpng','-r300');
+print(counter+2,[filename,'_PLVsum_figure'],'-dpng','-r300');
 end

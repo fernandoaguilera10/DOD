@@ -1,4 +1,5 @@
-function file_out = load_files(path,filename,file_type,datafile)
+function file_out = load_files(path,filename,file_type,datafile,auto_select)
+    if nargin < 5, auto_select = false; end
     cwd = pwd;
     if exist(path,'dir')
         cd(path);
@@ -11,8 +12,16 @@ function file_out = load_files(path,filename,file_type,datafile)
         elseif size(file_out,1) > 1
             switch file_type
                 case 'data'
-                    fprintf('More than 1 data file. Check this is correct file!\n');
-                    file_out = uigetfile(filename);
+                    if auto_select
+                        % Auto-select the most recently modified file (e.g. just created by reanalyze)
+                        [~, newest_idx] = max([file_out.datenum]);
+                        file_out = file_out(newest_idx).name;
+                        fprintf('Multiple files found — auto-selected newest: %s\n', file_out);
+                    else
+                        fprintf('More than 1 data file found — prompting for selection.\n');
+                        file_names = {file_out.name};
+                        file_out = pick_datafile(file_names, 'Select data file');
+                    end
                 case 'calib'
                     calibFiles = dir(filename);
                     % Extract calibration p-numbers

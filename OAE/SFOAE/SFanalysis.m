@@ -264,6 +264,7 @@ data.spl = spl;
 cd(outpath);
 fname = [subject,'_SFOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
+close(gcf);
 save(fname,'data')
 cd(cwd);
 end

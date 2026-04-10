@@ -2,10 +2,15 @@ function plot_avg_memr(average,EXPname,colors,idx,Chins2Run,Conds2Run,all_Conds2
 str_plot_relative = strsplit(all_Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 if isempty(idx_plot_relative)
+    figure(length(Chins2Run)+1);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.elicitor)
         if ~isempty(average.deltapow{1,cols})
             % Average MEMR
-            figure(length(Chins2Run)+1); subplot(1,2,1); hold on;
+            figure(length(Chins2Run)+1);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            subplot(1,2,1); hold on;
             errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:),'HandleVisibility','off');
             plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols,:),'MarkerFaceColor', colors(cols,:));
             xlim(xlimits);xticks(xlimits(1):5:xlimits(2));xtickangle(90);
@@ -32,10 +37,15 @@ end
 
 if ~isempty(idx_plot_relative)  %plot relative to
     y_units = sprintf('\\Delta Absorbed Power (dB re. %s)',str_plot_relative{2});
+    figure(length(Chins2Run)+1);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.elicitor)
         if ~isempty(average.deltapow{1,cols})
             % Average MEMR
-            figure(length(Chins2Run)+1); subplot(1,2,1); hold on;
+            figure(length(Chins2Run)+1);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            subplot(1,2,1); hold on;
             errorbar(average.elicitor{1,cols}, average.deltapow{1,cols},average.deltapow_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:),'HandleVisibility','off');
             plot(average.elicitor{1,cols}, average.deltapow{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-','linew', 2, 'MarkerSize', 12, 'Color', colors(cols+1,:),'MarkerFaceColor', colors(cols+1,:));
             yline(zeros(size(average.elicitor{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
@@ -62,9 +72,9 @@ if ~isempty(idx_plot_relative)  %plot relative to
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 average.subjects = Chins2Run;
-average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
 %% Export
 cd(outpath);
 save(filename,'average');
-print(figure(length(Chins2Run)+1),[filename,'_figure'],'-dpng','-r300');
+print(length(Chins2Run)+1,[filename,'_figure'],'-dpng','-r300');
 end

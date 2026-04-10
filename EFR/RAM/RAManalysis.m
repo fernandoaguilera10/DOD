@@ -1,12 +1,14 @@
-function RAManalysis(datapath,outpath,subject,condition)% EFR RAM analysis
+function RAManalysis(datapath,outpath,subject,condition,max_harmonics,t_win_in)% EFR RAM analysis
 %Author: Andrew Sivaprakasam
 %Updated: July, 2023
 %Purpose: Script to import/plot/apply additional processing to RAM_EFR
 %files (chin version)
 fmod = 223;
 harmonics = 16;
+if nargin >= 5 && ~isempty(max_harmonics), harmonics = round(max_harmonics); end
 fs = 8e3; %fs to resample to
 t_win = [0.2,0.9]; %signal window, ignoring onset/offset effects
+if nargin >= 6 && ~isempty(t_win_in) && numel(t_win_in) == 2, t_win = t_win_in; end
 filts = [60,4000];
 frames = round(t_win*fs);
 %% Import data file
@@ -98,6 +100,7 @@ if exist(datapath,'dir')
         datafile_str = datafile(i).name;
         fname = [subject,'_EFR_RAM_',condition,'_',num2str(level_spl),'dBSPL','_',datafile_str(1:end-4)];
         print(gcf,[fname,'_figure'],'-dpng','-r300');
+        close(gcf);
         efr.t = t;
         efr.t_env = T_env;
         efr.f = f;

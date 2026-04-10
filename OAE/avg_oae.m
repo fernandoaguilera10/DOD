@@ -29,7 +29,9 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             % check if data is present for a given timepoint and subject
             if idx(rows,cols) == 1
                 % Plot individual traces with average
-                figure(counter); hold on;
+                figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                 %plot(f_band, oae_amp_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 %plot(f_band, oae_nf_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
@@ -50,7 +52,9 @@ elseif ~isempty(idx_plot_relative)
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(counter); hold on;
+                    figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                     %plot(f{rows, cols}, oae_amp{rows, cols}-oae_amp{rows, idx_plot_relative}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
                     %plot(f{rows, cols}, oae_nf{rows, cols}-oae_nf{rows, idx_plot_relative}, '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
                     set(gca, 'XScale', 'log', 'FontSize', 14);

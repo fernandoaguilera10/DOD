@@ -9,7 +9,7 @@ condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
     cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_SFOAEswept_',condition{2},'*.mat']);
-    datafile = load_files(outpath,search_file,'data');
+    datafile = load_files(outpath,search_file,'data',[],true);
     cd(outpath);
     load(datafile);
     cd(cwd);
@@ -39,6 +39,12 @@ end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = 2*length(Chins2Run);
 if average_flag == 1
+    figure(fig_num_avg+1);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;  % clear stale content before drawing
+    figure(fig_num_avg+2);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;
     % Plot individual lines
     [average_epl,idx] = avg_oae(sf_f_epl,sf_amp_epl,sf_nf_epl,sf_f_band_epl,sf_amp_band_epl,sf_nf_band_epl,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg+1,colors,shapes,idx_plot_relative);
     [average_spl,~] = avg_oae(sf_f_spl,sf_amp_spl,sf_nf_spl,sf_f_band_spl,sf_amp_band_spl,sf_nf_band_spl,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg+2,colors,shapes,idx_plot_relative);

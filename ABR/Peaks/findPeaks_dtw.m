@@ -15,6 +15,10 @@ else
 end
 t_signal = t_signal-delay; % shift to account for NEL delay
 
+n_pts = size(latencies_template, 1);
+peaks     = nan(1, n_pts);
+latencies = nan(1, n_pts);
+
 if ~isempty(template) && all(~isnan(template))
     signal_norm = signal/range(signal);  % normalized signal
     template_norm = template/range(template);    % normalized template

@@ -141,6 +141,7 @@ if exist(datapath,'dir')
         datafile_str = datafile(i).name;
         fname = [subject,'_EFR_dAM_',condition,'_',num2str(level_spl),'dBSPL','_',datafile_str(1:end-4)];
         print(gcf,[fname,'_figure'],'-dpng','-r300');
+        close(gcf);
         efr.trajectory = dam_traj_Hz;
         efr.dAMpower = dAM_pow_frac;
         efr.NFpower = dAM_powNF_frac;

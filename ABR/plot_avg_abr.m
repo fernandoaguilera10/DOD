@@ -1,4 +1,4 @@
-function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis,freq)
+function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis,freq,wave_sel,wave_ratios)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 cwd = pwd;
@@ -7,10 +7,25 @@ if isempty(idx_plot_relative)
     %% Thresholds
     if strcmp(plot_type,'Thresholds')
         y_units = 'Threshold (dB SPL)';
-        figure(counter); hold on;
-        % Box Plot
-        freq_labels = {'Click', '0.5 kHz', '1 kHz', '2 kHz', '4 kHz', '8 kHz'};
-        num_freqs = length(freq_labels);
+        figure(counter);
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+        clf; hold on;
+        % Box Plot — derive freq labels dynamically from data
+        ref_col = find(~cellfun(@isempty, average.x), 1);
+        if ~isempty(ref_col)
+            ref_freqs = average.x{1, ref_col};
+        else
+            ref_freqs = [0 500 1000 2000 4000 8000];
+        end
+        num_freqs = length(ref_freqs);
+        freq_labels = cell(1, num_freqs);
+        for fi = 1:num_freqs
+            if ref_freqs(fi) == 0
+                freq_labels{fi} = 'Click';
+            else
+                freq_labels{fi} = [num2str(ref_freqs(fi)/1000), ' kHz'];
+            end
+        end
         [num_subjects, num_timepoints] = size(average.all_y);
         thresholds = [];
         frequencies = [];
@@ -109,12 +124,21 @@ if isempty(idx_plot_relative)
         % Export
         cd(outpath);
         save(filename,'average');
-        print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+        print(counter,[filename,'_figure'],'-dpng','-r300');
         idx = idx_temp;
 %% Peaks
     elseif strcmp(plot_type,'Peaks')
-        if freq == 0, freq_str = 'Click'; end
-        if freq ~= 0, freq_str = [mat2str(freq),' Hz']; end
+        if freq == 0
+            freq_str   = 'Click';
+            freq_label = 'Click';
+        else
+            freq_str = [mat2str(freq),' Hz'];
+            if freq >= 1000
+                freq_label = sprintf('%.4g kHz', freq/1000);
+            else
+                freq_label = sprintf('%.4g Hz', freq);
+            end
+        end
         x_units = 'Sound Level (dB SPL)';
         if strcmp(peak_analysis,'Amplitude')
             y_units = 'Peak-to-Peak Amplitude (\muV)';
@@ -123,97 +147,167 @@ if isempty(idx_plot_relative)
             y_units = 'Latency (ms)';
             title_str = sprintf('ABR Absolute Peak Latency (%s)',freq_str);
         end
+        % Wave selection defaults
+        if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
+        if nargin < 18, wave_ratios = {}; end
         valid_cols = cellfun(@(c) ~(isempty(c) || (isnumeric(c) && isequal(size(c),[0 0]))), average.w1);
         cols_idx = find(any(valid_cols, 1));
-        for cols = cols_idx
-            figure(counter); hold on; % wave 1
-            w1 = errorbar(round(average.x{1,cols}), average.w1{1,cols},average.w1_std{1,cols},'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w1_fit = fillmissing(flip(average.w1{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1_fit = flip(w1_fit);
-            plot(round(average.x{1,cols}),w1_fit,'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
-            subtitle('Wave I'); xlim([-inf,inf]); grid on;
-            ylabel(y_units, 'FontWeight', 'bold');
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-
-            
-            temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
-            legend_idx = find(~cellfun(@isempty,temp));
-            legend_string = temp(legend_idx);
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-            figure(counter+1); hold on; % wave 2
-            w2 = errorbar(round(average.x{1,cols}), average.w2{1,cols},average.w2_std{1,cols},'Marker',shapes(2,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w2_fit = fillmissing(flip(average.w2{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w2_fit = flip(w2_fit);
-            plot(round(average.x{1,cols}), w2_fit,'Marker',shapes(2,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:)); grid on;
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave II'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-            figure(counter+2); hold on; % wave 3
-            w3 = errorbar(round(average.x{1,cols}), average.w3{1,cols},average.w3_std{1,cols},'Marker',shapes(3,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w3_fit = fillmissing(flip(average.w3{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w3_fit = flip(w3_fit);
-            plot(round(average.x{1,cols}), w3_fit,'Marker',shapes(3,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave III'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);    
-
-            figure(counter+3); hold on; % wave 4
-            w4 = errorbar(round(average.x{1,cols}), average.w4{1,cols},average.w4_std{1,cols},'Marker',shapes(4,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w4_fit = fillmissing(flip(average.w4{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w4_fit = flip(w4_fit);
-            plot(round(average.x{1,cols}), w4_fit,'Marker',shapes(4,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:)); grid on;
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave IV'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-            figure(counter+4); hold on;% wave 5
-            w5 = errorbar(round(average.x{1,cols}), average.w5{1,cols},average.w5_std{1,cols},'Marker',shapes(5,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w5_fit = fillmissing(flip(average.w5{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w5_fit = flip(w5_fit);
-            plot(round(average.x{1,cols}), w5_fit,'Marker',shapes(5,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
-            xticks(round(unique(average.x{1,1}))); hold off; grid on;
-            subtitle('Wave V'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-            figure(counter+5); hold on;% wave 1/5 ratio
-            w1and5 = errorbar(round(average.x{1,cols}), average.w1and5{1,cols},average.w1and5_std{1,cols},'Marker',shapes(6,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-            w1and5_fit = fillmissing(flip(average.w1and5{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1and5_fit = flip(w1and5_fit);
-            plot(round(average.x{1,cols}), w1and5_fit,'Marker',shapes(6,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off; grid on;
-            ylabel('Wave I/V Ratio', 'FontWeight', 'bold');
-            subtitle('Wave I/V'); xlim([-inf,inf]);
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-            
+        if strcmp(peak_analysis,'Latency'), cat_label = 'Latencies'; else, cat_label = [peak_analysis 's']; end
+        fig_name_str = [cat_label '|' freq_label];
+        % Wave + ratio config
+        all_wave_names  = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
+        all_wave_fields = {'w1','w2','w3','w4','w5'};
+        all_wave_std    = {'w1_std','w2_std','w3_std','w4_std','w5_std'};
+        shown_wi = find(wave_sel);
+        if isempty(wave_ratios) && isfield(average,'w1and5')
+            ratio_labels = {'Wave I/V'}; use_w1and5 = true;
+        else
+            ratio_labels = wave_ratios(:)'; use_w1and5 = false;
         end
-        average.subjects = Chins2Run;
-        average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+        n_ratio  = numel(ratio_labels);
+        n_tiles  = numel(shown_wi) + n_ratio;
+        if n_tiles == 0, n_tiles = 1; end
+        t_cols = min(n_tiles, 3);
+        t_rows = ceil(n_tiles / t_cols);
+        % Build single tiledlayout figure
+        fh = figure(counter); clf;
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh,'Visible','off'); end
+        set(fh, 'Name', fig_name_str);
+        tl = tiledlayout(fh, t_rows, t_cols, 'TileSpacing','compact', 'Padding','compact');
+        title(tl, title_str, 'FontSize',16, 'FontWeight','bold');
+        ax1 = [];
+        wave_axes = gobjects(numel(shown_wi), 1);
+        % --- Wave tiles ---
+        for wi_idx = 1:numel(shown_wi)
+            wnum = shown_wi(wi_idx);
+            wf   = all_wave_fields{wnum};
+            wsf  = all_wave_std{wnum};
+            wn   = all_wave_names{wnum};
+            ax = nexttile(tl);
+            wave_axes(wi_idx) = ax;
+            if isempty(ax1), ax1 = ax; end
+            hold(ax,'on');
+            for cols = cols_idx
+                errorbar(ax, round(average.x{1,cols}), average.(wf){1,cols}, average.(wsf){1,cols}, ...
+                    'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,'Color',colors(cols,:),...
+                    'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
+                    'HandleVisibility','off');
+                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
+                plot(ax, round(average.x{1,cols}), fit_y, 'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,...
+                    'Color',colors(cols,:),'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
+                    'HandleVisibility','off');
+            end
+            if ~isempty(cols_idx)
+                x_tks = round(unique(average.x{1,cols_idx(1)}));
+            else
+                x_tks = [];
+            end
+            xticks(ax, x_tks);
+            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
+            title(ax, wn, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            % Per-tile axis labels: ylabel on left column, xlabel on every tile
+            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',10, 'FontWeight','bold'); end
+            xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold');
+            hold(ax,'off');
+        end
+        % Link wave y-axes so amplitudes/latencies are directly comparable
+        if numel(shown_wi) > 1
+            linkaxes(wave_axes, 'y');
+        end
+        % Latency: tight ylim fitted to data+errorbars, ticks every 0.5 ms
+        if strcmp(peak_analysis,'Latency') && numel(shown_wi) > 0
+            lat_lo = Inf; lat_hi = -Inf;
+            for wai = 1:numel(shown_wi)
+                wf_tmp  = all_wave_fields{shown_wi(wai)};
+                wsf_tmp = all_wave_std{shown_wi(wai)};
+                for c_tmp = cols_idx
+                    v_tmp = average.(wf_tmp){1,c_tmp};
+                    s_tmp = average.(wsf_tmp){1,c_tmp};
+                    if ~isempty(v_tmp) && any(isfinite(v_tmp(:)))
+                        fin = isfinite(v_tmp(:));
+                        err = zeros(size(v_tmp(:)));
+                        if ~isempty(s_tmp) && any(isfinite(s_tmp(:))), err = s_tmp(:); err(~isfinite(err)) = 0; end
+                        lat_lo = min(lat_lo, min(v_tmp(fin) - err(fin)));
+                        lat_hi = max(lat_hi, max(v_tmp(fin) + err(fin)));
+                    end
+                end
+            end
+            if isfinite(lat_lo) && isfinite(lat_hi)
+                step = 0.5;
+                t0 = floor(lat_lo/step)*step;
+                t1 = ceil(lat_hi/step)*step;
+                set(wave_axes, 'YTick', t0:1:t1, 'YLim', [t0-step/2, t1+step/2]);
+            end
+        end
+        % --- Ratio tiles ---
+        for ri = 1:n_ratio
+            ax = nexttile(tl);
+            if isempty(ax1), ax1 = ax; end
+            hold(ax,'on');
+            if use_w1and5
+                rat_d = average.w1and5; rat_s = average.w1and5_std;
+                rlbl  = 'Wave I/V';
+            else
+                [rat_d, rat_s] = compute_wave_ratio(average, ratio_labels{ri});
+                rlbl = ratio_labels{ri};
+            end
+            for cols = cols_idx
+                if isempty(rat_d{1,cols}), continue; end
+                errorbar(ax, round(average.x{1,cols}), rat_d{1,cols}, rat_s{1,cols}, ...
+                    'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,'Color',colors(cols,:),...
+                    'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
+                    'HandleVisibility','off');
+                fit_y = fillmissing(flip(rat_d{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
+                plot(ax, round(average.x{1,cols}), fit_y, 'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,...
+                    'Color',colors(cols,:),'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
+                    'HandleVisibility','off');
+            end
+            if ~isempty(cols_idx)
+                x_tks = round(unique(average.x{1,cols_idx(1)}));
+            else
+                x_tks = [];
+            end
+            xticks(ax, x_tks);
+            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
+            % y-axis: start at 0, tight upper bound from data+error
+            rat_vals = [];
+            for c_tmp = cols_idx
+                if ~isempty(rat_d{1,c_tmp})
+                    v = rat_d{1,c_tmp}; s = rat_s{1,c_tmp};
+                    rat_vals = [rat_vals; v(:) + s(:)];
+                end
+            end
+            rat_vals = rat_vals(isfinite(rat_vals));
+            if ~isempty(rat_vals) && max(rat_vals) > 0, ylim(ax, [0, max(rat_vals)*1.15]); end
+            title(ax, rlbl, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            % Per-tile labels for ratio plots
+            rat_tile_k = numel(shown_wi) + ri;
+            if mod(rat_tile_k-1, t_cols) == 0,    ylabel(ax, 'Ratio', 'FontSize',10, 'FontWeight','bold'); end
+            if ceil(rat_tile_k/t_cols) == t_rows, xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold'); end
+            hold(ax,'off');
+        end
+        % --- Condition legend (south of layout) ---
+        if ~isempty(ax1) && ~isempty(cols_idx)
+            hold(ax1,'on');
+            lh = gobjects(numel(cols_idx),1);
+            leg_str = {};
+            for li = 1:numel(cols_idx)
+                c = cols_idx(li);
+                lh(li) = plot(ax1, NaN, NaN, 's', 'MarkerFaceColor',colors(c,:), ...
+                    'MarkerEdgeColor','k','MarkerSize',12,'LineWidth',1.5);
+                leg_str{li} = sprintf('%s (n = %s)', cell2mat(all_Conds2Run(c)), mat2str(sum(idx(:,c))));
+            end
+            hold(ax1,'off');
+            lgd = legend(ax1, lh, leg_str, 'Orientation','horizontal');
+            lgd.Layout.Tile = 'south';
+            lgd.Box = 'off';
+        end
+        average.subjects   = Chins2Run;
+        average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
         % Export
         cd(outpath);
         save(filename,'average');
-        print(figure(counter),[filename,'_w1_figure'],'-dpng','-r300');
-        print(figure(counter+1),[filename,'_w2_figure'],'-dpng','-r300');
-        print(figure(counter+2),[filename,'_w3_figure'],'-dpng','-r300');
-        print(figure(counter+3),[filename,'_w4_figure'],'-dpng','-r300');
-        print(figure(counter+4),[filename,'_w5_figure'],'-dpng','-r300');
-        print(figure(counter+5),[filename,'_w1and5_figure'],'-dpng','-r300');
+        print(counter, [filename,'_figure'], '-dpng', '-r300');
     end
 end
 %% Plot relative to Baseline
@@ -221,10 +315,25 @@ if ~isempty(idx_plot_relative)
     %% Thresholds
     if strcmp(plot_type,'Thresholds')
         y_units = sprintf('Threshold Shift (re. %s)',str_plot_relative{2});
-        figure(counter); hold on;
-        % Box Plot
-        freq_labels = {'Click', '0.5 kHz', '1 kHz', '2 kHz', '4 kHz', '8 kHz'};
-        num_freqs = length(freq_labels);
+        figure(counter);
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+        hold on;
+        % Box Plot — derive freq labels dynamically from data
+        ref_col = find(~cellfun(@isempty, average.x), 1);
+        if ~isempty(ref_col)
+            ref_freqs = average.x{1, ref_col};
+        else
+            ref_freqs = [0 500 1000 2000 4000 8000];
+        end
+        num_freqs = length(ref_freqs);
+        freq_labels = cell(1, num_freqs);
+        for fi = 1:num_freqs
+            if ref_freqs(fi) == 0
+                freq_labels{fi} = 'Click';
+            else
+                freq_labels{fi} = [num2str(ref_freqs(fi)/1000), ' kHz'];
+            end
+        end
         [num_subjects, num_timepoints] = size(average.all_y);
         thresholds = [];
         frequencies = [];
@@ -326,7 +435,7 @@ if ~isempty(idx_plot_relative)
         % Export
         cd(outpath);
         save(filename,'average');
-        print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+        print(counter,[filename,'_figure'],'-dpng','-r300');
         idx = idx_temp;
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';
@@ -337,103 +446,191 @@ if ~isempty(idx_plot_relative)
             y_units = sprintf('Latency Shift (re. %s)',str_plot_relative{2});
             title_str = sprintf('ABR Absolute Peak Latency');
         end
-        for cols = 1:size(average.w1,1)
-            figure(counter); hold on; % wave 1
-            w1 = errorbar(round(average.x{1,cols}), average.w1{1,cols},average.w1_std{1,cols},'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w1_fit = fillmissing(flip(average.w1{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1_fit = flip(w1_fit);
-            plot(round(average.x{1,cols}), w1_fit,'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            subtitle('Wave I'); xlim([-inf,inf]); grid on;
-            ylabel(y_units, 'FontWeight', 'bold');
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend_string{1,cols} = sprintf('%s (n = %s)',cell2mat(Conds2Run(cols+1)),mat2str(sum(idx(:,conds_idx(cols+1)))));
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-
-            figure(counter+1); hold on; % wave 2
-            w2 = errorbar(round(average.x{1,cols}), average.w2{1,cols},average.w2_std{1,cols},'Marker',shapes(2,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w2_fit = fillmissing(flip(average.w2{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w2_fit = flip(w2_fit);
-            plot(round(average.x{1,cols}), w2_fit,'Marker',shapes(2,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:)); grid on;
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave II'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-
-            figure(counter+2); hold on; % wave 3
-            w3 = errorbar(round(average.x{1,cols}), average.w3{1,cols},average.w3_std{1,cols},'Marker',shapes(3,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w3_fit = fillmissing(flip(average.w3{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w3_fit = flip(w3_fit);
-            plot(round(average.x{1,cols}), w3_fit,'Marker',shapes(3,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave III'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-
-            figure(counter+3); hold on; % wave 4
-            w4 = errorbar(round(average.x{1,cols}), average.w4{1,cols},average.w4_std{1,cols},'Marker',shapes(4,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w4_fit = fillmissing(flip(average.w4{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w4_fit = flip(w4_fit);
-            plot(round(average.x{1,cols}), w4_fit,'Marker',shapes(4,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:)); grid on;
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            xticks(round(unique(average.x{1,1})));
-            subtitle('Wave IV'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-
-            figure(counter+4); hold on;% wave 5
-            w5 = errorbar(round(average.x{1,cols}), average.w5{1,cols},average.w5_std{1,cols},'Marker',shapes(5,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w5_fit = fillmissing(flip(average.w5{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w5_fit = flip(w5_fit);
-            plot(round(average.x{1,cols}), w5_fit,'Marker',shapes(5,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            xticks(round(unique(average.x{1,1}))); hold off; grid on;
-            subtitle('Wave V'); xlim([-inf,inf]);
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off;
-            ylabel(y_units, 'FontWeight', 'bold'); grid on;
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-
-
-            figure(counter+5); hold on;% wave 1/5 ratio
-            w1and5 = errorbar(round(average.x{1,cols}), average.w1and5{1,cols},average.w1and5_std{1,cols},'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
-            w1and5_fit = fillmissing(flip(average.w1and5{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); w1and5_fit = flip(w1and5_fit);
-            plot(round(average.x{1,cols}), w1and5_fit,'Marker',shapes(1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));
-            plot(round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--', 'linew', 2, 'Color', 'k','HandleVisibility','off');
-            xticks(round(unique(average.x{1,1})));
-            xlabel(x_units, 'FontWeight', 'bold'); hold off; grid on;
-            ylabel('Wave I/V Ratio', 'FontWeight', 'bold');
-            subtitle('Wave I/V'); xlim([-inf,inf]);
-            legend(legend_string,'Location','southoutside','Orientation','horizontal');
-            legend boxoff; set(gca,'FontSize',15); title(title_str, 'FontSize', 16);
-            set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+        % Wave selection defaults (same optional args as absolute section)
+        if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
+        if nargin < 18, wave_ratios = {}; end
+        all_wave_names  = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
+        all_wave_fields = {'w1','w2','w3','w4','w5'};
+        all_wave_std    = {'w1_std','w2_std','w3_std','w4_std','w5_std'};
+        shown_wi = find(wave_sel);
+        if isempty(wave_ratios) && isfield(average,'w1and5')
+            ratio_labels = {'Wave I/V'}; use_w1and5 = true;
+        else
+            ratio_labels = wave_ratios(:)'; use_w1and5 = false;
         end
-        average.subjects = Chins2Run;
-        average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+        n_ratio  = numel(ratio_labels);
+        n_tiles  = numel(shown_wi) + n_ratio;
+        if n_tiles == 0, n_tiles = 1; end
+        t_cols = min(n_tiles, 3);
+        t_rows = ceil(n_tiles / t_cols);
+        % Build single tiledlayout figure
+        fh = figure(counter); clf;
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh,'Visible','off'); end
+        tl = tiledlayout(fh, t_rows, t_cols, 'TileSpacing','compact', 'Padding','compact');
+        title(tl, title_str, 'FontSize',16, 'FontWeight','bold');
+        n_rel_cols = size(average.w1, 1);  % number of post conditions (rows in average struct)
+        ax1 = [];
+        wave_axes = gobjects(numel(shown_wi), 1);
+        % --- Wave tiles ---
+        for wi_idx = 1:numel(shown_wi)
+            wnum = shown_wi(wi_idx);
+            wf   = all_wave_fields{wnum};
+            wsf  = all_wave_std{wnum};
+            wn   = all_wave_names{wnum};
+            ax = nexttile(tl);
+            if isempty(ax1), ax1 = ax; end
+            hold(ax,'on');
+            for cols = 1:n_rel_cols
+                if isempty(average.(wf){1,cols}), continue; end
+                c_idx = cols + 1;  % colors shifted by 1 for relative plots
+                errorbar(ax, round(average.x{1,cols}), average.(wf){1,cols}, average.(wsf){1,cols}, ...
+                    'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,'Color',colors(c_idx,:),...
+                    'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
+                    'HandleVisibility','off');
+                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
+                plot(ax, round(average.x{1,cols}), fit_y,'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,...
+                    'Color',colors(c_idx,:),'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
+                    'HandleVisibility','off');
+                plot(ax, round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--','LineWidth',2,'Color','k','HandleVisibility','off');
+            end
+            x_tks = round(unique(average.x{1,1}));
+            xticks(ax, x_tks);
+            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
+            title(ax, wn, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            % Per-tile axis labels: ylabel on left column, xlabel on every tile
+            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',10, 'FontWeight','bold'); end
+            xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold');
+            hold(ax,'off');
+            wave_axes(wi_idx) = ax;
+        end
+        % Link wave y-axes for comparable view across waves
+        valid_wave_ax = wave_axes(arrayfun(@(a) ~isequal(a, gobjects(1)), wave_axes) & isvalid(wave_axes));
+        if numel(valid_wave_ax) > 1
+            linkaxes(valid_wave_ax, 'y');
+        end
+        % Latency: tight ylim fitted to data+errorbars, ticks every 0.5 ms
+        if strcmp(peak_analysis,'Latency') && numel(valid_wave_ax) > 0
+            lat_lo = Inf; lat_hi = -Inf;
+            for wai = 1:numel(shown_wi)
+                wf_tmp  = all_wave_fields{shown_wi(wai)};
+                wsf_tmp = all_wave_std{shown_wi(wai)};
+                for c_tmp = 1:n_rel_cols
+                    v_tmp = average.(wf_tmp){1,c_tmp};
+                    s_tmp = average.(wsf_tmp){1,c_tmp};
+                    if ~isempty(v_tmp) && any(isfinite(v_tmp(:)))
+                        fin = isfinite(v_tmp(:));
+                        err = zeros(size(v_tmp(:)));
+                        if ~isempty(s_tmp) && any(isfinite(s_tmp(:))), err = s_tmp(:); err(~isfinite(err)) = 0; end
+                        lat_lo = min(lat_lo, min(v_tmp(fin) - err(fin)));
+                        lat_hi = max(lat_hi, max(v_tmp(fin) + err(fin)));
+                    end
+                end
+            end
+            if isfinite(lat_lo) && isfinite(lat_hi)
+                step = 0.5;
+                t0 = floor(lat_lo/step)*step;
+                t1 = ceil(lat_hi/step)*step;
+                set(valid_wave_ax, 'YTick', t0:step:t1, 'YLim', [t0-step/2, t1+step/2]);
+            end
+        end
+        % --- Ratio tiles ---
+        for ri = 1:n_ratio
+            ax = nexttile(tl);
+            if isempty(ax1), ax1 = ax; end
+            hold(ax,'on');
+            if use_w1and5
+                rat_d = average.w1and5; rat_s = average.w1and5_std;
+                rlbl  = 'Wave I/V';
+            else
+                [rat_d, rat_s] = compute_wave_ratio(average, ratio_labels{ri});
+                rlbl = ratio_labels{ri};
+            end
+            for cols = 1:n_rel_cols
+                if isempty(rat_d{1,cols}), continue; end
+                c_idx = cols + 1;
+                errorbar(ax, round(average.x{1,cols}), rat_d{1,cols}, rat_s{1,cols}, ...
+                    'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,'Color',colors(c_idx,:),...
+                    'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
+                    'HandleVisibility','off');
+                fit_y = fillmissing(flip(rat_d{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
+                plot(ax, round(average.x{1,cols}), fit_y,'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,...
+                    'Color',colors(c_idx,:),'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
+                    'HandleVisibility','off');
+                plot(ax, round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--','LineWidth',2,'Color','k','HandleVisibility','off');
+            end
+            x_tks = round(unique(average.x{1,1}));
+            xticks(ax, x_tks);
+            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
+            % y-axis: start at 0, tight upper bound from data+error
+            rat_vals = [];
+            for c_tmp = 1:n_rel_cols
+                if ~isempty(rat_d{1,c_tmp})
+                    v = rat_d{1,c_tmp}; s = rat_s{1,c_tmp};
+                    rat_vals = [rat_vals; v(:) + s(:)];
+                end
+            end
+            rat_vals = rat_vals(isfinite(rat_vals));
+            if ~isempty(rat_vals) && max(rat_vals) > 0, ylim(ax, [0, max(rat_vals)*1.15]); end
+            title(ax, rlbl, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            % Per-tile labels for ratio plots
+            rat_tile_k = numel(shown_wi) + ri;
+            if mod(rat_tile_k-1, t_cols) == 0,    ylabel(ax, 'Ratio', 'FontSize',10, 'FontWeight','bold'); end
+            if ceil(rat_tile_k/t_cols) == t_rows, xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold'); end
+            hold(ax,'off');
+        end
+        % --- Condition legend (south of layout) ---
+        if ~isempty(ax1)
+            hold(ax1,'on');
+            lh = gobjects(n_rel_cols,1);
+            leg_str = {};
+            for cols = 1:n_rel_cols
+                c_idx = cols + 1;
+                lh(cols) = plot(ax1, NaN, NaN, 's', 'MarkerFaceColor',colors(c_idx,:), ...
+                    'MarkerEdgeColor','k','MarkerSize',12,'LineWidth',1.5);
+                leg_str{cols} = sprintf('%s (n = %s)', cell2mat(Conds2Run(cols+1)), mat2str(sum(idx(:,conds_idx(cols+1)))));
+            end
+            hold(ax1,'off');
+            lgd = legend(ax1, lh, leg_str, 'Orientation','horizontal');
+            lgd.Layout.Tile = 'south';
+            lgd.Box = 'off';
+        end
+        average.subjects   = Chins2Run;
+        average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
         % Export
         cd(outpath);
         save(filename,'average');
-        print(figure(counter),[filename,'_w1_figure'],'-dpng','-r300');
-        print(figure(counter+1),[filename,'_w2_figure'],'-dpng','-r300');
-        print(figure(counter+2),[filename,'_w3_figure'],'-dpng','-r300');
-        print(figure(counter+3),[filename,'_w4_figure'],'-dpng','-r300');
-        print(figure(counter+4),[filename,'_w5_figure'],'-dpng','-r300');
-        print(figure(counter+5),[filename,'_w1and5_figure'],'-dpng','-r300');
+        print(counter, [filename,'_figure'], '-dpng', '-r300');
     end
 end
 cd(cwd)
+end
+
+% ── Helper: compute a custom wave ratio from average struct fields ─────────
+function [rat_data, rat_std] = compute_wave_ratio(average, ratio_str)
+    % Parse 'W1/W5' or 'w1/w5' → numerator field 'w1', denominator field 'w5'
+    parts = strsplit(strtrim(ratio_str), '/');
+    rat_data = cell(size(average.w1));
+    rat_std  = cell(size(average.w1));
+    if numel(parts) ~= 2, return; end
+    num_f = lower(strtrim(parts{1}));  % 'W1' → 'w1'
+    den_f = lower(strtrim(parts{2}));
+    if ~isfield(average, num_f) || ~isfield(average, den_f), return; end
+    num_std_f = [num_f '_std'];
+    den_std_f = [den_f '_std'];
+    for c = 1:numel(average.(num_f))
+        n = average.(num_f){c};
+        d = average.(den_f){c};
+        if isempty(n) || isempty(d), continue; end
+        r = n ./ d;
+        if isfield(average, num_std_f) && isfield(average, den_std_f)
+            ns = average.(num_std_f){c};
+            ds = average.(den_std_f){c};
+            rs = abs(r) .* sqrt((ns ./ max(abs(n), eps)).^2 + (ds ./ max(abs(d), eps)).^2);
+            rs(~isfinite(rs)) = 0;
+        else
+            rs = zeros(size(r));
+        end
+        rat_data{c} = r;
+        rat_std{c}  = rs;
+    end
 end

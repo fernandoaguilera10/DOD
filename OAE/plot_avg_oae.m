@@ -16,7 +16,9 @@ if isempty(idx_plot_relative)
     for cols = 1:length(average.oae)
         if ~isempty(average.bandOAE{1,cols})
             % Average DP + NF
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols,:),0.75]);
             %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols,:),0.75],'HandleVisibility','off');
             errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 12, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
@@ -49,7 +51,9 @@ if ~isempty(idx_plot_relative)  %plot relative to
     for cols = 1:length(average.oae)
         if ~isempty(average.bandOAE{1,cols})
             % Average DP + NF
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             %plot(average.f{1,cols}, average.oae{1,cols},'-', 'linew', 2, 'Color', [colors(cols+1,:),0.75]);
             %plot(average.f{1,cols}, average.nf{1,cols},'--', 'linew', 2, 'Color', [colors(cols+1,:),0.75],'HandleVisibility','off');
             errorbar(average.bandF, average.bandOAE{1,cols},average.oae_band_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols+1,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
@@ -72,10 +76,10 @@ if ~isempty(idx_plot_relative)  %plot relative to
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 average.subjects = Chins2Run;
-average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
 %% Export
 cd(outpath);
 save(filename,'average');
-print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+print(counter,[filename,'_figure'],'-dpng','-r300');
 cd(cwd)
 end

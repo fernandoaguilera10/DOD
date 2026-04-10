@@ -1,9 +1,9 @@
-function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND)
+function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND,freq_filter)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 25 March 2026 - FA
 %Description: Script to estimate and process ABR thresholds based on bootstrapped
 %cross-corelation (loosely-based on Luke Shaheen ARO2024 presentation)
-close all; cwd = pwd; addpath(cwd);
+cwd = pwd; addpath(cwd);
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 fs = 8e3; %resampled to 8e3
 samps = 400; % ABR trials per group for bootstraping
@@ -16,6 +16,10 @@ if exist(datapath,"dir")
     all_freqs = cellfun(@(x) erase(extractAfter(x,'ABR_'), '.mat'), all_datafiles, 'UniformOutput', false);
     all_freqs(strcmp(all_freqs,'click')) = {'0'};
     freqs = unique(str2double(all_freqs));
+    % Apply frequency filter if provided (0 = click, values in Hz)
+    if nargin >= 6 && ~isempty(freq_filter)
+        freqs = freqs(ismember(freqs, freq_filter));
+    end
     %% Fitting Properties
     x = 0:0.1:15;
     maximum = 0.8;
@@ -31,9 +35,9 @@ if exist(datapath,"dir")
     % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
     % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
     
-    abr_vis = figure;
+    abr_vis = figure('Visible','off');
     set(abr_vis, 'Units', 'Normalized', 'OuterPosition', [0.35, 0.025, 0.65, 0.9]);
-    fit_vis = figure;
+    fit_vis = figure('Visible','off');
     set(fit_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.45, 0.35, 0.4725]);
     
     for f = 1:length(freqs)
@@ -210,15 +214,33 @@ if exist(datapath,"dir")
         grid on
         %     yline(thresh,'r--','linewidth',2);
     end
-    thr_vis = figure;
+    thr_vis = figure('Visible','off');
     set(thr_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.025, 0.35, 0.425]);
     figure(thr_vis)
     freqs_plot = freqs/1000;
-    freqs_plot(freqs_plot == 0) = freqs_plot(2)/2;
+    % Replace click (0) with a log-scale position left of the first pure tone.
+    % Handle click-only case (length == 1) by using a fixed position.
+    if any(freqs_plot == 0)
+        non_click = freqs_plot(freqs_plot > 0);
+        if ~isempty(non_click)
+            freqs_plot(freqs_plot == 0) = non_click(1)/2;
+        else
+            freqs_plot(freqs_plot == 0) = 0.25;   % click-only: arbitrary log position
+        end
+    end
     plot(freqs_plot,thresh,'*-k','linewidth',2);
     grid on;
     xticks(freqs_plot);
-    xticklabels({'Click','0.5','1','2','4','8'});
+    % Build tick labels dynamically from the actual selected frequencies
+    tick_lbl = cell(1, length(freqs));
+    for fi_t = 1:length(freqs)
+        if freqs(fi_t) == 0
+            tick_lbl{fi_t} = 'Click';
+        else
+            tick_lbl{fi_t} = num2str(freqs(fi_t)/1000);
+        end
+    end
+    xticklabels(tick_lbl);
     set(gca,'xscale','log');
     set(gca,'FontSize',15);
     yticks(0:10:100);
@@ -326,6 +348,7 @@ if exist(datapath,"dir")
     print(abr_vis,[filename,'_ABRwaves.png'],'-dpng','-r300');
     print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
     %print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
+    close(abr_vis); close(fit_vis); close(thr_vis);
     
     abr_out.freqs = freqs';
     abr_out.thresholds = thresh;

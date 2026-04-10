@@ -3,7 +3,9 @@ global legend_string
 legend_string= Conds2Run;
 x_units = 'Frequency (Hz)';
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
-figure(ChinIND); hold on;
+figure(ChinIND);
+if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+hold on;
 if strcmp(plot_type,'RAM')
     title_str = 'RAM 223 Hz';
     y_units = 'PLV';
@@ -30,5 +32,5 @@ set(gca,'FontSize',25);
 set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);
-print(figure(ChinIND),[filename,'_figure'],'-dpng','-r300');
+print(ChinIND,[filename,'_figure'],'-dpng','-r300');
 end

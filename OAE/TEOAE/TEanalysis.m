@@ -103,6 +103,7 @@ data.spl = spl;
 cd(outpath);
 fname = [subject,'_TEOAE_',condition,'_',datafile(1:end-4)];
 print(gcf,[fname,'_figure'],'-dpng','-r300');
+close(gcf);
 save(fname,'data')
 cd(cwd);
 end

@@ -1,4 +1,4 @@
-function analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze,EXPname_in,EXPname2_in,show_figs_in,embed_fns_in)
+function analysis_run(ROOTdir,Chins2Run,Conds2Run,chinroster_filename,chinroster_sheet,plot_relative_flag,reanalyze,EXPname_in,EXPname2_in,show_figs_in,embed_fns_in,abr_freq_in,abr_levels_in,abr_tpl_per_level_in,abr_wave_sel_in,abr_wave_ratios_in,efr_harmonics_in,efr_window_in)
 cwd = pwd;
 %% Define plotting parameters
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
@@ -31,12 +31,21 @@ end
 % so they get routed into the app tabs instead of floating windows.
 use_embed = nargin >= 11 && ~isempty(embed_fns_in) && isstruct(embed_fns_in);
 if use_embed
-    embed_fns         = embed_fns_in;
+    embed_fns          = embed_fns_in;
     show_figs.analysis = false;
     show_figs.ind      = false;
     show_figs.avg      = false;
+    % Suppress all figure creation globally for the duration of this run
+    set(0,'DefaultFigureVisible','off');
 end
 limits = plot_limits(EXPname,EXPname2,idx_plot_relative); % define plot limits
+% Measure label — must match tab titles pre-created in APAT_app
+switch EXPname
+    case {'ABR','EFR'},  measure_lbl = [EXPname ' ' EXPname2];
+    case 'OAE',          measure_lbl = EXPname2;
+    case 'MEMR',         measure_lbl = 'MEMR';
+    otherwise,           measure_lbl = EXPname;
+end
 [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2); % define subdirectories based on ROOTdir
 addpath(genpath(CODEdir));
 %% Define search filename to load data
@@ -45,9 +54,16 @@ if strcmp(EXPname,'OAE')
     datapath_searchfile = filepath_searchfile;
 elseif strcmp(EXPname,'ABR')
     datapath_searchfile = '*ABR*.mat';
-    %abr_freq = [0 0.5 1 2 4 8]*10^3;
-    abr_freq = [0]*10^3;
+    abr_freq = [0 0.5 1 2 4 8]*10^3;
     abr_levels = [80 70 60 50 40];
+    abr_tpl_per_level = false;
+    if nargin >= 12 && ~isempty(abr_freq_in),         abr_freq          = abr_freq_in;          end
+    if nargin >= 13 && ~isempty(abr_levels_in),       abr_levels        = abr_levels_in;        end
+    if nargin >= 14 && ~isempty(abr_tpl_per_level_in), abr_tpl_per_level = abr_tpl_per_level_in; end
+    abr_wave_sel    = true(1,5);
+    abr_wave_ratios = {};
+    if nargin >= 15 && ~isempty(abr_wave_sel_in),    abr_wave_sel    = abr_wave_sel_in;    end
+    if nargin >= 16 && ~isempty(abr_wave_ratios_in), abr_wave_ratios = abr_wave_ratios_in; end
     switch EXPname2
         case 'Thresholds'
             filepath_searchfile = ['*',EXPname,'thresholds*.mat'];
@@ -56,6 +72,10 @@ elseif strcmp(EXPname,'ABR')
     end
 elseif strcmp(EXPname,'EFR')
     efr_levels = [];   % detected automatically per subject/condition from saved filenames
+    efr_harmonics = 16;     % default; overridden by UI
+    efr_window    = [0.2, 0.9];  % default analysis window (s)
+    if nargin >= 17 && ~isempty(efr_harmonics_in), efr_harmonics = efr_harmonics_in; end
+    if nargin >= 18 && ~isempty(efr_window_in),    efr_window    = efr_window_in;    end
     switch EXPname2
         case 'dAM'
             filepath_searchfile = '*EFR_dAM*.mat';
@@ -244,15 +264,20 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
 end
 
 
+n_total = sum(sum(subject_idx));   % total subject×condition pairs to process
 for ChinIND=1:length(Chins2Run)
     conds_idx = find(subject_idx(ChinIND,:)==1);
     Conds2Run = all_Conds2Run(conds_idx);
+    % Snapshot BEFORE any figures are created for this subject (used to
+    % identify individual figures belonging to this subject)
+    if use_embed, pre_subj_figs = findall(0,'Type','figure'); end
     for i=1:length(conds_idx)
         CondIND = conds_idx(i);
         file_check = filepath_idx(ChinIND,CondIND);
         data_check = datapath_idx(ChinIND,CondIND);
         subject_check = subject_idx(ChinIND,CondIND);
         condition = strsplit(all_Conds2Run{CondIND}, filesep);
+        drawnow limitrate;   % allow ring spinner timer callback to fire
         cd(CODEdir);
         % Branch 2: move files from Data/RAW into subject/condition folder
         if data_check == 0 && subject_check == 1
@@ -276,6 +301,11 @@ for ChinIND=1:length(Chins2Run)
         % Branch 1: convert RAW data to analyzed format
         if file_check == 0 && data_check == 1 && subject_check == 1 || reanalyze == 1
             fprintf('\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
+            if use_embed && isfield(embed_fns,'progress')
+                cond_lbl = strsplit(all_Conds2Run{CondIND},filesep); cond_lbl = cond_lbl{end};
+                embed_fns.progress(max(0,counter), n_total, ...
+                    sprintf('Analyzing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, max(0,counter), n_total));
+            end
             filepath = strcat(OUTdir,filesep,EXPname,filesep,Chins2Run{ChinIND},filesep,all_Conds2Run{CondIND});
             datapath = datapath_dir{ChinIND,CondIND};
             calibpath = datapath;
@@ -284,14 +314,14 @@ for ChinIND=1:length(Chins2Run)
                 mkdir(filepath);
             end
             if use_embed, pre_figs_b1 = findall(0,'Type','figure'); end
-            set(0,'DefaultFigureVisible', onoff(show_figs.analysis));
+            set(0,'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
             switch EXPname
                 case 'ABR'
                     switch EXPname2
                         case 'Thresholds'
-                            ABR_thresholds(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND);
+                            ABR_thresholds(datapath,filepath,Chins2Run{ChinIND},all_Conds2Run,CondIND,abr_freq);
                         case 'Peaks'
-                            ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,limits.ind.peaks,abr_freq,abr_levels)
+                            ABR_dtw(ROOTdir,CODEdir,datapath,filepath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,limits.ind.peaks,abr_freq,abr_levels,abr_tpl_per_level)
                     end
                 case 'EFR'
                     switch EXPname2
@@ -299,7 +329,7 @@ for ChinIND=1:length(Chins2Run)
                             dAManalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
                             cd(CODEdir)
                         case 'RAM'
-                            RAManalysis(datapath,filepath,Chins2Run{ChinIND},condition{2});
+                            RAManalysis(datapath,filepath,Chins2Run{ChinIND},condition{2},efr_harmonics,efr_window);
                             cd(CODEdir)
                     end
                 case 'OAE'
@@ -314,13 +344,18 @@ for ChinIND=1:length(Chins2Run)
                 case 'MEMR'
                     WBMEMRanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
-            set(0,'DefaultFigureVisible','on');
+            if ~use_embed, set(0,'DefaultFigureVisible','on'); end
             if use_embed
                 new_figs = setdiff(findall(0,'Type','figure'), pre_figs_b1);
                 new_figs = new_figs(isvalid(new_figs));
+                % Force any leaked figures back to invisible before embedding
                 if ~isempty(new_figs)
-                    lbl = sprintf('%s | %s', Chins2Run{ChinIND}, condition{end});
-                    embed_fns.analysis(new_figs, lbl);
+                    set(new_figs,'Visible','off');
+                end
+                if ~isempty(new_figs)
+                    embed_fns.analysis(new_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                    valid_mask = isvalid(new_figs);
+                    if any(valid_mask), close(new_figs(valid_mask)); end
                 end
             end
             % Mark analyzed file as available so Branch 3 runs in this same pass
@@ -332,22 +367,27 @@ for ChinIND=1:length(Chins2Run)
         % Branch 3: load analyzed data and run summary/averaging
         if file_check == 1 && data_check == 1 && subject_check == 1 || flag == 1
             counter = counter+1;
-            if counter == sum(sum(subject_idx))
+            if counter == n_total
                 flag = 1;
             end
             fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
+            if use_embed && isfield(embed_fns,'progress')
+                cond_lbl = strsplit(all_Conds2Run{CondIND},filesep); cond_lbl = cond_lbl{end};
+                embed_fns.progress(counter, n_total, ...
+                    sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
+            end
             filepath = filepath_dir{ChinIND,CondIND};
             datapath = datapath_dir{ChinIND,CondIND};
             if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
-            set(0,'DefaultFigureVisible', onoff(show_figs.ind || show_figs.avg));
+            set(0,'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
             switch EXPname
                 case 'ABR'
                     cd(strcat(ROOTdir,filesep,'Code Archive',filesep,'ABR'));
                     switch EXPname2
                         case 'Thresholds'
-                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,flag,conds_idx);
+                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.ind,[],[],limits.avg,[],[],colors,shapes,EXPname2,flag,conds_idx,abr_freq);
                         case 'Peaks'
-                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,flag,conds_idx,abr_freq,abr_levels);
+                            ABRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,[],limits.ind.peaks,limits.ind.latency,[],limits.avg.peaks,limits.avg.latency,colors,shapes,EXPname2,flag,conds_idx,abr_freq,abr_levels,abr_wave_sel,abr_wave_ratios);
                     end
                 case 'EFR'
                     % Auto-detect level from saved filenames (use first found, fallback 80)
@@ -385,20 +425,76 @@ for ChinIND=1:length(Chins2Run)
                     WBMEMRsummary(filepath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,limits.avg,limits.threshold,shapes,colors,flag,conds_idx)
                     filename = 'MEMR_Average';
             end
-            set(0,'DefaultFigureVisible','on');
-            if use_embed
-                new_figs = setdiff(findall(0,'Type','figure'), pre_figs_b3);
-                new_figs = new_figs(isvalid(new_figs));
-                if ~isempty(new_figs)
-                    lbl = sprintf('%s %s', EXPname, EXPname2);
-                    embed_fns.average(new_figs, lbl);
+            if ~use_embed, set(0,'DefaultFigureVisible','on'); end
+            if use_embed && i == length(conds_idx)
+                % Last condition for this subject — individual figures are complete
+                drawnow;  % flush rendering queue so invisible figures are committed before copyobj
+                after_figs = findall(0,'Type','figure');
+                % All figures created since the start of this subject's processing
+                from_subj = setdiff(after_figs, pre_subj_figs);
+                from_subj = from_subj(isvalid(from_subj));
+                % Force any leaked figures invisible before embedding
+                if ~isempty(from_subj)
+                    set(from_subj,'Visible','off');
                 end
+                % Figures created specifically by this last summary call (avg)
+                new_this_call = setdiff(after_figs, pre_figs_b3);
+                new_this_call = new_this_call(isvalid(new_this_call));
+                % Split individual vs average figures.
+                % For all ABR types: plot_ind_abr sets figure.Name to a subject
+                % or frequency label (no '|').  Average figures from plot_avg_abr
+                % have no Name (Thresholds) or a 'Category|Freq' Name (Peaks).
+                % Use Name presence to split reliably — timing-based setdiff fails
+                % when ABRsummary creates both ind + avg figures in one call (flag==1).
+                if strcmp(EXPname,'ABR')
+                    fig_names  = arrayfun(@(f) get(f,'Name'), from_subj, 'UniformOutput', false);
+                    has_pipe   = cellfun(@(n) ~isempty(n) && contains(n,'|'), fig_names);
+                    has_name   = ~cellfun(@isempty, fig_names);
+                    % Average figures use fixed category labels: Waveforms, Amplitudes, Latencies.
+                    % Individual Peaks figures use condition labels (Baseline, D7, D14 …).
+                    % Both contain '|', so distinguish by the prefix before the pipe.
+                    avg_cats     = {'Waveforms','Amplitudes','Latencies'};
+                    is_avg_named = false(size(fig_names));
+                    for kk = 1:numel(fig_names)
+                        if has_pipe(kk)
+                            pts = strsplit(fig_names{kk},'|');
+                            is_avg_named(kk) = ismember(pts{1}, avg_cats);
+                        end
+                    end
+                    ind_figs  = from_subj(has_name & ~is_avg_named);
+                    avg_figs  = from_subj(is_avg_named | ~has_name);
+                    % Sort ind_figs by figure number (= creation order) so condition
+                    % tabs appear Baseline → D7 → D14 rather than in reverse order.
+                    if ~isempty(ind_figs)
+                        [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
+                        ind_figs = ind_figs(si);
+                    end
+                else
+                    % For all other modalities: timing-based split
+                    ind_figs = setdiff(from_subj, new_this_call);
+                    if isempty(ind_figs), ind_figs = from_subj; end  % single-cond fallback
+                    avg_figs = new_this_call;
+                    if isempty(avg_figs) && counter == n_total
+                        avg_figs = from_subj;  % fallback when all created in one call
+                    end
+                end
+
+                if ~isempty(ind_figs)
+                    embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                end
+                if counter == n_total && ~isempty(avg_figs)
+                    embed_fns.average(avg_figs, measure_lbl);
+                end
+                % Close all figures for this subject after all embeds
+                to_close = from_subj(isvalid(from_subj));
+                if ~isempty(to_close), close(to_close); end
             end
             flag = -1;
         end
     end
 end
 cd(cwd);
+if use_embed, set(0,'DefaultFigureVisible','on'); end
 %% Analysis Summary
 Conds2Run = all_Conds2Run;
 if flag == -1

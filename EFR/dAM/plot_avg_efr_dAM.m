@@ -4,11 +4,16 @@ legend_string = [];
 x_units = 'Frequency (Hz)';
 title_str = 'dAM 4 kHz';
 if isempty(idx_plot_relative)
+    figure(counter);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.dAMpower)
         if ~isempty(average.dAMpower{1,cols})
             row_idx{cols} = find(~cellfun('isempty', average.dAMpower(:, cols)));
             %% Average PLV Spectrum
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             % dAM Power
             plot(average.trajectory{1,cols},average.dAMpower{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:));
             errorbar(average.trajectory{1,cols},average.dAMpower{1,cols},average.dAMpower_std{1,cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
@@ -31,9 +36,14 @@ if isempty(idx_plot_relative)
 end
 %% Plot relative to Baseline
 if ~isempty(idx_plot_relative)
+    figure(counter);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;   % clear any pre-existing content before building average
     for cols = 1:length(average.dAMpower)
         if ~isempty(average.dAMpower{1,cols})
-            figure(counter); hold on;
+            figure(counter);
+            if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+            hold on;
             % dAM Power
             plot(average.trajectory{1,cols},average.dAMpower{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 2, 'Color', colors(cols+1,:), 'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:));            
             errorbar(average.trajectory{1,cols},average.dAMpower{1,cols},average.dAMpower_std{1,cols},'Marker',shapes(cols+1,:),'LineStyle','-', 'linew', 3, 'Color', colors(cols+1,:),'MarkerSize', 15, 'MarkerFaceColor', colors(cols+1,:), 'MarkerEdgeColor', colors(cols+1,:),'HandleVisibility','off');
@@ -55,9 +65,9 @@ if ~isempty(idx_plot_relative)
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 end
 average.subjects = Chins2Run;
-average.conditions = [convertCharsToStrings(all_Conds2Run);idx];
+average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
 %% Export
 cd(outpath);
 save(filename,'average');
-print(figure(counter),[filename,'_figure'],'-dpng','-r300');
+print(counter,[filename,'_figure'],'-dpng','-r300');
 end

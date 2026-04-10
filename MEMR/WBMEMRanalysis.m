@@ -130,6 +130,7 @@ for i = 1:numOfFiles
         fname = [subject,'_MEMR_WB_',condition,'_',datafile(1:5)];
     end
     print(gcf,[fname,'_figure'],'-dpng','-r300');
+    close(gcf);
     save(fname,'memr')
     cd(cwd);
     clear stim

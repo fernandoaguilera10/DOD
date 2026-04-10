@@ -20,7 +20,9 @@ elseif strcmp(EXPname,'TEOAE')
     x_units = 'Frequency (kHz)';
     filename = cell2mat([Chins2Run(ChinIND),'_TEOAE_',condition{2},'_',plot_type,'_']);
 end
-figure(fig_num); hold on;
+figure(fig_num);
+if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+hold on;
 %plot(data_new.f, data_new.oae,'-', 'linew', 2, 'Color', colors(CondIND,:),'HandleVisibility','off')
 %plot(data_new.f, data_new.nf, '--', 'linew', 2, 'Color', [colors(CondIND,:),0.25],'HandleVisibility','off')
 plot(data_new.centerFreq, data_new.bandOAE,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
@@ -40,6 +42,6 @@ set(gca,'FontSize',25);
 set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 %% Export
 cd(outpath);
-print(figure(fig_num),[filename,'_figure'],'-dpng','-r300');
+print(fig_num,[filename,'_figure'],'-dpng','-r300');
 cd(cwd)
 end

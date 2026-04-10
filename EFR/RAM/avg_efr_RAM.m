@@ -37,7 +37,9 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             avg_f{1,cols} = mean([avg_f{1,cols}; f{rows, cols}],1);
             if idx(rows,cols) == 1
                 % Plot individual traces with average
-                figure(counter); hold on;
+                figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                 %plot(peaks_locs{rows, cols}, peaks{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
             end
         end
@@ -61,7 +63,9 @@ elseif ~isempty(idx_plot_relative)
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(counter); hold on;
+                    figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                     %plot(peaks_locs{rows, cols}, peaks{rows, cols}-peaks{rows, idx_plot_relative},'-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
                 end
             end

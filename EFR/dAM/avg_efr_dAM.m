@@ -29,7 +29,9 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             NFpower_std{1,cols} = nanstd(cell2mat(all_NFpower(:,cols)),0,1);
             if idx(rows,cols) == 1
                 % Plot individual traces with average
-                figure(counter); hold on;
+                figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                 %plot(trajectory{rows, cols}, dAMpower{rows, cols},'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30],'HandleVisibility','off');
                 %plot(trajectory{rows, cols}, NFpower{rows, cols},'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30],'HandleVisibility','off');
                 set(gca, 'XScale', 'log')
@@ -50,7 +52,9 @@ elseif ~isempty(idx_plot_relative)
                 NFpower_std{1,cols-1} = nanstd(cell2mat(all_NFpower(:,cols-1)),0,1);
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(counter); hold on;
+                    figure(counter);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                hold on;
                     %plot(trajectory{rows, cols}, dAMpower{rows, cols}-dAMpower{rows, idx_plot_relative},'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30],'HandleVisibility','off');
                     %plot(trajectory{rows, cols}, NFpower{rows, cols}-NFpower{rows, idx_plot_relative},'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30],'HandleVisibility','off');
                     set(gca, 'XScale', 'log')

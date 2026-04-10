@@ -9,7 +9,7 @@ condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if exist(outpath,"dir")
     cd(PRIVATEdir)
     search_file = cell2mat(['*',Chins2Run(ChinIND),'_TEOAE_',condition{2},'*.mat']);
-    datafile = load_files(outpath,search_file,'data');
+    datafile = load_files(outpath,search_file,'data',[],true);
     cd(outpath);
     load(datafile);
     cd(cwd);
@@ -31,6 +31,9 @@ end
 %% AVERAGE PLOTS (individual + average)
 fig_num_avg = ChinIND+1;
 if average_flag == 1
+    figure(fig_num_avg);
+    if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+    clf;  % clear stale content before drawing
     % Plot individual lines
     [average_spl,idx] = avg_oae(te_f_spl,te_amp_spl,te_nf_spl,te_f_band_spl,te_amp_band_spl,te_nf_band_spl,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative);
     % Plot average lines

@@ -29,7 +29,9 @@ if isempty(idx_plot_relative)   % plot all timepoints, including baseline
             % check if data is present for a given timepoint and subject
             if idx(rows,cols) == 1
                 % Plot individual traces with average
-                figure(length(Chins2Run)+1); subplot(1,4,[1,3]); hold on;
+                figure(length(Chins2Run)+1);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                subplot(1,4,[1,3]); hold on;
                 %plot(elicitor{rows, cols}, deltapow{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
                 set(gca, 'XScale', 'log', 'FontSize', 14);
             end
@@ -49,7 +51,9 @@ elseif ~isempty(idx_plot_relative)
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(length(Chins2Run)+1); subplot(1,4,[1,3]); hold on;
+                    figure(length(Chins2Run)+1);
+                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+                subplot(1,4,[1,3]); hold on;
                     %plot(elicitor{rows, cols}, deltapow{rows, cols}-deltapow{rows, idx_plot_relative}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
                     set(gca, 'XScale', 'log', 'FontSize', 14);
                 end
