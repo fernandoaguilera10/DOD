@@ -46,3 +46,6 @@ bin/
 .idea/
 .project
 .settings/*.asv
+
+# --- Claude Code ---
+.claude/
