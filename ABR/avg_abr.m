@@ -30,7 +30,14 @@ if strcmp(analysis_type,'Thresholds')
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
-                    figure(counter); hold on;
+                    fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
+                    if isempty(fh_thr_avg)
+                        fh_thr_avg = figure('Name','ABR Thresholds Average', ...
+                            'NumberTitle','off','Tag','APAT_thr_avg');
+                    else
+                        figure(fh_thr_avg(1));
+                    end
+                    hold on;
                     freq = 1:length(x{rows,cols});
                     freq_threshold = [nan,  y{rows,cols}(2:end)];
                     freq_click = [y{rows,cols}(1),nan(1,length(freq)-1)];
@@ -55,7 +62,14 @@ if strcmp(analysis_type,'Thresholds')
                     % check if data is present for a given timepoint and subject
                     if idx(rows,cols) == 1
                         % Plot individual traces with average
-                        figure(counter); hold on;
+                        fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
+                        if isempty(fh_thr_avg)
+                            fh_thr_avg = figure('Name','ABR Thresholds Average', ...
+                                'NumberTitle','off','Tag','APAT_thr_avg');
+                        else
+                            figure(fh_thr_avg(1));
+                        end
+                        hold on;
                         freq = 1:length(x{rows,cols});
                         freq_threshold = [nan,  y{rows,cols}(2:end)-y{rows,idx_plot_relative}(2:end)];
                         freq_click = [y{rows,cols}(1)-y{rows,idx_plot_relative}(1),nan(1,length(freq)-1)];

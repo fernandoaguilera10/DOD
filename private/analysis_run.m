@@ -313,7 +313,7 @@ for ChinIND=1:length(Chins2Run)
                 fprintf('\nCreating analysis directory for %s (%s)...\n',Chins2Run{ChinIND},all_Conds2Run{CondIND});
                 mkdir(filepath);
             end
-            if use_embed, pre_figs_b1 = findall(0,'Type','figure'); end
+            pre_figs_b1 = findall(0,'Type','figure');
             set(0,'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
             switch EXPname
                 case 'ABR'
@@ -345,18 +345,13 @@ for ChinIND=1:length(Chins2Run)
                     WBMEMRanalysis(ROOTdir,datapath,filepath,Chins2Run{ChinIND},condition{2});
             end
             if ~use_embed, set(0,'DefaultFigureVisible','on'); end
-            if use_embed
-                new_figs = setdiff(findall(0,'Type','figure'), pre_figs_b1);
-                new_figs = new_figs(isvalid(new_figs));
-                % Force any leaked figures back to invisible before embedding
-                if ~isempty(new_figs)
-                    set(new_figs,'Visible','off');
-                end
-                if ~isempty(new_figs)
-                    embed_fns.analysis(new_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
-                    valid_mask = isvalid(new_figs);
-                    if any(valid_mask), close(new_figs(valid_mask)); end
-                end
+            % Keep Branch 1 figures open and invisible so they accumulate with
+            % Branch 3 figures and are all embedded together after the subject's
+            % last condition. PNGs are already saved by the analysis script.
+            new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
+            new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
+            if ~isempty(new_figs_b1)
+                set(new_figs_b1, 'Visible', 'off');
             end
             % Mark analyzed file as available so Branch 3 runs in this same pass
             filepath_idx(ChinIND,CondIND) = 1;
@@ -448,20 +443,33 @@ for ChinIND=1:length(Chins2Run)
                 % when ABRsummary creates both ind + avg figures in one call (flag==1).
                 if strcmp(EXPname,'ABR')
                     fig_names  = arrayfun(@(f) get(f,'Name'), from_subj, 'UniformOutput', false);
+                    fig_tags   = arrayfun(@(f) get(f,'Tag'),  from_subj, 'UniformOutput', false);
                     has_pipe   = cellfun(@(n) ~isempty(n) && contains(n,'|'), fig_names);
                     has_name   = ~cellfun(@isempty, fig_names);
                     % Average figures use fixed category labels: Waveforms, Amplitudes, Latencies.
                     % Individual Peaks figures use condition labels (Baseline, D7, D14 …).
                     % Both contain '|', so distinguish by the prefix before the pipe.
-                    avg_cats     = {'Waveforms','Amplitudes','Latencies'};
-                    is_avg_named = false(size(fig_names));
+                    avg_cats      = {'Waveforms','Amplitudes','Latencies'};
+                    % Diagnostic analysis figures (ABR Waveforms|cond, Sigmoid Fits|cond,
+                    % Audiogram|cond) are intentionally kept in ind_figs so they are
+                    % embedded in the individual panel alongside the summary figure.
+                    % Only Peaks Waterfall figures (Branch 1 remnants) are excluded.
+                    is_avg_named   = false(size(fig_names));
+                    is_analysis    = false(size(fig_names));
                     for kk = 1:numel(fig_names)
                         if has_pipe(kk)
                             pts = strsplit(fig_names{kk},'|');
                             is_avg_named(kk) = ismember(pts{1}, avg_cats);
                         end
+                        is_analysis(kk) = startsWith(fig_names{kk}, 'Peaks Waterfall|');
+                        % ABR Thresholds average figure: detected by Tag (primary)
+                        % or by Name (fallback) — both set by avg_abr/plot_avg_abr.
+                        if strcmp(fig_tags{kk}, 'APAT_thr_avg') || ...
+                                strcmp(fig_names{kk}, 'ABR Thresholds Average')
+                            is_avg_named(kk) = true;
+                        end
                     end
-                    ind_figs  = from_subj(has_name & ~is_avg_named);
+                    ind_figs  = from_subj(has_name & ~is_avg_named & ~is_analysis);
                     avg_figs  = from_subj(is_avg_named | ~has_name);
                     % Sort ind_figs by figure number (= creation order) so condition
                     % tabs appear Baseline → D7 → D14 rather than in reverse order.

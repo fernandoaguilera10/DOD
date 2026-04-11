@@ -1,7 +1,7 @@
 classdef APAT_app < matlab.apps.AppBase
 %APAT_APP  Auditory Physiology Analysis Toolkit — App Designer version.
 %
-%   Three-tab workflow:i
+%   Three-tab workflow:
 %     1. Setup   – configure user, project, subjects, conditions,
 %                  options, and auditory measure; then click Run Analysis
 %     2. Figures – Individual sub-tab: per-subject/condition plots
@@ -18,6 +18,7 @@ properties (Access = public)
     TitleLabel              matlab.ui.control.Label
     SubtitleLabel           matlab.ui.control.Label
     RunButton               matlab.ui.control.Button
+    StopButton              matlab.ui.control.Button
     % Tab group
     TabGroup                matlab.ui.container.TabGroup
     SetupTab                matlab.ui.container.Tab
@@ -113,6 +114,8 @@ properties (Access = private)
     h_spinner_label          % uilabel – rotating char under Run button
     h_spinner_timer          % timer – drives spinner animation
     spinner_frame            % current frame index into spinner chars
+    % Stop / abort
+    abort_requested          % logical – set true by StopButton to cancel analysis
     % ABR wave selection / normalization (Peaks only)
     h_abr_wave_checks        % uicheckbox array W1-W5
     h_abr_ratio_field        % uieditfield – ratio combinations
@@ -184,16 +187,29 @@ methods (Access = private)
             'FontColor',app.clr_black,'BackgroundColor',app.clr_gold, ...
             'ButtonPushedFcn', @(~,~) RunButtonPushed(app));
 
-        % ── Spinner (left of button) + progress label (under button) ────────
+        % ── Stop button + spinner + progress label ───────────────────────────
         RUN_X   = FIG_W - RUN_W - 16;
         RUN_Y   = round((HDR_H - RUN_H) / 2);
-        SPIN_W  = 30;  SPIN_H  = 30;
+        STOP_W  = 120;  STOP_H = RUN_H;
+        SPIN_W  = 30;   SPIN_H = 30;
         LBL_H   = 16;
-        % Spinner: vertically centered with Run button, 10 px gap to its left
-        SPIN_X  = RUN_X - SPIN_W - 10;
+        % Stop button: same height as Run, immediately left of it
+        STOP_X  = RUN_X - STOP_W - 10;
+        STOP_Y  = RUN_Y;
+        % Spinner: vertically centered with Run button, 10 px gap left of Stop
+        SPIN_X  = STOP_X - SPIN_W - 10;
         SPIN_Y  = RUN_Y + round((RUN_H - SPIN_H) / 2);
         % Progress text: centered directly under Run button
         LBL_Y   = RUN_Y - LBL_H - 3;
+
+        app.StopButton = uibutton(app.HeaderPanel,'push', ...
+            'Text','■  Stop', ...
+            'Position',[STOP_X STOP_Y STOP_W STOP_H], ...
+            'FontSize',16,'FontWeight','bold', ...
+            'FontColor',app.clr_black,'BackgroundColor',[0.78 0.28 0.28], ...
+            'Visible','off','Enable','on', ...
+            'ButtonPushedFcn', @(~,~) StopButtonPushed(app));
+
         app.h_spinner_label = uilabel(app.HeaderPanel, ...
             'Text','', 'FontSize',18, ...
             'FontColor',app.clr_gold, ...
@@ -207,6 +223,7 @@ methods (Access = private)
             'Position',[RUN_X LBL_Y RUN_W LBL_H], ...
             'Visible','off');
         app.spinner_frame = 1;
+        app.abort_requested = false;
 
         % ── Tab group ───────────────────────────────────────────────────────
         app.TabGroup = uitabgroup(app.UIFigure, 'Position',[0 0 FIG_W TAB_H]);
@@ -832,8 +849,12 @@ methods (Access = private)
         app.FigIndBtn.BackgroundColor = app.clr_btn;
         app.FigSubjDropdown.Visible = 'off';
         switchFigurePanel(app, 2, app.fig_panel_meas);
-        % Restore all avg-available frequencies for the avg dropdown
-        sync_avg_freq_labels(app, current_meas_idx(app));
+        meas_idx_avg = current_meas_idx(app);
+        % Hide Freq/Cond dropdown for non-Peaks measures (Average shows all
+        % conditions together — no per-condition filtering needed)
+        update_filter_visibility(app, meas_idx_avg);
+        % Restore all avg-available frequencies for the avg dropdown (Peaks only)
+        sync_avg_freq_labels(app, meas_idx_avg);
         apply_avg_filter(app);
     end
 
@@ -1069,18 +1090,26 @@ methods (Access = private)
         titles = unique(titles, 'stable');   % deduplicate while preserving order
         if isempty(titles), return; end
 
-        % Populate unconditionally for ABR Peaks (meas_idx==2) — visibility is
-        % set afterwards by update_filter_visibility, so check both states.
-        if meas_idx == 2 || strcmp(app.FigFreqDD.Visible,'on')
-            app.FigFreqDD.Items = titles(:)';
-            if ~any(strcmp(titles, app.FigFreqDD.Value))
-                app.FigFreqDD.Value = titles{1};
-            end
+        app.FigFreqDD.Items = titles(:)';
+        if ~any(strcmp(titles, app.FigFreqDD.Value))
+            app.FigFreqDD.Value = titles{1};
         end
         if strcmp(app.FigLevelDD.Visible,'on')
             app.FigLevelDD.Items = titles(:)';
             app.FigLevelDD.Value = titles{1};
         end
+
+        % Show FigFreqDD and set label contextually:
+        %   freq labels contain 'Hz' or equal 'Click' → 'Freq:'
+        %   condition labels (pre, D7, …) → 'Cond:'
+        lbl_f = findall(app.UIFigure,'Tag','fig_freq_lbl');
+        is_freq_labels = any(cellfun( ...
+            @(t) ~isempty(regexp(t,'\d+\s*(k?Hz|click)', 'once', 'ignorecase')), titles));
+        if ~isempty(lbl_f)
+            lbl_f.Text    = ternary(is_freq_labels, 'Freq:', 'Cond:');
+            lbl_f.Visible = 'on';
+        end
+        app.FigFreqDD.Visible = 'on';
     end
 
     function reset_filter_dds(app, meas_idx)
@@ -1434,7 +1463,11 @@ methods (Access = private)
             update_major_from_meas(app, meas_idx);
         end
         app.TabGroup.SelectedTab = app.FiguresTab;
-        app.RunButton.Enable = 'off';
+        app.RunButton.Enable  = 'off';
+        app.abort_requested   = false;
+        app.StopButton.Text   = '■  Stop';
+        app.StopButton.Enable = 'on';
+        app.StopButton.Visible = 'on';
         app.h_progress_label.Text    = 'Starting analysis…';
         app.h_progress_label.Visible = 'on';
         start_spinner_anim(app);
@@ -1520,15 +1553,23 @@ methods (Access = private)
                 efr_harmonics, efr_window);
         catch ME
             analysis_errored = true;
-            if isvalid(app)
+            if isvalid(app) && ~strcmp(ME.identifier,'APAT:UserAbort')
                 uialert(app.UIFigure, ME.message, 'Analysis Error');
             end
         end
 
         if isvalid(app)
-            app.RunButton.Enable = 'on';
-            stop_spinner_anim(app, ~analysis_errored);
+            app.RunButton.Enable   = 'on';
+            app.StopButton.Visible = 'off';
+            stop_spinner_anim(app, ~analysis_errored && ~app.abort_requested);
         end
+    end
+
+    function StopButtonPushed(app)
+        app.abort_requested   = true;
+        app.StopButton.Text   = 'Stopping…';
+        app.StopButton.Enable = 'off';
+        drawnow;
     end
 
     function DataStatusButtonPushed(app)
@@ -2340,7 +2381,6 @@ methods (Access = private)
         if any(strcmp(app.FigSubjDropdown.Items, subject))
             app.FigSubjDropdown.Value = subject;
         end
-        update_filter_dds(app, meas_idx, subject);
 
         switchFigurePanel(app, 1, meas_idx);
         % Ensure Individual mode active and subject controls visible
@@ -2350,6 +2390,9 @@ methods (Access = private)
         app.FigAvgBtn.BackgroundColor = app.clr_btn;
         app.FigSubjDropdown.Visible = 'on';
         update_major_from_meas(app, meas_idx);
+        % update_filter_dds after update_major_from_meas so its visibility
+        % override (Cond:/Freq: label + show) is not undone by update_filter_visibility
+        update_filter_dds(app, meas_idx, subject);
         app.TabGroup.SelectedTab = app.FiguresTab;
         drawnow;
     end
@@ -2487,15 +2530,14 @@ methods (Access = private)
     end
 
     function embed_categorized_tabs(app, figs, names, parent)
-        % Categorized tab layout for ABR Peaks average figures.
-        % Names have the form 'Category|FreqLabel' (e.g. 'Amplitudes|4 kHz').
-        % Creates a uitabgroup with one tab per category. Within each tab,
-        % stacked full-size panels (one per frequency) are controlled by
-        % FigFreqDD. Multiple figures with the same Name are placed in a
-        % 2-column grid inside the shared frequency panel.
+        % Categorized tab layout.
+        % Named figures ('Category|Label') create one tab per category; within
+        % each tab, stacked panels (one per label) are controlled by FigFreqDD.
+        % Un-named or non-pipe figures go into a 'Summary' tab (direct embed,
+        % no stacking) placed last — used for ABR Thresholds multi-condition overlay.
         PAD = 4;
 
-        % Parse category and frequency from each name
+        % Parse category and label from each name
         n = numel(figs);
         categories = cell(1, n);
         freq_labels = cell(1, n);
@@ -2505,17 +2547,20 @@ methods (Access = private)
                 categories{i}  = parts{1};
                 freq_labels{i} = parts{2};
             else
-                categories{i}  = 'Other';
-                freq_labels{i} = names{i};
+                % No pipe → Summary tab (e.g. multi-condition overlay)
+                categories{i}  = 'Summary';
+                freq_labels{i} = '';
             end
         end
 
-        % Order tabs: Waveforms first, then Amplitudes, Latencies, others
-        cat_order   = {'Waveforms','Amplitudes','Latencies'};
+        % Tab ordering: average categories → diagnostic categories → Summary
+        cat_order   = {'Waveforms','Amplitudes','Latencies', ...
+                       'ABR Waveforms','Sigmoid Fits','Audiogram'};
         unique_cats = unique(categories, 'stable');
         present     = cat_order(ismember(cat_order, unique_cats));
-        others      = unique_cats(~ismember(unique_cats, cat_order));
-        ordered_cats = [present, others];
+        others      = unique_cats(~ismember(unique_cats, [cat_order, {'Summary'}]));
+        has_summary = ismember('Summary', unique_cats);
+        ordered_cats = [present, others, ternary(has_summary, {'Summary'}, {})];
 
         tg = uitabgroup(parent, 'Units','normalized','Position',[0 0 1 1]);
 
@@ -2529,7 +2574,18 @@ methods (Access = private)
             tab_panel = uipanel(tab, 'Units','normalized','Position',[0 0 1 1], ...
                 'BorderType','none', 'BackgroundColor','white');
 
-            unique_freqs = unique(cat_freq, 'stable');
+            if strcmp(cat, 'Summary')
+                % Direct embed — no FigFreqDD stacking needed
+                for k = 1:numel(cat_figs)
+                    axs     = findall(cat_figs(k),'Type','axes');
+                    new_axs = copyobj(axs, tab_panel);
+                    arrayfun(@(a) set(a,'Units','normalized'), new_axs);
+                end
+                continue;
+            end
+
+            % Sort labels: conditions in timepoint order, frequencies numerically
+            unique_freqs = sort_tab_labels(unique(cat_freq, 'stable'));
 
             for fi = 1:numel(unique_freqs)
                 fq       = unique_freqs{fi};
@@ -2548,7 +2604,7 @@ methods (Access = private)
                     new_axs = copyobj(axs, freq_p);
                     arrayfun(@(a) set(a,'Units','normalized'), new_axs);
                 else
-                    % 2-column grid for multiple wave figures
+                    % 2-column grid for multiple figures at the same label
                     nc = 2;  nr = ceil(nf / nc);
                     for k = 1:nf
                         r = floor((k-1)/nc);  c = mod(k-1, nc);
@@ -2650,6 +2706,7 @@ methods (Access = private)
 
     function update_progress(app, n, total, msg)
         % Update the status label under the Run button.
+        % Throws if the user clicked Stop, so analysis_run unwinds cleanly.
         if ~isvalid(app) || total <= 0, return; end
         app.h_progress_label.Visible = 'on';
         if n >= total
@@ -2658,6 +2715,9 @@ methods (Access = private)
             app.h_progress_label.Text = msg;
         end
         drawnow('limitrate');
+        if app.abort_requested
+            error('APAT:UserAbort','Analysis stopped by user.');
+        end
     end
 
     % ── Spinner helpers ───────────────────────────────────────────────────
@@ -2674,6 +2734,7 @@ methods (Access = private)
             delete(app.h_spinner_timer);
         end
         app.h_spinner_timer = timer( ...
+            'Name',           'APAT_spinner', ...
             'Period',         0.12, ...
             'ExecutionMode',  'fixedRate', ...
             'BusyMode',       'drop', ...
@@ -2843,9 +2904,28 @@ end % static methods
 methods (Access = public)
 
     function app = APAT_app
+        persistent the_app
+
+        % If a valid instance is already running, bring it to front.
+        if ~isempty(the_app) && isvalid(the_app) && isvalid(the_app.UIFigure)
+            figure(the_app.UIFigure);
+            if nargout > 0, app = the_app; end
+            return;
+        end
+
+        % Previous instance is gone — clean up any orphaned timers.
+        try
+            t = timerfindall('Name', 'APAT_spinner');
+            if ~isempty(t), stop(t); delete(t); end
+        catch; end
+
         createComponents(app)
         registerApp(app, app.UIFigure)
         runStartupFcn(app, @startupFcn)
+
+        % Keep a persistent reference so the app survives 'clear app'.
+        the_app = app;
+
         if nargout == 0
             clear app
         end
@@ -2867,4 +2947,26 @@ end % classdef
 % ── Inline ternary helper ─────────────────────────────────────────────────
 function out = ternary(cond, a, b)
 if cond, out = a; else, out = b; end
+end
+
+% ── Tab label sorter (conditions in study order, then frequencies) ─────────
+function sorted = sort_tab_labels(labels)
+cond_order = {'pre','Baseline','post','D3','D7','D14','D30'};
+n = numel(labels);
+idx = nan(1, n);
+for k = 1:n
+    ci = find(strcmpi(labels{k}, cond_order), 1);
+    if ~isempty(ci)
+        idx(k) = ci;
+    else
+        num = regexp(labels{k}, '[\d\.]+', 'match', 'once');
+        if ~isempty(num)
+            idx(k) = str2double(num) + 100;
+        else
+            idx(k) = 200;
+        end
+    end
+end
+[~, si] = sort(idx);
+sorted = labels(si);
 end

@@ -157,9 +157,18 @@ if ~isempty(template) && all(~isnan(template))
         if plot_constrained
             done_editing = false;
 
+            % Interactive editing figure — MUST be visible regardless of
+            % DefaultFigureVisible so ginput receives user input.
+            edit_fig = findobj('Type','figure','Name','ABR Peak Selection');
+            if isempty(edit_fig)
+                edit_fig = figure('Visible','on','Name','ABR Peak Selection','NumberTitle','off');
+            else
+                edit_fig = edit_fig(1);
+            end
             while ~done_editing
-                figure(999); clf;
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.15, 0.4, 0.65]);
+                figure(edit_fig); clf;
+                set(edit_fig,'Visible','on');
+                set(edit_fig, 'Units', 'Normalized', 'OuterPosition', [1-0.025-0.4, 0.15, 0.4, 0.65]);
                 plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
                 % DTW constrained: filled green markers (per-wave shape)
                 for k = 1:num_waves
@@ -202,10 +211,10 @@ if ~isempty(template) && all(~isnan(template))
                         'Note: A window on the LEFT will show ABR waveforms and peaks/throughs across all levels.'}, ...
                         'Manual Edit: Select Peaks/Troughs', 'modal'));
                 end
-                figure(999);
+                figure(edit_fig);
                 title(sprintf('%s @ %d dB SPL - Select Peak/Trough to Edit',freq_str,levels(level_counter)));
                 drawnow;
-                figure(999); [x_old, ~, button_old] = ginput(1);
+                figure(edit_fig); [x_old, ~, button_old] = ginput(1);
                 if isempty(button_old) || button_old==3
                     break; % finish editing
                 end
@@ -228,7 +237,7 @@ if ~isempty(template) && all(~isnan(template))
 
                 % Highlight selected slot
                 wave_k = ceil(sel_idx_in_sig_inds/2);
-                figure(999);
+                figure(edit_fig);
                 hsel = plot(t_signal(sig_inds_manual(sel_idx_in_sig_inds)), signal(sig_inds_manual(sel_idx_in_sig_inds)), shapes(wave_k), 'Color','k', 'MarkerSize',8, 'LineWidth',1.5,'MarkerFaceColor','r', 'HandleVisibility','off');
                 if mod(sel_idx_in_sig_inds,2)==1
                     pt_type = 'Peak';
@@ -239,10 +248,10 @@ if ~isempty(template) && all(~isnan(template))
                 % Editing loop: allow user to manually select peak/trough
                 editing_slot_done = false;
                 while ~editing_slot_done
-                    figure(999);
+                    figure(edit_fig);
                     title(sprintf('%s @ %d dB SPL - Select NEW Wave %d (%s)',freq_str, levels(level_counter), ceil(sel_idx_in_sig_inds/2), pt_type));
                     drawnow;
-                    figure(999); [x_new, ~, button_new] = ginput(1);
+                    figure(edit_fig); [x_new, ~, button_new] = ginput(1);
                     if isempty(button_new) || button_new==3
                         if isvalid(hsel), delete(hsel); end
                         editing_slot_done = true;
@@ -276,7 +285,7 @@ if ~isempty(template) && all(~isnan(template))
                     % Refresh plot — zoomed in around new selection to verify peak/trough placement
                     zoom_w = 2; % ms half-width
                     t_sel = t_signal(chosen_idx);
-                    figure(999);
+                    figure(edit_fig);
                     clf;
                     plot(t_signal,signal,'k','LineWidth',1.5,'HandleVisibility','off'); hold on;
                     set(gca,'FontSize',12);
@@ -369,11 +378,15 @@ if ~isempty(template) && all(~isnan(template))
 
             % Plotting selected peaks/troughs
             
+            % Waterfall figure — invisible (not interactive); Name-based so it
+            % never collides with individual plot_ind_abr figure numbers.
+            wf_name = sprintf('Peaks Waterfall|%s|%s', condition, freq_str);
             if level_counter == 1
                 vertical_spacing = 1.2*range(signal);
                 offset = -(level_counter-1) * vertical_spacing;
-                figure(counter); hold on
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0.01, 0.03, 0.5, 0.9]);
+                wf_fig = figure('Visible','off','Name',wf_name,'NumberTitle','off');
+                set(wf_fig, 'Units', 'Normalized', 'OuterPosition', [0.01, 0.03, 0.5, 0.9]);
+                figure(wf_fig); hold on
                 ticks = 0:1:round(max(t_signal), -1);
                 xticks(ticks);
                 labels = string(ticks);         % Convert all numbers to strings
@@ -391,7 +404,14 @@ if ~isempty(template) && all(~isnan(template))
             end
             
             offset = -(level_counter-1) * vertical_spacing;
-            figure(counter); hold on;
+            wf_fig = findobj('Type','figure','Name',wf_name);
+            if isempty(wf_fig)
+                wf_fig = figure('Visible','off','Name',wf_name,'NumberTitle','off');
+                set(wf_fig,'Units','Normalized','OuterPosition',[0.01, 0.03, 0.5, 0.9]);
+            else
+                wf_fig = wf_fig(1);
+            end
+            figure(wf_fig); hold on;
             for k = 1:num_waves % number of waves I-V
                 idx = (2*k-1):(2*k);  % indices for pairs: peak + trough
                 if level_counter == 1

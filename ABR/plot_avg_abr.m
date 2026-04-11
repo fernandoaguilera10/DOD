@@ -7,8 +7,14 @@ if isempty(idx_plot_relative)
     %% Thresholds
     if strcmp(plot_type,'Thresholds')
         y_units = 'Threshold (dB SPL)';
-        figure(counter);
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+        fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
+        if isempty(fh_thr_avg)
+            fh_thr_avg = figure('Name','ABR Thresholds Average', ...
+                'NumberTitle','off','Tag','APAT_thr_avg');
+        else
+            fh_thr_avg = fh_thr_avg(1); figure(fh_thr_avg);
+        end
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh_thr_avg,'Visible','off'); end
         clf; hold on;
         % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
@@ -114,7 +120,7 @@ if isempty(idx_plot_relative)
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);
         set(gca, 'XTickLabel', freq_labels);
-        set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+        set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
         end
@@ -124,7 +130,8 @@ if isempty(idx_plot_relative)
         % Export
         cd(outpath);
         save(filename,'average');
-        print(counter,[filename,'_figure'],'-dpng','-r300');
+        drawnow;
+        exportgraphics(fh_thr_avg,[filename,'_figure.png'],'Resolution',300);
         idx = idx_temp;
 %% Peaks
     elseif strcmp(plot_type,'Peaks')
@@ -315,8 +322,14 @@ if ~isempty(idx_plot_relative)
     %% Thresholds
     if strcmp(plot_type,'Thresholds')
         y_units = sprintf('Threshold Shift (re. %s)',str_plot_relative{2});
-        figure(counter);
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
+        fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
+        if isempty(fh_thr_avg)
+            fh_thr_avg = figure('Name','ABR Thresholds Average', ...
+                'NumberTitle','off','Tag','APAT_thr_avg');
+        else
+            fh_thr_avg = fh_thr_avg(1); figure(fh_thr_avg);
+        end
+        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh_thr_avg,'Visible','off'); end
         hold on;
         % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
@@ -425,7 +438,7 @@ if ~isempty(idx_plot_relative)
         group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
         set(gca, 'XTick', group_ticks);
         set(gca, 'XTickLabel', freq_labels);
-        set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+        set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
         end
@@ -435,7 +448,8 @@ if ~isempty(idx_plot_relative)
         % Export
         cd(outpath);
         save(filename,'average');
-        print(counter,[filename,'_figure'],'-dpng','-r300');
+        drawnow;
+        exportgraphics(fh_thr_avg,[filename,'_figure.png'],'Resolution',300);
         idx = idx_temp;
     elseif strcmp(plot_type,'Peaks')
         x_units = 'Sound Level (dB SPL)';

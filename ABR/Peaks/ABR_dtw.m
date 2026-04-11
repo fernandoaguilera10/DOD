@@ -182,13 +182,16 @@ for z = 1:length(freq)
     abrs.nel_delay_ms = nel_delay_ms;   % stored so waveforms_time can be reconstructed without delay if needed
     cd(outpath);
     filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str]);
-    fh = findobj('Type','figure','Number',fig_num);
-    if ~isempty(fh) && all(isvalid(fh))
-        print(fh,[filename,'_figure'],'-dpng','-r300');
-        close(fh);
+    % Find waterfall by Name (avoids figure-number collisions with plot_ind_abr)
+    wf_name = sprintf('Peaks Waterfall|%s|%s', condition{end}, freq_str);
+    fh = findobj('Type','figure','Name',wf_name);
+    if ~isempty(fh) && isvalid(fh(1))
+        print(fh(1),[filename,'_figure'],'-dpng','-r300');
+        % Do NOT close — analysis_run.m embeds then closes it.
     end
-    f999 = findobj('Type','figure','Number',999);
-    if ~isempty(f999) && all(isvalid(f999)), close(f999); end
+    % Close the interactive editing figure (not embedded)
+    fedit = findobj('Type','figure','Name','ABR Peak Selection');
+    if ~isempty(fedit), close(fedit); end
     save(filename,'abrs')
     cd(cwd)
 end

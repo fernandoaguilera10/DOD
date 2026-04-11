@@ -12,6 +12,7 @@ if exist(outpath,"dir")
         datafile = load_files(outpath,search_file,'data',[],true);
         cd(outpath);
         load(datafile);
+        abr_out_full = abr_out;   % preserve all fields before frequency filtering
         cd(cwd);
         % Filter to currently selected frequencies when freq list is provided
         if nargin >= 21 && ~isempty(freq)
@@ -25,6 +26,90 @@ if exist(outpath,"dir")
         abr_f{ChinIND,CondIND} = abr_out.freqs;
         abr_thresholds{ChinIND,CondIND} = abr_out.thresholds;
         plot_ind_abr(abr_out,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_ind_threshold,[],[],[])
+        % Recreate diagnostic figures from saved plot data when Branch 1
+        % (analysis) was skipped. Uses data saved in _ABRthresholds.mat —
+        % no re-running of the bootstrapping analysis.
+        diag_names = {sprintf('ABR Waveforms|%s', condition{end}), ...
+                      sprintf('Sigmoid Fits|%s',  condition{end}), ...
+                      sprintf('Audiogram|%s',     condition{end})};
+        diag_missing = any(cellfun(@(n) isempty(findobj('Type','figure','Name',n)), diag_names));
+        if diag_missing && isfield(abr_out_full,'plot_data') && ~isempty(abr_out_full.plot_data)
+            pd   = abr_out_full.plot_data;
+            fs_r = abr_out_full.fs;
+            nf   = numel(pd);
+            clr_no  = [0,0,0,.3];  clr_yes = [0,0,0,1];
+
+            abr_vis = figure('Name',sprintf('ABR Waveforms|%s',condition{end}), ...
+                             'NumberTitle','off','Visible','off');
+            set(abr_vis,'Units','Normalized','OuterPosition',[0.35,0.025,0.65,0.9]);
+            fit_vis = figure('Name',sprintf('Sigmoid Fits|%s',condition{end}), ...
+                             'NumberTitle','off','Visible','off');
+            set(fit_vis,'Units','Normalized','OuterPosition',[0,0.45,0.35,0.4725]);
+
+            for f_r = 1:nf
+                lev_r   = pd(f_r).lev;
+                wforms_r = pd(f_r).wforms;
+                thr_r   = pd(f_r).thresh;
+                if isempty(wforms_r), continue; end
+                t_r   = (1:size(wforms_r,1)) / fs_r * 1e3;
+                buff  = 1.25*max(max(wforms_r)) * (1:size(wforms_r,2));
+                wp    = wforms_r + buff;
+
+                set(0,'CurrentFigure', abr_vis);
+                subplot(ceil(nf/3),3,f_r); hold on
+                if sum(lev_r > thr_r) ~= 0
+                    plot(t_r, wp(:,lev_r>=round(thr_r,-1)), 'color',clr_yes,'linewidth',2);
+                end
+                if round(thr_r,-1)~=0 && ~isnan(thr_r) && sum(lev_r<round(thr_r,-1))~=0
+                    plot(t_r, wp(:,lev_r<round(thr_r,-1)), 'color',clr_no,'linewidth',2);
+                end
+                if sum(lev_r<round(thr_r,-1))==0 || isnan(thr_r)
+                    plot(t_r, wp, 'color',clr_yes,'linewidth',2);
+                end
+                xlim([0,30]); hold off; set(gca,'FontSize',15);
+                yticks(mean(wp)); yticklabels(round(lev_r));
+                ylim([0.9*min(min(wp)), 1.03*max(max(wp))]);
+                ylabel('Sound Level (dB SPL)','FontWeight','bold');
+                xlabel('Time (ms)','FontWeight','bold');
+                if pd(f_r).freq==0, title('Click');
+                else, title([num2str(pd(f_r).freq),' Hz']); end
+                subtitle(sprintf('Threshold: %.1f dB SPL', thr_r));
+
+                set(0,'CurrentFigure', fit_vis);
+                subplot(ceil(nf/3),3,f_r); hold on
+                if pd(f_r).freq==0, title('Click');
+                else, title([num2str(pd(f_r).freq),' Hz']); end
+                plot(1:80, pd(f_r).cor_fit_vals, '--k','linewidth',2);
+                errorbar(lev_r, pd(f_r).cor, pd(f_r).cor_err, '.b','linewidth',1.5,'markersize',10);
+                ylim([0,1]); xline(thr_r,'r','linewidth',2);
+                xticks(0:10:100); xtickangle(90); xlim([0,100]);
+                xlabel('Level (dB SPL)'); hold off; grid on
+            end
+            sgtitle(abr_vis,'ABR Waveforms','FontSize',13,'FontWeight','bold');
+            sgtitle(fit_vis,'Bootstrap Cross-Correlation  —  Sigmoid Fits','FontSize',13,'FontWeight','bold');
+
+            freqs_r = abr_out_full.freqs;  thresh_r = abr_out_full.thresholds;
+            thr_vis = figure('Name',sprintf('Audiogram|%s',condition{end}), ...
+                             'NumberTitle','off','Visible','off');
+            set(thr_vis,'Units','Normalized','OuterPosition',[0,0.025,0.35,0.425]);
+            set(0,'CurrentFigure', thr_vis);
+            fp = freqs_r/1000;
+            if any(fp==0)
+                nc = fp(fp>0);
+                if ~isempty(nc), fp(fp==0) = nc(1)/2; else, fp(fp==0) = 0.25; end
+            end
+            plot(fp, thresh_r, '*-k','linewidth',2); grid on; xticks(fp);
+            tick_lbl = cell(1,length(freqs_r));
+            for fi_r = 1:length(freqs_r)
+                if freqs_r(fi_r)==0, tick_lbl{fi_r}='Click';
+                else, tick_lbl{fi_r}=num2str(freqs_r(fi_r)/1000); end
+            end
+            xticklabels(tick_lbl); set(gca,'xscale','log'); set(gca,'FontSize',15);
+            yticks(0:10:100); ylim([0,90]);
+            title(['ABR Thresholds | ',cell2mat(Chins2Run(ChinIND)),' | ',condition{2}]);
+            xlabel('Frequency (Hz)','FontWeight','bold');
+            ylabel('Threshold (dB SPL)','FontWeight','bold');
+        end
     elseif strcmp(analysis_type1,'Peaks')
         for z = 1:length(freq)
             if freq(z) == 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_click.mat']); end

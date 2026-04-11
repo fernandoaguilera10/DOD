@@ -4,7 +4,6 @@ legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'Thresholds')
     freq = 1:length(data.freqs);
-    fig_num = ChinIND;
     x_units = 'Frequency (kHz)';
     y_units = 'Threshold (dB SPL)';
     filename = cell2mat([Chins2Run(ChinIND),'_',condition,'_ABRthresholds',]);
@@ -19,11 +18,17 @@ if strcmp(plot_type,'Thresholds')
     click_threshold(click_mask) = data.thresholds(click_mask);
     freq_threshold  = nan(1, length(data.freqs));
     freq_threshold(tone_mask)   = data.thresholds(tone_mask);
-    fh_t = figure(fig_num);
+    % Find by Name to accumulate conditions via hold on, never by integer
+    % (integer lookup collides with Branch 1 diagnostic figures).
+    subj_name = cell2mat(Chins2Run(ChinIND));
+    fh_t = findobj('Type','figure','Name', subj_name);
+    if isempty(fh_t)
+        fh_t = figure('Name', subj_name, 'NumberTitle','off');
+    else
+        fh_t = fh_t(1);  figure(fh_t);
+    end
     set(fh_t, 'Visible', 'off');
     hold on;
-    % Name identifies this as an individual figure (used by analysis_run embed logic)
-    set(fh_t, 'Name', cell2mat(Chins2Run(ChinIND)));
     % Only draw the click series when click was actually selected
     if any(click_mask)
         plot(freq,click_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
@@ -49,9 +54,16 @@ if strcmp(plot_type,'Thresholds')
     end
     xticks(freq); xlim([0.5, length(freq)+0.5]);
     xticklabels(freq_tick_labels);
-    legend(legend_string,'Location','southoutside','Orientation','horizontal')
+    % Build legend from plotted lines with HandleVisibility='on' so the
+    % entry count always matches the plotted count (avoids "Ignoring extra
+    % legend entries" on intermediate calls) and copyobj preserves it.
+    h_vis = findobj(gca, 'Type', 'line', 'HandleVisibility', 'on');
+    h_vis = flipud(h_vis);  % restore draw order (findobj returns newest first)
+    n_vis = numel(h_vis);
+    leg_labels = legend_string(1:min(n_vis, numel(legend_string)));
+    lh = legend(h_vis, leg_labels, 'Location','southoutside','Orientation','horizontal');
     legend boxoff; grid on;
-    set(gca,'FontSize',25); set(gca,'xscale','linear'); set(legend,'visible','on');
+    set(gca,'FontSize',25); set(gca,'xscale','linear'); set(lh,'visible','on');
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
     x_units = 'Sound Level (dB SPL)';
@@ -155,7 +167,13 @@ elseif strcmp(plot_type,'Peaks')
 end
 %% Export
 cd(outpath);
-print(fig_num,[filename,'_figure'],'-dpng','-r300');
+if strcmp(plot_type,'Thresholds')
+    drawnow;
+    exportgraphics(fh_t,[filename,'_figure.png'],'Resolution',300);
+else
+    drawnow;
+    exportgraphics(fh,[filename,'_figure.png'],'Resolution',300);
+end
 end
 
 

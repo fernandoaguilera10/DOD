@@ -35,9 +35,9 @@ if exist(datapath,"dir")
     % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
     % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
     
-    abr_vis = figure('Visible','off');
+    abr_vis = figure('Visible','off','Name',sprintf('ABR Waveforms|%s', condition{end}));
     set(abr_vis, 'Units', 'Normalized', 'OuterPosition', [0.35, 0.025, 0.65, 0.9]);
-    fit_vis = figure('Visible','off');
+    fit_vis = figure('Visible','off','Name',sprintf('Sigmoid Fits|%s', condition{end}));
     set(fit_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.45, 0.35, 0.4725]);
     
     for f = 1:length(freqs)
@@ -154,7 +154,20 @@ if exist(datapath,"dir")
         end
         if thresh(f) < 0, thresh(f) = 0; end
         if thresh(f) > 80,thresh(f) = 80; end
-        
+        % Save plot data so figures can be reconstructed from the .mat file
+        % without re-running the analysis (used by ABRsummary when data exists).
+        if length(lev) > 4
+            plot_data(f).cor_fit_vals = double(cor_fit(1:80));
+        else
+            plot_data(f).cor_fit_vals = zeros(1,80);
+        end
+        plot_data(f).lev     = lev;
+        plot_data(f).wforms  = wforms;
+        plot_data(f).cor     = cor_temp;
+        plot_data(f).cor_err = cor_err_temp;
+        plot_data(f).thresh  = thresh(f);
+        plot_data(f).freq    = freqs(f);
+
         clr_no = [0,0,0,.3];
         clr_yes = [0,0,0,1];
         
@@ -214,7 +227,10 @@ if exist(datapath,"dir")
         grid on
         %     yline(thresh,'r--','linewidth',2);
     end
-    thr_vis = figure('Visible','off');
+    % Add super-titles to identify each diagnostic figure
+    sgtitle(abr_vis, 'ABR Waveforms', 'FontSize', 13, 'FontWeight', 'bold');
+    sgtitle(fit_vis, 'Bootstrap Cross-Correlation  —  Sigmoid Fits', 'FontSize', 13, 'FontWeight', 'bold');
+    thr_vis = figure('Visible','off','Name',sprintf('Audiogram|%s', condition{end}));
     set(thr_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.025, 0.35, 0.425]);
     figure(thr_vis)
     freqs_plot = freqs/1000;
@@ -345,14 +361,17 @@ if exist(datapath,"dir")
     %% Export
     cd(outpath);
     filename = cell2mat([subject,'_',condition]);
-    print(abr_vis,[filename,'_ABRwaves.png'],'-dpng','-r300');
-    print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
-    %print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
-    close(abr_vis); close(fit_vis); close(thr_vis);
+    drawnow;
+    exportgraphics(abr_vis,[filename,'_ABRwaves.png'],'Resolution',300);
+    exportgraphics(fit_vis,[filename,'_ABRfit.png'],'Resolution',300);
+    exportgraphics(thr_vis,[filename,'_ABRthresholds.png'],'Resolution',300);
+    % Figures are intentionally left open — analysis_run.m embeds then closes them.
     
-    abr_out.freqs = freqs';
+    abr_out.freqs      = freqs';
     abr_out.thresholds = thresh;
-    abr_out.subj = subject;
+    abr_out.subj       = subject;
+    abr_out.plot_data  = plot_data;
+    abr_out.fs         = fs;
     save([filename,'_ABRthresholds.mat'],'abr_out');
     cd(cwd);
 else
