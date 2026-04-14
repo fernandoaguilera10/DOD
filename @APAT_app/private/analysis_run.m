@@ -258,156 +258,292 @@ for ChinIND = 1:length(Chins2Run)
     Conds2Run         = all_Conds2Run(subj_active_conds);
 
     if use_embed, pre_subj_figs = findall(0,'Type','figure'); end
+    abr_peaks_mode = strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks');
 
-    for i = 1:length(subj_active_conds)
-        CondIND       = subj_active_conds(i);
-        file_check    = filepath_idx(ChinIND, CondIND);
-        data_check    = datapath_idx(ChinIND, CondIND);
-        subject_check = subject_idx(ChinIND, CondIND);
-        condition     = strsplit(all_Conds2Run{CondIND}, filesep);
-        drawnow limitrate;
-        cd(CODEdir);
+    if ~abr_peaks_mode
+        % ── Standard single-pass loop: B2 → B1 → B3 ──────────────────────
+        for i = 1:length(subj_active_conds)
+            CondIND       = subj_active_conds(i);
+            file_check    = filepath_idx(ChinIND, CondIND);
+            data_check    = datapath_idx(ChinIND, CondIND);
+            subject_check = subject_idx(ChinIND, CondIND);
+            condition     = strsplit(all_Conds2Run{CondIND}, filesep);
+            drawnow limitrate;
+            cd(CODEdir);
 
-        % ── Branch 2: move RAW files into subject/condition folder ─────────
-        if data_check == 0 && subject_check == 1
-            datapath = strcat(DATAdir, filesep, Chins2Run{ChinIND}, filesep, EXPname, filesep, all_Conds2Run{CondIND});
-            if ~exist(datapath, 'dir')
-                fprintf('\nCreating data directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-                mkdir(datapath);
+            % ── Branch 2: move RAW files into subject/condition folder ─────
+            if data_check == 0 && subject_check == 1
+                datapath = strcat(DATAdir, filesep, Chins2Run{ChinIND}, filesep, EXPname, filesep, all_Conds2Run{CondIND});
+                if ~exist(datapath, 'dir')
+                    fprintf('\nCreating data directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                    mkdir(datapath);
+                end
+                sourcepath = strcat(DATAdir, filesep, 'RAW');
+                cd(CODEdir)
+                move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                new_dp = search_files(datapath, datapath_searchfile);
+                if ~isempty(new_dp.files)
+                    datapath_idx(ChinIND,CondIND) = 1;
+                    datapath_dir{ChinIND,CondIND} = new_dp.dir;
+                    data_check = 1;
+                end
             end
-            sourcepath = strcat(DATAdir, filesep, 'RAW');
-            cd(CODEdir)
-            move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
-            new_dp = search_files(datapath, datapath_searchfile);
-            if ~isempty(new_dp.files)
-                datapath_idx(ChinIND,CondIND) = 1;
-                datapath_dir{ChinIND,CondIND} = new_dp.dir;
-                data_check = 1;
+
+            % ── ABR Thresholds: check if existing output is compatible ──────
+            % Only force re-analysis when raw data is available (data_check==1);
+            % if raw data is gone, fall through to Branch 3 with whatever exists so
+            % counter stays in sync and average figures are generated correctly.
+            if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Thresholds') && ...
+                    file_check == 1 && data_check == 1
+                outdir = filepath_dir{ChinIND, CondIND};
+                d = dir(fullfile(outdir, '*ABRthresholds*.mat'));
+                d = d(~strncmp({d.name},'._',2));
+                if ~isempty(d)
+                    try
+                        tmp = load(fullfile(d(1).folder, d(1).name), 'abr_out');
+                        needs_rerun = false;
+                        % Missing requested frequencies
+                        if ~isempty(mparams.abr_freq) && ~all(ismember(mparams.abr_freq, tmp.abr_out.freqs))
+                            fprintf('\nABR Thresholds: new frequencies requested for %s (%s) — re-analysing.\n', ...
+                                Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                            needs_rerun = true;
+                        end
+                        % Missing plot_data (old-format file) — needed for waveform/sigmoid tabs
+                        if ~needs_rerun && (~isfield(tmp.abr_out,'plot_data') || isempty(tmp.abr_out.plot_data))
+                            fprintf('\nABR Thresholds: plot_data missing for %s (%s) — re-analysing.\n', ...
+                                Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                            needs_rerun = true;
+                        end
+                        if needs_rerun
+                            file_check = 0;
+                        end
+                    catch
+                    end
+                end
+            end
+
+            % ── Branch 1: analyse RAW → output ──────────────────────────────
+            if (file_check == 0 && data_check == 1 && subject_check == 1) || reanalyze
+                fprintf('\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                if use_embed && isfield(embed_fns,'progress')
+                    cond_lbl = condition{end};
+                    embed_fns.progress(max(0,counter), n_total, ...
+                        sprintf('Analyzing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, max(0,counter), n_total));
+                end
+                filepath = strcat(OUTdir, filesep, EXPname, filesep, Chins2Run{ChinIND}, filesep, all_Conds2Run{CondIND});
+                datapath = datapath_dir{ChinIND, CondIND};
+                if ~exist(filepath, 'dir')
+                    fprintf('\nCreating analysis directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                    mkdir(filepath);
+                end
+                pre_figs_b1 = findall(0,'Type','figure');
+                set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
+
+                run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
+                    Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
+                    nel_delay, colors, shapes, limits, mparams, ROOTdir, CODEdir);
+
+                if ~use_embed, set(0,'DefaultFigureVisible','on'); end
+                new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
+                new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
+                if strcmp(EXPname,'ABR') && use_embed
+                    if ~isempty(new_figs_b1), close(new_figs_b1); end
+                else
+                    if ~isempty(new_figs_b1), set(new_figs_b1, 'Visible', 'off'); end
+                end
+                filepath_idx(ChinIND,CondIND) = 1;
+                filepath_dir{ChinIND,CondIND} = filepath;
+                file_check = 1;
+            end
+
+            % ── Branch 3: load output → summary / averages ────────────────
+            if file_check == 1 && subject_check == 1
+                counter      = counter + 1;
+                is_last_pair = (counter == n_total);
+
+                fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                if use_embed && isfield(embed_fns,'progress')
+                    cond_lbl = condition{end};
+                    embed_fns.progress(counter, n_total, ...
+                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
+                end
+                filepath = filepath_dir{ChinIND, CondIND};
+                datapath = datapath_dir{ChinIND, CondIND};
+                if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
+                set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
+
+                run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
+                    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
+                    idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
+                    mparams, CODEdir, ROOTdir, subject_idx);
+
+                if ~use_embed, set(0,'DefaultFigureVisible','on'); end
+
+                if use_embed && i == length(subj_active_conds)
+                    drawnow;
+                    after_figs    = findall(0,'Type','figure');
+                    from_subj     = setdiff(after_figs, pre_subj_figs);
+                    from_subj     = from_subj(isvalid(from_subj));
+                    if ~isempty(from_subj), set(from_subj, 'Visible', 'off'); end
+                    new_this_call = setdiff(after_figs, pre_figs_b3);
+                    new_this_call = new_this_call(isvalid(new_this_call));
+
+                    [ind_figs, avg_figs] = split_ind_avg_figs(EXPname, from_subj, new_this_call, is_last_pair);
+
+                    if ~isempty(ind_figs)
+                        embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                    end
+                    if is_last_pair && ~isempty(avg_figs)
+                        embed_fns.average(avg_figs, measure_lbl);
+                    end
+                    to_close = from_subj(isvalid(from_subj));
+                    if ~isempty(to_close), close(to_close); end
+                end
+
+                branch3_ran = true;
             end
         end
 
-        % ── ABR Thresholds: check if existing output is compatible ──────────
-        % Only force re-analysis when raw data is available (data_check==1);
-        % if raw data is gone, fall through to Branch 3 with whatever exists so
-        % counter stays in sync and average figures are generated correctly.
-        if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Thresholds') && ...
-                file_check == 1 && data_check == 1
-            outdir = filepath_dir{ChinIND, CondIND};
-            d = dir(fullfile(outdir, '*ABRthresholds*.mat'));
-            d = d(~strncmp({d.name},'._',2));
-            if ~isempty(d)
-                try
-                    tmp = load(fullfile(d(1).folder, d(1).name), 'abr_out');
-                    needs_rerun = false;
-                    % Missing requested frequencies
-                    if ~isempty(mparams.abr_freq) && ~all(ismember(mparams.abr_freq, tmp.abr_out.freqs))
-                        fprintf('\nABR Thresholds: new frequencies requested for %s (%s) — re-analysing.\n', ...
-                            Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-                        needs_rerun = true;
-                    end
-                    % Missing plot_data (old-format file) — needed for waveform/sigmoid tabs
-                    if ~needs_rerun && (~isfield(tmp.abr_out,'plot_data') || isempty(tmp.abr_out.plot_data))
-                        fprintf('\nABR Thresholds: plot_data missing for %s (%s) — re-analysing.\n', ...
-                            Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-                        needs_rerun = true;
-                    end
-                    if needs_rerun
-                        file_check = 0;
-                    end
-                catch
+    else
+        % ── ABR Peaks: freq-outer, cond-inner order ───────────────────────
+        % Pass 1: Branch 2 only (move raw files per condition)
+        for i = 1:length(subj_active_conds)
+            CondIND       = subj_active_conds(i);
+            data_check    = datapath_idx(ChinIND, CondIND);
+            subject_check = subject_idx(ChinIND, CondIND);
+            drawnow limitrate;
+            cd(CODEdir);
+            if data_check == 0 && subject_check == 1
+                datapath = strcat(DATAdir, filesep, Chins2Run{ChinIND}, filesep, EXPname, filesep, all_Conds2Run{CondIND});
+                if ~exist(datapath, 'dir')
+                    fprintf('\nCreating data directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                    mkdir(datapath);
+                end
+                sourcepath = strcat(DATAdir, filesep, 'RAW');
+                cd(CODEdir)
+                move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                new_dp = search_files(datapath, datapath_searchfile);
+                if ~isempty(new_dp.files)
+                    datapath_idx(ChinIND,CondIND) = 1;
+                    datapath_dir{ChinIND,CondIND} = new_dp.dir;
                 end
             end
         end
 
-        % ── Branch 1: analyse RAW → output ────────────────────────────────
-        if (file_check == 0 && data_check == 1 && subject_check == 1) || reanalyze
-            fprintf('\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-            if use_embed && isfield(embed_fns,'progress')
-                cond_lbl = condition{end};
-                embed_fns.progress(max(0,counter), n_total, ...
-                    sprintf('Analyzing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, max(0,counter), n_total));
+        % After B2: fill NEL delay for any conditions where files were just
+        % moved (datapath_idx: 0→1) and the delay is still unknown.
+        % This ensures ABR_dtw receives the correct delay on the first run.
+        for i = 1:length(subj_active_conds)
+            CondIND = subj_active_conds(i);
+            if datapath_idx(ChinIND, CondIND) && isnan(nel_delay.delay_ms(ChinIND, CondIND))
+                nel_delay = get_nel_delay(ROOTdir, datapath_dir{ChinIND, CondIND}, Chins2Run, ChinIND, ...
+                    all_Conds2Run, CondIND, nel_delay, nel_delay_file);
             end
-            filepath = strcat(OUTdir, filesep, EXPname, filesep, Chins2Run{ChinIND}, filesep, all_Conds2Run{CondIND});
-            datapath = datapath_dir{ChinIND, CondIND};
-            if ~exist(filepath, 'dir')
-                fprintf('\nCreating analysis directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-                mkdir(filepath);
+        end
+
+        % Branch 1: collect all conditions needing analysis, call ABR_dtw
+        % once with all of them so the loop order becomes freq→cond→level.
+        peaks_cond_INDs = [];
+        peaks_datapaths = {};
+        peaks_outpaths  = {};
+        for i = 1:length(subj_active_conds)
+            CondIND       = subj_active_conds(i);
+            file_check    = filepath_idx(ChinIND, CondIND);
+            data_check    = datapath_idx(ChinIND, CondIND);
+            subject_check = subject_idx(ChinIND, CondIND);
+            if data_check == 1 && subject_check == 1 && (file_check == 0 || reanalyze)
+                filepath = strcat(OUTdir, filesep, EXPname, filesep, Chins2Run{ChinIND}, filesep, all_Conds2Run{CondIND});
+                if ~exist(filepath, 'dir')
+                    fprintf('\nCreating analysis directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                    mkdir(filepath);
+                end
+                peaks_cond_INDs(end+1) = CondIND;          %#ok<AGROW>
+                peaks_datapaths{end+1} = datapath_dir{ChinIND, CondIND}; %#ok<AGROW>
+                peaks_outpaths{end+1}  = filepath;          %#ok<AGROW>
+            end
+        end
+        if ~isempty(peaks_cond_INDs)
+            fprintf('\nSubject: %s\n', Chins2Run{ChinIND});
+            if use_embed && isfield(embed_fns,'progress')
+                embed_fns.progress(max(0,counter), n_total, ...
+                    sprintf('Analyzing  %s  (%d / %d)', Chins2Run{ChinIND}, max(0,counter), n_total));
             end
             pre_figs_b1 = findall(0,'Type','figure');
             set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
-
-            run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
-                Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
-                nel_delay, colors, shapes, limits, mparams, ROOTdir, CODEdir);
-
+            ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
+                all_Conds2Run, Conds2Run, peaks_cond_INDs, nel_delay, colors, shapes, ...
+                limits.ind.peaks, mparams.abr_freq, mparams.abr_levels, mparams.abr_tpl_per_level, ...
+                mparams.peak_ui, mparams.abr_wave_sel);
             if ~use_embed, set(0,'DefaultFigureVisible','on'); end
             new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
             new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
-            if strcmp(EXPname,'ABR') && use_embed
-                % ABR Branch-3 (ABRsummary) reconstructs all figures from saved
-                % plot_data — Branch-1 figures are redundant and use a different
-                % naming convention ('Name | subject | cond' vs 'Name|cond') that
-                % creates duplicate tabs. Close them so Branch-3 starts clean.
-                if ~isempty(new_figs_b1), close(new_figs_b1); end
-            else
-                % Non-ABR: Branch-1 analysis figures carry useful content;
-                % keep invisible so they accumulate with Branch-3 for embedding.
-                if ~isempty(new_figs_b1), set(new_figs_b1, 'Visible', 'off'); end
+            if use_embed && ~isempty(new_figs_b1), close(new_figs_b1); end
+            for k = 1:length(peaks_cond_INDs)
+                filepath_idx(ChinIND, peaks_cond_INDs(k)) = 1;
+                filepath_dir{ChinIND, peaks_cond_INDs(k)} = peaks_outpaths{k};
             end
-            filepath_idx(ChinIND,CondIND) = 1;
-            filepath_dir{ChinIND,CondIND} = filepath;
-            file_check = 1;
         end
 
-        % ── Branch 3: load output → summary / averages ────────────────────
-        % Runs whenever output MAT exists and subject is in the roster.
-        % Raw data (data_check) is not required — all summary functions
-        % load from saved output files, not from raw data.
-        if file_check == 1 && subject_check == 1
-            counter      = counter + 1;
-            is_last_pair = (counter == n_total);
+        % Pass 2: Branch 3 — run summaries for all conditions, then embed once.
+        % pre_figs_b3 is captured before ANY condition's summary so that
+        % new_this_call spans all conditions (for non-ABR timing-based split).
+        if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
+        last_condition   = '';
+        last_is_last_pair = false;
+        for i = 1:length(subj_active_conds)
+            CondIND       = subj_active_conds(i);
+            file_check    = filepath_idx(ChinIND, CondIND);
+            subject_check = subject_idx(ChinIND, CondIND);
+            condition     = strsplit(all_Conds2Run{CondIND}, filesep);
 
-            fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
-            if use_embed && isfield(embed_fns,'progress')
-                cond_lbl = condition{end};
-                embed_fns.progress(counter, n_total, ...
-                    sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
-            end
-            filepath = filepath_dir{ChinIND, CondIND};
-            datapath = datapath_dir{ChinIND, CondIND};
-            if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
-            set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
+            if file_check == 1 && subject_check == 1
+                counter      = counter + 1;
+                is_last_pair = (counter == n_total);
 
-            run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
-                Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
-                idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
-                mparams, CODEdir, ROOTdir, subject_idx);
-
-            if ~use_embed, set(0,'DefaultFigureVisible','on'); end
-
-            % ── Embed figures into app tabs (in-app mode only) ─────────────
-            if use_embed && i == length(subj_active_conds)
-                drawnow;
-                after_figs    = findall(0,'Type','figure');
-                from_subj     = setdiff(after_figs, pre_subj_figs);
-                from_subj     = from_subj(isvalid(from_subj));
-                if ~isempty(from_subj), set(from_subj, 'Visible', 'off'); end
-                new_this_call = setdiff(after_figs, pre_figs_b3);
-                new_this_call = new_this_call(isvalid(new_this_call));
-
-                [ind_figs, avg_figs] = split_ind_avg_figs(EXPname, from_subj, new_this_call, is_last_pair);
-
-                if ~isempty(ind_figs)
-                    embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                if use_embed && isfield(embed_fns,'progress')
+                    cond_lbl = condition{end};
+                    embed_fns.progress(counter, n_total, ...
+                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
                 end
-                if is_last_pair && ~isempty(avg_figs)
-                    embed_fns.average(avg_figs, measure_lbl);
-                end
-                to_close = from_subj(isvalid(from_subj));
-                if ~isempty(to_close), close(to_close); end
-            end
+                filepath = filepath_dir{ChinIND, CondIND};
+                datapath = datapath_dir{ChinIND, CondIND};
+                set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
 
-            branch3_ran = true;
+                run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
+                    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
+                    idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
+                    mparams, CODEdir, ROOTdir, subject_idx);
+
+                if ~use_embed, set(0,'DefaultFigureVisible','on'); end
+
+                last_condition    = condition{end};
+                last_is_last_pair = is_last_pair;
+                branch3_ran = true;
+            end
+        end
+
+        % Embed once after all conditions' summaries — captures figures from
+        % every condition in from_subj regardless of which condition was last.
+        if use_embed && branch3_ran
+            drawnow;
+            after_figs    = findall(0,'Type','figure');
+            from_subj     = setdiff(after_figs, pre_subj_figs);
+            from_subj     = from_subj(isvalid(from_subj));
+            if ~isempty(from_subj), set(from_subj, 'Visible', 'off'); end
+            new_this_call = setdiff(after_figs, pre_figs_b3);
+            new_this_call = new_this_call(isvalid(new_this_call));
+
+            [ind_figs, avg_figs] = split_ind_avg_figs(EXPname, from_subj, new_this_call, last_is_last_pair);
+
+            if ~isempty(ind_figs)
+                embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);
+            end
+            if last_is_last_pair && ~isempty(avg_figs)
+                embed_fns.average(avg_figs, measure_lbl);
+            end
+            to_close = from_subj(isvalid(from_subj));
+            if ~isempty(to_close), close(to_close); end
         end
     end
 end

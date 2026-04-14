@@ -594,7 +594,7 @@ if ~isempty(template) && all(~isnan(template))
                 if ~wave_sel(k), continue; end
                 pair = [2*k-1, 2*k];
                 if ~any(isnan(latencies(pair))) && ~any(isnan(peaks(pair)))
-                    show = ternary(~wf_ud.has_legend, 'on', 'off');
+                    if ~wf_ud.has_legend, show = 'on'; else, show = 'off'; end
                     plot(ax_w, latencies(pair), peaks(pair)-mean(signal)+offset_w, ...
                         shapes(k),'Color',colors(k+4,:),'MarkerFaceColor',colors(k+4,:), ...
                         'MarkerSize',10,'LineWidth',1.5,'HandleVisibility',show);
