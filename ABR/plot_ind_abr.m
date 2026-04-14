@@ -1,4 +1,4 @@
-function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat,all_freq)
+function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat,all_freq,wave_sel)
 global legend_string
 legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -66,6 +66,8 @@ if strcmp(plot_type,'Thresholds')
     set(gca,'FontSize',25); set(gca,'xscale','linear'); set(lh,'visible','on');
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
+    if nargin < 15 || isempty(wave_sel), wave_sel = true(1,5); end
+    wave_names = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Amplitude (\muV)';
     y_units_lat = 'Latency (ms)';
@@ -87,24 +89,37 @@ elseif strcmp(plot_type,'Peaks')
     left_width = 0.40;  % Left side takes half the figure
     right_width = 0.40; % Right side takes half the figure
     height = 0.375;     % Height for each of the stacked plots
-    FreqIND = find(all_freq == data.freq);
-    fig_num = (ChinIND - 1) * (length(all_freq) * length(all_Conds2Run)) + (FreqIND - 1) * length(all_Conds2Run) + CondIND;
-    fh = figure(fig_num);
-    set(fh, 'Visible', 'off');
-    set(fh, 'Name', sprintf('%s|%s', condition{end}, fig_freq_label));
+    % Use Name-based figure creation to avoid collisions with pre-existing
+    % figures (which would land in pre_subj_figs and never be closed).
+    fig_name = sprintf('%s|%s', condition{end}, fig_freq_label);
+    fh = findobj('Type','figure','Name',fig_name);
+    if isempty(fh)
+        fh = figure('Visible','off','NumberTitle','off','Name',fig_name);
+    else
+        fh = fh(1);  set(fh,'Visible','off');  clf(fh);
+    end
     
-    % Peak plots
-    subplot('Position', [0.08,height+0.15, left_width, height]);
-    for i=1:2:width(data.peak_amplitude)-1
-        % peak-to-peak amplitude
-        plot(data.levels, data.peak_amplitude(:,i)-data.peak_amplitude(:,i+1),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:));
-        % absolute amplitude
-        %plot(data.levels, data.peak_amplitude(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 2, 'MarkerSize', 8, 'Color', colors((i+1)/2,:),'MarkerFaceColor', colors((i+1)/2,:), 'MarkerEdgeColor', colors((i+1)/2,:));
+    % Peak-to-peak amplitude plot — only waves that are (a) selected by
+    % wave_sel and (b) have at least one non-NaN data point (i.e. present
+    % in the template used for this analysis).
+    ax_amp = subplot('Position', [0.08,height+0.15, left_width, height]);
+    n_wave_slots = floor(width(data.peak_amplitude) / 2);
+    amp_handles = gobjects(0);
+    amp_names   = {};
+    for k = 1:n_wave_slots
+        i = 2*k - 1;  % column index of peak amplitude
+        if k <= numel(wave_sel) && ~wave_sel(k), continue; end  % checkbox off
+        amp_vals = data.peak_amplitude(:,i) - data.peak_amplitude(:,i+1);
+        wn = wave_names{min(k, numel(wave_names))};
+        h = plot(data.levels, amp_vals, 'Marker', shapes(k,:), 'LineStyle', '-', ...
+            'LineWidth', 3, 'MarkerSize', 15, 'Color', colors(k+4,:), ...
+            'MarkerFaceColor', colors(k+4,:), 'MarkerEdgeColor', colors(k+4,:), ...
+            'DisplayName', wn);
+        amp_handles(end+1) = h;
+        amp_names{end+1}   = wn;
         hold on;
     end
-    if ~isempty(ylimits_peaks)
-        ylim(ylimits_peaks);
-    end
+    if ~isempty(ylimits_peaks), ylim(ylimits_peaks); end
     xlim([-inf,inf]);
     hold off;
     ylabel(y_units_amp, 'FontWeight', 'bold')
@@ -114,18 +129,28 @@ elseif strcmp(plot_type,'Peaks')
     if all(isfinite(yl)) && yl(2) > yl(1)
         ylim(yl); yticks(floor(yl(1)):1:ceil(yl(2)));
     end
-    sgtitle(sprintf('ABR Peaks | %s | %s | %s', cell2mat(Chins2Run(ChinIND)),condition{2},freq),'FontSize', 25,'FontWeight', 'bold'); grid on;
+    title(ax_amp, sprintf('%s  |  %s  |  %s', cell2mat(Chins2Run(ChinIND)), condition{end}, fig_freq_label), 'FontSize', 14, 'FontWeight', 'bold');
+    sgtitle(sprintf('ABR Peaks  |  %s  |  %s  |  %s', cell2mat(Chins2Run(ChinIND)), condition{end}, fig_freq_label), 'FontSize', 18, 'FontWeight', 'bold'); grid on;
     xticklabels({}); set(gca,'FontSize',25);
-    
-    % Latency plots
+
+    % Latency plot — same wave_sel and NaN filter as amplitude
     subplot('Position', [0.08, 0.12, left_width, height]);
-    for i=1:2:width(data.peak_latency)
-        plot(data.levels, data.peak_latency(:,i),'Marker',shapes((i+1)/2,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 15, 'Color', colors((i+1)/2+4,:),'MarkerFaceColor', colors((i+1)/2+4,:), 'MarkerEdgeColor', colors((i+1)/2+4,:))
+    lat_handles = gobjects(0);
+    lat_names   = {};
+    for k = 1:n_wave_slots
+        i = 2*k - 1;  % column index of peak latency
+        if k <= numel(wave_sel) && ~wave_sel(k), continue; end
+        lat_vals = data.peak_latency(:,i);
+        wn = wave_names{min(k, numel(wave_names))};
+        h = plot(data.levels, lat_vals, 'Marker', shapes(k,:), 'LineStyle', '-', ...
+            'LineWidth', 3, 'MarkerSize', 15, 'Color', colors(k+4,:), ...
+            'MarkerFaceColor', colors(k+4,:), 'MarkerEdgeColor', colors(k+4,:), ...
+            'DisplayName', wn);
+        lat_handles(end+1) = h;
+        lat_names{end+1}   = wn;
         hold on;
     end
-    if ~isempty(ylimits_lat)
-        ylim(ylimits_lat);
-    end
+    if ~isempty(ylimits_lat), ylim(ylimits_lat); end
     xlim([-inf,inf]);
     hold off;
     ylabel(y_units_lat, 'FontWeight', 'bold')
@@ -136,9 +161,10 @@ elseif strcmp(plot_type,'Peaks')
     if all(isfinite(yl)) && yl(2) > yl(1)
         ylim(yl); yticks(floor(yl(1)):1:ceil(yl(2)));
     end
-    legend_string = {'w1','w2','w3','w4','w5'};
-    legend(legend_string,'Location','northoutside','Orientation','horizontal')
-    legend boxoff;
+    if ~isempty(lat_handles)
+        legend(lat_handles, lat_names, 'Location', 'northoutside', 'Orientation', 'horizontal');
+        legend boxoff;
+    end
     set(gca,'FontSize',25);
 
     % Waveform plots

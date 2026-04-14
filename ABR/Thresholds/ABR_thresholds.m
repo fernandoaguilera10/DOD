@@ -11,7 +11,7 @@ iters = 200; % bootstrap iterations
 %% Change into directory
 if exist(datapath,"dir")
     cd(datapath);
-    %% Chceck frequencies available
+    %% Check frequencies available
     all_datafiles = {dir(fullfile(cd,'p*ABR*.mat')).name}';
     all_freqs = cellfun(@(x) erase(extractAfter(x,'ABR_'), '.mat'), all_datafiles, 'UniformOutput', false);
     all_freqs(strcmp(all_freqs,'click')) = {'0'};
@@ -32,12 +32,10 @@ if exist(datapath,"dir")
     sigmoid = '(a-d)./(1+exp(-b*(x-c)))+d';
     startPoints = [maximum, steep, mid, start];
     %% Load the files for a given freq
-    % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
-    % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
     
-    abr_vis = figure('Visible','off','Name',sprintf('ABR Waveforms|%s', condition{end}));
+    abr_vis = figure('Visible','off','Name',sprintf('ABR Waveforms | %s | %s', subject, condition{end}));
     set(abr_vis, 'Units', 'Normalized', 'OuterPosition', [0.35, 0.025, 0.65, 0.9]);
-    fit_vis = figure('Visible','off','Name',sprintf('Sigmoid Fits|%s', condition{end}));
+    fit_vis = figure('Visible','off','Name',sprintf('Sigmoid Fits | %s | %s', subject, condition{end}));
     set(fit_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.45, 0.35, 0.4725]);
     
     for f = 1:length(freqs)
@@ -207,6 +205,7 @@ if exist(datapath,"dir")
             title([num2str(freqs(f)), ' Hz']);
         end
         subtitle(sprintf('Threshold: %.1f dB SPL',thresh(f)));
+        
         figure(fit_vis);
         subplot(ceil(length(freqs)/3),3,f);
         hold on
@@ -225,146 +224,14 @@ if exist(datapath,"dir")
         xlabel('Level (dB SPL)');
         hold off
         grid on
-        %     yline(thresh,'r--','linewidth',2);
     end
-    % Add super-titles to identify each diagnostic figure
-    sgtitle(abr_vis, 'ABR Waveforms', 'FontSize', 13, 'FontWeight', 'bold');
-    sgtitle(fit_vis, 'Bootstrap Cross-Correlation  —  Sigmoid Fits', 'FontSize', 13, 'FontWeight', 'bold');
-    thr_vis = figure('Visible','off','Name',sprintf('Audiogram|%s', condition{end}));
-    set(thr_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.025, 0.35, 0.425]);
-    figure(thr_vis)
-    freqs_plot = freqs/1000;
-    % Replace click (0) with a log-scale position left of the first pure tone.
-    % Handle click-only case (length == 1) by using a fixed position.
-    if any(freqs_plot == 0)
-        non_click = freqs_plot(freqs_plot > 0);
-        if ~isempty(non_click)
-            freqs_plot(freqs_plot == 0) = non_click(1)/2;
-        else
-            freqs_plot(freqs_plot == 0) = 0.25;   % click-only: arbitrary log position
-        end
-    end
-    plot(freqs_plot,thresh,'*-k','linewidth',2);
-    grid on;
-    xticks(freqs_plot);
-    % Build tick labels dynamically from the actual selected frequencies
-    tick_lbl = cell(1, length(freqs));
-    for fi_t = 1:length(freqs)
-        if freqs(fi_t) == 0
-            tick_lbl{fi_t} = 'Click';
-        else
-            tick_lbl{fi_t} = num2str(freqs(fi_t)/1000);
-        end
-    end
-    xticklabels(tick_lbl);
-    set(gca,'xscale','log');
-    set(gca,'FontSize',15);
-    yticks(0:10:100);
-    ylim([0,90]);
-    title(['ABR Thresholds | ',subject,' | ',condition{2}]);
-    xlabel('Frequency (Hz)','FontWeight','bold');
-    ylabel('Threshold (dB SPL)','FontWeight','bold');
     
-    %% Check if threshold is valid (manually update)
-    threshold_flag = 0;     % option on = 1  off = 0
-    while threshold_flag == 1
-        figure(abr_vis);
-        threshold_dlg = questdlg('Would you like to manually overwrite any thresholds?', ...
-            'ABR Threshold', ...
-            'Yes','No','No');
-        if strcmp(threshold_dlg,'No')
-            threshold_flag = 0;
-        elseif strcmp(threshold_dlg,'Yes')
-            figure(abr_vis);
-            freq_options = {'Click', '500 Hz', '1000 Hz', '2000 Hz', '4000 Hz', '8000 Hz'};
-            freq_choice = listdlg('PromptString','Select frequency: ','ListString',freq_options,'SelectionMode','single','ListSize', [100 90]);
-            prompt = {sprintf('Enter new threshold (dB SPL): ')};
-            fieldsize = [1 40];
-            output = inputdlg(prompt,'ABR Threshold Overwrite',fieldsize);
-            f = freq_options{freq_choice}; new_threshold = str2num(cell2mat(output));
-            if strcmp(f,'click') || strcmp(f,'Click')
-                f = 0;
-            elseif length(f) == 6   % 500 Hz
-                f = str2num(f(1:3)); 
-            else
-                f = str2num(f(1:4)); %1-8 kHz
-            end
-            idx = find(freqs==f);
-            thresh(idx) = new_threshold;
-            % Replot
-            figure(abr_vis); clf;
-            figure(fit_vis); clf;
-            for f = 1:length(freqs)
-                lev = lev_all{1,f};
-                wform = wforms_all{1,f};
-                buff = 1.25*max(max(wform))*(1:size(wform,2));
-                wform_plot = wform+buff;
-                %bad
-                if nr_flag
-                    thresh(f) = 120;
-                end
-                if thresh(f) < 0, thresh(f) = 0; end
-                if thresh(f) > 80,thresh(f) = 80; end
-                figure(abr_vis);
-                subplot(ceil(length(freqs)/3),3,f);
-                hold on
-                if sum(lev>thresh(f))~=0
-                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
-                end
-                if round(thresh(f),-1) ~= 0
-                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
-                end
-                xlim([0,30])
-                hold off
-                yticks(mean(wform_plot));
-                yticklabels(round(lev));
-                ylim([0.9*min(min(wform_plot)),1.05*max(max(wform_plot))])
-                ylabel('Sound Level (dB SPL)');
-                if freqs(f)==0
-                    title('Click');
-                else
-                    title([num2str(freqs(f)), ' Hz']);
-                end
-                subtitle(sprintf('Threshold: %.1f dB SPL',thresh(f)));
-                figure(fit_vis);
-                subplot(ceil(length(freqs)/3),3,f);
-                hold on
-                if freqs(f)==0
-                    title('Click');
-                else
-                    title([num2str(freqs(f)), ' Hz']);
-                end
-                plot(1:80,cor_fit(1:80),'--k','linewidth',2);
-                errorbar(lev,cor_all{1,f},cor_err_all{1,f},'.b','linewidth',1.5,'markersize',10);
-                ylim([0,1])
-                xline(thresh(f),'r','linewidth',2);
-                xticks(0:10:100);
-                xtickangle(90);
-                xlim([0,100]);
-                xlabel('Level (dB SPL)');
-                hold off
-                grid on
-            end
-            figure(thr_vis);  clf;
-            plot(freqs,thresh,'*-k','linewidth',2);
-            grid on;
-            xticks(freqs);
-            set(gca,'xscale','log');
-            set(gca,'FontSize',15);
-            yticks(0:10:100);
-            ylim([0,100]);
-            title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
-            xlabel('Frequency (Hz)')
-            ylabel('Threshold (dB SPL)');
-        end
-    end
     %% Export
     cd(outpath);
     filename = cell2mat([subject,'_',condition]);
     drawnow;
     exportgraphics(abr_vis,[filename,'_ABRwaves.png'],'Resolution',300);
     exportgraphics(fit_vis,[filename,'_ABRfit.png'],'Resolution',300);
-    exportgraphics(thr_vis,[filename,'_ABRthresholds.png'],'Resolution',300);
     % Figures are intentionally left open — analysis_run.m embeds then closes them.
     
     abr_out.freqs      = freqs';

@@ -1,7 +1,6 @@
-function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels,wave_sel,wave_ratios)% ABR summary
+function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels,wave_sel)% ABR summary
 global abr_f abr_thresholds abr_peaks_amp abr_peaks_lat abr_peaks_f abr_peaks_label abr_peaks_level abr_peaks_waveform abr_peaks_waveform_time
-if nargin < 24 || isempty(wave_sel),    wave_sel    = true(1,5); end
-if nargin < 25,                          wave_ratios = {};        end
+if nargin < 24 || isempty(wave_sel), wave_sel = true(1,5); end
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -26,24 +25,30 @@ if exist(outpath,"dir")
         abr_f{ChinIND,CondIND} = abr_out.freqs;
         abr_thresholds{ChinIND,CondIND} = abr_out.thresholds;
         plot_ind_abr(abr_out,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_ind_threshold,[],[],[])
-        % Recreate diagnostic figures from saved plot data when Branch 1
-        % (analysis) was skipped. Uses data saved in _ABRthresholds.mat —
-        % no re-running of the bootstrapping analysis.
+        % Build diagnostic figures for this condition's waveforms and sigmoid fits.
+        % Always create fresh figures — never reuse open figures from prior runs.
+        % Branch 1 figures use a different naming convention ('Name | subj | cond'
+        % vs 'Name|cond') and are closed before Branch 3, so there is no risk of
+        % duplication within a single run.  Stale same-named figures from a
+        % previous run that were not properly closed would suppress creation via
+        % the old diag_missing guard; creating unconditionally avoids that trap.
         diag_names = {sprintf('ABR Waveforms|%s', condition{end}), ...
-                      sprintf('Sigmoid Fits|%s',  condition{end}), ...
-                      sprintf('Audiogram|%s',     condition{end})};
-        diag_missing = any(cellfun(@(n) isempty(findobj('Type','figure','Name',n)), diag_names));
-        if diag_missing && isfield(abr_out_full,'plot_data') && ~isempty(abr_out_full.plot_data)
+                      sprintf('Sigmoid Fits|%s',  condition{end})};
+
+        if isfield(abr_out_full,'plot_data') && ~isempty(abr_out_full.plot_data)
             pd   = abr_out_full.plot_data;
             fs_r = abr_out_full.fs;
+            % Filter plot_data to selected frequencies (same filter applied to abr_out above)
+            if nargin >= 21 && ~isempty(freq)
+                pd_freqs = arrayfun(@(p) p.freq, pd);
+                pd = pd(ismember(pd_freqs, freq));
+            end
             nf   = numel(pd);
             clr_no  = [0,0,0,.3];  clr_yes = [0,0,0,1];
 
-            abr_vis = figure('Name',sprintf('ABR Waveforms|%s',condition{end}), ...
-                             'NumberTitle','off','Visible','off');
+            abr_vis = figure('Name',diag_names{1},'NumberTitle','off','Visible','off');
             set(abr_vis,'Units','Normalized','OuterPosition',[0.35,0.025,0.65,0.9]);
-            fit_vis = figure('Name',sprintf('Sigmoid Fits|%s',condition{end}), ...
-                             'NumberTitle','off','Visible','off');
+            fit_vis = figure('Name',diag_names{2},'NumberTitle','off','Visible','off');
             set(fit_vis,'Units','Normalized','OuterPosition',[0,0.45,0.35,0.4725]);
 
             for f_r = 1:nf
@@ -87,28 +92,25 @@ if exist(outpath,"dir")
             end
             sgtitle(abr_vis,'ABR Waveforms','FontSize',13,'FontWeight','bold');
             sgtitle(fit_vis,'Bootstrap Cross-Correlation  —  Sigmoid Fits','FontSize',13,'FontWeight','bold');
+        end
 
-            freqs_r = abr_out_full.freqs;  thresh_r = abr_out_full.thresholds;
-            thr_vis = figure('Name',sprintf('Audiogram|%s',condition{end}), ...
-                             'NumberTitle','off','Visible','off');
-            set(thr_vis,'Units','Normalized','OuterPosition',[0,0.025,0.35,0.425]);
-            set(0,'CurrentFigure', thr_vis);
-            fp = freqs_r/1000;
-            if any(fp==0)
-                nc = fp(fp>0);
-                if ~isempty(nc), fp(fp==0) = nc(1)/2; else, fp(fp==0) = 0.25; end
+        % Safety net: ensure each diagnostic figure exists and has at least one
+        % axes object so it passes the valid_figs filter in embed_results.
+        % Covers: (a) no plot_data field (old MAT format), (b) plot_data present
+        % but all waveforms empty (analysis ran but found no raw files).
+        for kdn = 1:numel(diag_names)
+            f_ex = findobj('Type','figure','Name',diag_names{kdn});
+            has_axes = ~isempty(f_ex) && ...
+                any(arrayfun(@(f) ~isempty(findall(f,'Type','axes')), f_ex));
+            if ~has_axes
+                if ~isempty(f_ex)
+                    close(f_ex);   % discard any axesless figure with this name
+                end
+                ph = figure('Name',diag_names{kdn},'NumberTitle','off','Visible','off');
+                ax = axes(ph); axis(ax,'off');
+                text(ax, 0.5, 0.5, 'No waveform data available.', ...
+                    'HorizontalAlignment','center','FontSize',14,'Units','normalized');
             end
-            plot(fp, thresh_r, '*-k','linewidth',2); grid on; xticks(fp);
-            tick_lbl = cell(1,length(freqs_r));
-            for fi_r = 1:length(freqs_r)
-                if freqs_r(fi_r)==0, tick_lbl{fi_r}='Click';
-                else, tick_lbl{fi_r}=num2str(freqs_r(fi_r)/1000); end
-            end
-            xticklabels(tick_lbl); set(gca,'xscale','log'); set(gca,'FontSize',15);
-            yticks(0:10:100); ylim([0,90]);
-            title(['ABR Thresholds | ',cell2mat(Chins2Run(ChinIND)),' | ',condition{2}]);
-            xlabel('Frequency (Hz)','FontWeight','bold');
-            ylabel('Threshold (dB SPL)','FontWeight','bold');
         end
     elseif strcmp(analysis_type1,'Peaks')
         for z = 1:length(freq)
@@ -134,7 +136,7 @@ if exist(outpath,"dir")
                 abr_peaks_level{ChinIND,CondIND} = abrs.levels;
                 abr_peaks_waveform{ChinIND,CondIND} = abrs.waveforms;
                 abr_peaks_waveform_time{ChinIND,CondIND} = abrs.waveforms_time;
-                plot_ind_abr(abrs,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat,freq)
+                plot_ind_abr(abrs,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat,freq,wave_sel)
             end
         end
     end
@@ -210,14 +212,14 @@ if average_flag == 1
             [amplitudes,idx] = avg_abr(lev_freq,amp_freq,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Amplitude');
             if freq(z) == 0, filename = 'ABR_PeakAmplitude_Average_dtw_click';
             else,            filename = ['ABR_PeakAmplitude_Average_dtw_',mat2str(freq(z))]; end
-            plot_avg_abr(amplitudes,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath_avg,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z),wave_sel,wave_ratios)
+            plot_avg_abr(amplitudes,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath_avg,filename,fig_num_avg,[],idx_plot_relative,'Amplitude',freq(z),wave_sel)
 
             % Peak latency (fig base+2)
             fig_num_avg = fig_num_base + 2;
             [latencies,idx] = avg_abr(lev_freq,lat_freq,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,'Latency');
             if freq(z) == 0, filename = 'ABR_PeakLatency_Average_dtw_click';
             else,            filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
-            plot_avg_abr(latencies,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath_avg,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z),wave_sel,wave_ratios)
+            plot_avg_abr(latencies,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath_avg,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z),wave_sel)
 
             % Waveform waterfall (fig base+3)
             waveforms.x         = wft_freq;

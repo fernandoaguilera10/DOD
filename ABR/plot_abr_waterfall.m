@@ -105,7 +105,7 @@ ax = axes(fh); hold(ax, 'on');
 
 y_ticks      = zeros(1, n_levels);
 y_tick_labels = cell(1, n_levels);
-wave_labels  = {'W I','W II','W III-IV','W IV','W V'};
+wave_labels  = {'W I','W II','W III','W IV','W V'};
 
 for lev = 1:n_levels
     offset = -(lev - 1) * vert_spacing;

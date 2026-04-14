@@ -1,4 +1,4 @@
-function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis,freq,wave_sel,wave_ratios)
+function plot_avg_abr(average,plot_type,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,counter,ylimits_threshold,idx_plot_relative,peak_analysis,freq,wave_sel)
 str_plot_relative = strsplit(Conds2Run{idx_plot_relative}, filesep);
 legend_string = [];
 cwd = pwd;
@@ -156,23 +156,15 @@ if isempty(idx_plot_relative)
         end
         % Wave selection defaults
         if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
-        if nargin < 18, wave_ratios = {}; end
         valid_cols = cellfun(@(c) ~(isempty(c) || (isnumeric(c) && isequal(size(c),[0 0]))), average.w1);
         cols_idx = find(any(valid_cols, 1));
         if strcmp(peak_analysis,'Latency'), cat_label = 'Latencies'; else, cat_label = [peak_analysis 's']; end
         fig_name_str = [cat_label '|' freq_label];
-        % Wave + ratio config
         all_wave_names  = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
         all_wave_fields = {'w1','w2','w3','w4','w5'};
         all_wave_std    = {'w1_std','w2_std','w3_std','w4_std','w5_std'};
         shown_wi = find(wave_sel);
-        if isempty(wave_ratios) && isfield(average,'w1and5')
-            ratio_labels = {'Wave I/V'}; use_w1and5 = true;
-        else
-            ratio_labels = wave_ratios(:)'; use_w1and5 = false;
-        end
-        n_ratio  = numel(ratio_labels);
-        n_tiles  = numel(shown_wi) + n_ratio;
+        n_tiles  = numel(shown_wi);
         if n_tiles == 0, n_tiles = 1; end
         t_cols = min(n_tiles, 3);
         t_rows = ceil(n_tiles / t_cols);
@@ -246,53 +238,6 @@ if isempty(idx_plot_relative)
                 set(wave_axes, 'YTick', t0:1:t1, 'YLim', [t0-step/2, t1+step/2]);
             end
         end
-        % --- Ratio tiles ---
-        for ri = 1:n_ratio
-            ax = nexttile(tl);
-            if isempty(ax1), ax1 = ax; end
-            hold(ax,'on');
-            if use_w1and5
-                rat_d = average.w1and5; rat_s = average.w1and5_std;
-                rlbl  = 'Wave I/V';
-            else
-                [rat_d, rat_s] = compute_wave_ratio(average, ratio_labels{ri});
-                rlbl = ratio_labels{ri};
-            end
-            for cols = cols_idx
-                if isempty(rat_d{1,cols}), continue; end
-                errorbar(ax, round(average.x{1,cols}), rat_d{1,cols}, rat_s{1,cols}, ...
-                    'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,'Color',colors(cols,:),...
-                    'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
-                    'HandleVisibility','off');
-                fit_y = fillmissing(flip(rat_d{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
-                plot(ax, round(average.x{1,cols}), fit_y, 'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,...
-                    'Color',colors(cols,:),'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
-                    'HandleVisibility','off');
-            end
-            if ~isempty(cols_idx)
-                x_tks = round(unique(average.x{1,cols_idx(1)}));
-            else
-                x_tks = [];
-            end
-            xticks(ax, x_tks);
-            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
-            % y-axis: start at 0, tight upper bound from data+error
-            rat_vals = [];
-            for c_tmp = cols_idx
-                if ~isempty(rat_d{1,c_tmp})
-                    v = rat_d{1,c_tmp}; s = rat_s{1,c_tmp};
-                    rat_vals = [rat_vals; v(:) + s(:)];
-                end
-            end
-            rat_vals = rat_vals(isfinite(rat_vals));
-            if ~isempty(rat_vals) && max(rat_vals) > 0, ylim(ax, [0, max(rat_vals)*1.15]); end
-            title(ax, rlbl, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
-            % Per-tile labels for ratio plots
-            rat_tile_k = numel(shown_wi) + ri;
-            if mod(rat_tile_k-1, t_cols) == 0,    ylabel(ax, 'Ratio', 'FontSize',10, 'FontWeight','bold'); end
-            if ceil(rat_tile_k/t_cols) == t_rows, xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold'); end
-            hold(ax,'off');
-        end
         % --- Condition legend (south of layout) ---
         if ~isempty(ax1) && ~isempty(cols_idx)
             hold(ax1,'on');
@@ -305,9 +250,8 @@ if isempty(idx_plot_relative)
                 leg_str{li} = sprintf('%s (n = %s)', cell2mat(all_Conds2Run(c)), mat2str(sum(idx(:,c))));
             end
             hold(ax1,'off');
-            lgd = legend(ax1, lh, leg_str, 'Orientation','horizontal');
-            lgd.Layout.Tile = 'south';
-            lgd.Box = 'off';
+            legend(ax1, lh, leg_str, 'Orientation','horizontal', ...
+                'Location','southoutside', 'Box','off');
         end
         average.subjects   = Chins2Run;
         average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
@@ -460,20 +404,13 @@ if ~isempty(idx_plot_relative)
             y_units = sprintf('Latency Shift (re. %s)',str_plot_relative{2});
             title_str = sprintf('ABR Absolute Peak Latency');
         end
-        % Wave selection defaults (same optional args as absolute section)
+        % Wave selection defaults
         if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
-        if nargin < 18, wave_ratios = {}; end
         all_wave_names  = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
         all_wave_fields = {'w1','w2','w3','w4','w5'};
         all_wave_std    = {'w1_std','w2_std','w3_std','w4_std','w5_std'};
         shown_wi = find(wave_sel);
-        if isempty(wave_ratios) && isfield(average,'w1and5')
-            ratio_labels = {'Wave I/V'}; use_w1and5 = true;
-        else
-            ratio_labels = wave_ratios(:)'; use_w1and5 = false;
-        end
-        n_ratio  = numel(ratio_labels);
-        n_tiles  = numel(shown_wi) + n_ratio;
+        n_tiles  = numel(shown_wi);
         if n_tiles == 0, n_tiles = 1; end
         t_cols = min(n_tiles, 3);
         t_rows = ceil(n_tiles / t_cols);
@@ -547,51 +484,6 @@ if ~isempty(idx_plot_relative)
                 set(valid_wave_ax, 'YTick', t0:step:t1, 'YLim', [t0-step/2, t1+step/2]);
             end
         end
-        % --- Ratio tiles ---
-        for ri = 1:n_ratio
-            ax = nexttile(tl);
-            if isempty(ax1), ax1 = ax; end
-            hold(ax,'on');
-            if use_w1and5
-                rat_d = average.w1and5; rat_s = average.w1and5_std;
-                rlbl  = 'Wave I/V';
-            else
-                [rat_d, rat_s] = compute_wave_ratio(average, ratio_labels{ri});
-                rlbl = ratio_labels{ri};
-            end
-            for cols = 1:n_rel_cols
-                if isempty(rat_d{1,cols}), continue; end
-                c_idx = cols + 1;
-                errorbar(ax, round(average.x{1,cols}), rat_d{1,cols}, rat_s{1,cols}, ...
-                    'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,'Color',colors(c_idx,:),...
-                    'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
-                    'HandleVisibility','off');
-                fit_y = fillmissing(flip(rat_d{1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
-                plot(ax, round(average.x{1,cols}), fit_y,'Marker',shapes(6,:),'LineStyle','-','LineWidth',2,...
-                    'Color',colors(c_idx,:),'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
-                    'HandleVisibility','off');
-                plot(ax, round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--','LineWidth',2,'Color','k','HandleVisibility','off');
-            end
-            x_tks = round(unique(average.x{1,1}));
-            xticks(ax, x_tks);
-            if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
-            % y-axis: start at 0, tight upper bound from data+error
-            rat_vals = [];
-            for c_tmp = 1:n_rel_cols
-                if ~isempty(rat_d{1,c_tmp})
-                    v = rat_d{1,c_tmp}; s = rat_s{1,c_tmp};
-                    rat_vals = [rat_vals; v(:) + s(:)];
-                end
-            end
-            rat_vals = rat_vals(isfinite(rat_vals));
-            if ~isempty(rat_vals) && max(rat_vals) > 0, ylim(ax, [0, max(rat_vals)*1.15]); end
-            title(ax, rlbl, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
-            % Per-tile labels for ratio plots
-            rat_tile_k = numel(shown_wi) + ri;
-            if mod(rat_tile_k-1, t_cols) == 0,    ylabel(ax, 'Ratio', 'FontSize',10, 'FontWeight','bold'); end
-            if ceil(rat_tile_k/t_cols) == t_rows, xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold'); end
-            hold(ax,'off');
-        end
         % --- Condition legend (south of layout) ---
         if ~isempty(ax1)
             hold(ax1,'on');
@@ -604,9 +496,8 @@ if ~isempty(idx_plot_relative)
                 leg_str{cols} = sprintf('%s (n = %s)', cell2mat(Conds2Run(cols+1)), mat2str(sum(idx(:,conds_idx(cols+1)))));
             end
             hold(ax1,'off');
-            lgd = legend(ax1, lh, leg_str, 'Orientation','horizontal');
-            lgd.Layout.Tile = 'south';
-            lgd.Box = 'off';
+            legend(ax1, lh, leg_str, 'Orientation','horizontal', ...
+                'Location','southoutside', 'Box','off');
         end
         average.subjects   = Chins2Run;
         average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
@@ -619,32 +510,3 @@ end
 cd(cwd)
 end
 
-% ── Helper: compute a custom wave ratio from average struct fields ─────────
-function [rat_data, rat_std] = compute_wave_ratio(average, ratio_str)
-    % Parse 'W1/W5' or 'w1/w5' → numerator field 'w1', denominator field 'w5'
-    parts = strsplit(strtrim(ratio_str), '/');
-    rat_data = cell(size(average.w1));
-    rat_std  = cell(size(average.w1));
-    if numel(parts) ~= 2, return; end
-    num_f = lower(strtrim(parts{1}));  % 'W1' → 'w1'
-    den_f = lower(strtrim(parts{2}));
-    if ~isfield(average, num_f) || ~isfield(average, den_f), return; end
-    num_std_f = [num_f '_std'];
-    den_std_f = [den_f '_std'];
-    for c = 1:numel(average.(num_f))
-        n = average.(num_f){c};
-        d = average.(den_f){c};
-        if isempty(n) || isempty(d), continue; end
-        r = n ./ d;
-        if isfield(average, num_std_f) && isfield(average, den_std_f)
-            ns = average.(num_std_f){c};
-            ds = average.(den_std_f){c};
-            rs = abs(r) .* sqrt((ns ./ max(abs(n), eps)).^2 + (ds ./ max(abs(d), eps)).^2);
-            rs(~isfinite(rs)) = 0;
-        else
-            rs = zeros(size(r));
-        end
-        rat_data{c} = r;
-        rat_std{c}  = rs;
-    end
-end

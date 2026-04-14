@@ -1,4 +1,4 @@
-function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,ylimits_ind,freq,levels,template_per_level)
+function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Run,Conds2Run,CondIND,nel_delay,colors,shapes,ylimits_ind,freq,levels,template_per_level,peak_ui,wave_sel)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 11 Sep 2025
 %Description: Script to process ABR waveforms to automatically select peaks
@@ -9,6 +9,8 @@ function ABR_dtw(ROOTdir,CODEdir,datapath,outpath,Chins2Run,ChinIND,all_Conds2Ru
 
 template_shift = 'none';        % xcorr = cross-correlation     % peak = first significant peak     % none = no shift
 if nargin < 16 || isempty(template_per_level), template_per_level = false; end
+if nargin < 17, peak_ui  = []; end
+if nargin < 18 || isempty(wave_sel), wave_sel = true(1,5); end
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -160,7 +162,7 @@ for z = 1:length(freq)
 
             % DTW and plotting
             fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
-            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath);
+            [peaks,latencies] = findPeaks_dtw(abr_t,abr_data,abr_template,abr_points,nel_delay,Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath,peak_ui,wave_sel);
             abrs.freq = freq(z);
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
@@ -169,7 +171,7 @@ for z = 1:length(freq)
             abrs.levels = levels';
         elseif isnan(idx_abr(j,z))  % ABR unavailable
             fig_num = (ChinIND-1)*length(freq)*length(Conds2Run) + (CondIND-1)*length(freq) + z;
-            [peaks,latencies] = findPeaks_dtw([],[],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath);
+            [peaks,latencies] = findPeaks_dtw([],[],[],[],[],Chins2Run(ChinIND),condition{2},Conds2Run,CondIND,ChinIND,levels,fig_num,j,colors,shapes,ylimits_ind,freq_str,idx_abr(j,z),idx_template(j,z),outpath,peak_ui,wave_sel);
             abrs.freq = [];
             abrs.peak_amplitude(j,:) = peaks;
             abrs.peak_latency(j,:) = latencies;
@@ -189,9 +191,12 @@ for z = 1:length(freq)
         print(fh(1),[filename,'_figure'],'-dpng','-r300');
         % Do NOT close — analysis_run.m embeds then closes it.
     end
-    % Close the interactive editing figure (not embedded)
-    fedit = findobj('Type','figure','Name','ABR Peak Selection');
-    if ~isempty(fedit), close(fedit); end
+    % Close the classic interactive editing figure (classic/standalone mode only;
+    % app mode uses the embedded peak_ui panel instead).
+    if isempty(peak_ui)
+        fedit = findobj('Type','figure','Name','ABR Peak Selection');
+        if ~isempty(fedit), close(fedit); end
+    end
     save(filename,'abrs')
     cd(cwd)
 end
