@@ -364,13 +364,12 @@ if ~isempty(template) && all(~isnan(template))
             peak_ui.info_lbl.FontWeight      = 'bold';
             peak_ui.info_lbl.HorizontalAlignment = 'center';
 
-            % Waterfall: recreate axes on new subject/freq (same as fresh_uiaxes for ax_e)
+            % Waterfall: recreate axes on new subject/freq only
             wf_tag = sprintf('%s|%s', cell2mat(subject), freq_str);
             ud     = ax_w.UserData;
             if ~isstruct(ud) || ~isfield(ud,'subj_key') || ~strcmp(ud.subj_key, wf_tag)
                 sig_dc0 = signal - mean(signal);
                 vsp     = 1.2 * range(sig_dc0);
-                % Delete and recreate — same fix as ax_e, avoids uiaxes clear bugs
                 parent_w = ax_w.Parent;
                 pos_w    = ax_w.Position;
                 un_w     = ax_w.Units;
@@ -382,11 +381,15 @@ if ~isempty(template) && all(~isnan(template))
                 set(ax_w,'YColor','none','FontSize',13);
                 ylim(ax_w, vsp * [-numel(levels), 1.2]);
                 xlim(ax_w, [0, 20]);
-                ax_w.UserData = struct('subj_key', wf_tag, 'vspacing', vsp);
+                % cond_base tracks cumulative offset across conditions;
+                % has_legend ensures legend only drawn once per waterfall
+                ax_w.UserData = struct('subj_key',wf_tag, 'vspacing',vsp, ...
+                                       'cond_base',0, 'has_legend',false);
                 drawnow;
-            else
-                vsp = ud.vspacing;
             end
+            % Always read fresh state — valid for both new and existing waterfall
+            wf_ud = ax_w.UserData;
+            vsp   = wf_ud.vspacing;
 
             % Wire app button callbacks (buttons stay constant across levels)
             peak_ui.done_btn.ButtonPushedFcn   = @(~,~) set_peak_action(fig,'done',  nan);
@@ -580,7 +583,8 @@ if ~isempty(template) && all(~isnan(template))
 
         else
             % App mode: draw on embedded ax_w
-            offset_w = -(level_counter-1) * vsp;
+            % offset_w accumulates across conditions via cond_base
+            offset_w = wf_ud.cond_base - (level_counter-1) * vsp;
             sig_dc   = signal - mean(signal);
             hold(ax_w,'on');
             plot(ax_w, t_signal, sig_dc+offset_w, 'LineWidth',1.5, ...
@@ -590,14 +594,14 @@ if ~isempty(template) && all(~isnan(template))
                 if ~wave_sel(k), continue; end
                 pair = [2*k-1, 2*k];
                 if ~any(isnan(latencies(pair))) && ~any(isnan(peaks(pair)))
-                    show = 'off'; if level_counter==1, show='on'; end
+                    show = ternary(~wf_ud.has_legend, 'on', 'off');
                     plot(ax_w, latencies(pair), peaks(pair)-mean(signal)+offset_w, ...
                         shapes(k),'Color',colors(k+4,:),'MarkerFaceColor',colors(k+4,:), ...
                         'MarkerSize',10,'LineWidth',1.5,'HandleVisibility',show);
-                    if level_counter==1, legend_str{end+1} = sprintf('Wave %s',waves_legend(k)); end %#ok<AGROW>
+                    if ~wf_ud.has_legend, legend_str{end+1} = sprintf('Wave %s',waves_legend(k)); end %#ok<AGROW>
                 end
             end
-            % Level label — just above the actual waveform crest
+            % Level label just above the waveform crest
             text(ax_w, 0.5, offset_w + max(sig_dc) + 0.01*vsp, sprintf('%d dB',levels(level_counter)), ...
                 'FontSize',16,'FontWeight','bold','HorizontalAlignment','left', ...
                 'VerticalAlignment','bottom');
@@ -608,9 +612,21 @@ if ~isempty(template) && all(~isnan(template))
             text(ax_w, sb_x - 0.15, offset_w + 0.5, '1 \muV', ...
                 'FontSize',12,'FontWeight','bold', ...
                 'HorizontalAlignment','right','VerticalAlignment','middle');
-            if level_counter==1 && ~isempty(legend_str)
+            % Show legend once per waterfall (first level of first condition)
+            if ~wf_ud.has_legend && ~isempty(legend_str)
                 legend(ax_w, legend_str{:},'Location','northeast','Orientation','horizontal','FontSize',13);
                 legend(ax_w,'boxoff');
+                wf_ud.has_legend = true;
+                ax_w.UserData = wf_ud;
+            end
+            % Expand ylim to accommodate this level
+            cur_yl = ylim(ax_w);
+            ylim(ax_w, [min(cur_yl(1), offset_w - 0.6*vsp), cur_yl(2)]);
+            % After last level of this condition, advance cond_base for next condition
+            if level_counter == numel(levels)
+                wf_ud2 = ax_w.UserData;
+                wf_ud2.cond_base = wf_ud2.cond_base - numel(levels) * vsp;
+                ax_w.UserData = wf_ud2;
             end
             drawnow;
         end
