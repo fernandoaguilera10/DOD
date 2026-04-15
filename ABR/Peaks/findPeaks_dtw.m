@@ -400,7 +400,6 @@ if ~isempty(template) && all(~isnan(template))
             % Outer loop: pick a point to edit, or Done
             done_editing = false;
             while ~done_editing
-                % fresh_uiaxes = equivalent of clf: delete old axes, create clean one
                 ax_e = fresh_uiaxes(ax_e, fig);
                 draw_edit(ax_e, t_signal, signal, sig_inds_constrained, sig_inds_manual, ...
                     idx_sig_inds, wave_sel, shapes, num_waves, [], ...
@@ -434,12 +433,14 @@ if ~isempty(template) && all(~isnan(template))
                 % Inner loop: pick new position for selected slot
                 inner_done = false;
                 while ~inner_done
+                    % Zoom on current position so user can place the new point accurately
+                    t_sel_cur = t_signal(sig_inds_manual(sel));
                     ax_e = fresh_uiaxes(ax_e, fig);
                     draw_edit(ax_e, t_signal, signal, sig_inds_constrained, sig_inds_manual, ...
                         idx_sig_inds, wave_sel, shapes, num_waves, sel, ...
                         sprintf('%s  @  %d dB SPL — click NEW position for Wave %s (%s)', ...
                                 freq_str, levels(level_counter), waves_legend(wave_k), pt_type), ...
-                        x_units, y_units, [0 20]);
+                        x_units, y_units, [t_sel_cur-2, t_sel_cur+2]);
                     peak_ui.status_lbl.Text = sprintf( ...
                         'Wave %s (%s) selected — click waveform to place new position', ...
                         waves_legend(wave_k), pt_type);
@@ -494,10 +495,6 @@ if ~isempty(template) && all(~isnan(template))
                     end
                 end  % while ~inner_done
             end  % while ~done_editing
-
-            % Leave axes blank when done with this level
-            ax_e = fresh_uiaxes(ax_e, fig);
-            drawnow;
 
             % Sanitise: clamp any out-of-bounds manual indices
             oob = sig_inds_manual < 1 | sig_inds_manual > length(signal);
@@ -639,10 +636,9 @@ end  % function
 % ── Local helper functions ────────────────────────────────────────────────
 
 function new_ax = fresh_uiaxes(old_ax, fig)
-%FRESH_UIAXES  Delete old uiaxes and return a clean one in the same slot.
-%  Equivalent to clf for classic figures — guarantees completely clean state.
-%  Stores the new handle in fig appdata so the next findPeaks_dtw call can
-%  recover it even after peak_ui.ax has become invalid.
+%FRESH_UIAXES  Delete old edit axes and create a clean replacement.
+%  delete+recreate is the only reliable way to clear UIAxes content —
+%  cla, children-delete, and hold-off all fail to flush the render cache.
 parent = old_ax.Parent;
 pos    = old_ax.Position;
 un     = old_ax.Units;
@@ -673,11 +669,25 @@ function draw_edit(ax, t, sig, inds_c, inds_m, idx_tpl, wave_sel, shapes, n_wave
 % HitTest='off' on all children so every click falls through to the axes
 % ButtonDownFcn regardless of whether the user clicks on a marker or blank space.
 hold(ax,'on');
+% Compute and lock final limits before any plotting so the axes never
+% auto-scales to an intermediate state.  Direct property assignment avoids
+% the xlim/ylim wrapper overhead that can trip on fresh UIAxes.
+vis = t >= xlims(1) & t <= xlims(2);
+if any(vis), y_lo = min(sig(vis)); y_hi = max(sig(vis));
+else,        y_lo = min(sig);      y_hi = max(sig); end
+pad = 0.30 * max(y_hi - y_lo, eps);
+ax.XLim = xlims;
+ax.YLim = [y_lo - pad, y_hi + pad];
+xlabel(ax, xu, 'FontWeight','bold','FontSize',15);
+ylabel(ax, yu, 'FontWeight','bold','FontSize',15);
+grid(ax,'on');
+set(ax,'FontSize',13);
 plot(ax, t, sig, 'k', 'LineWidth',1.5, 'HandleVisibility','off', 'HitTest','off');
 for k = 1:n_waves
     if ~wave_sel(k), continue; end
     for j = [2*k-1, 2*k]
         if isnan(inds_m(j)), continue; end
+        is_peak = mod(j,2) == 1;   % odd = peak (P), even = trough (N)
         if idx_tpl(j)
             if inds_m(j) ~= inds_c(j)
                 clr = 'r';           % manually moved
@@ -687,21 +697,34 @@ for k = 1:n_waves
         else
             clr = [0.55 0.55 0.55];  % no template reference
         end
+        if is_peak
+            fc = clr;  % peak: face = status color, edge = black
+            ec = 'k';
+        else
+            fc = 'k';  % trough: face = black, edge = status color (inverted)
+            ec = clr;
+        end
         plot(ax, t(inds_m(j)), sig(inds_m(j)), shapes(k), ...
-            'Color','k','MarkerSize',10,'LineWidth',1.5,'MarkerFaceColor',clr, ...
+            'Color',ec,'MarkerSize',10,'LineWidth',1.5,'MarkerFaceColor',fc, ...
             'HandleVisibility','off','HitTest','off');
     end
 end
-% Highlight selected slot in yellow
+% Highlight selected slot: peak = yellow face/black edge, trough = black face/yellow edge
 if ~isempty(sel_slot) && ~isnan(inds_m(sel_slot))
     k = ceil(sel_slot/2);
+    is_peak_sel = mod(sel_slot,2) == 1;
+    if is_peak_sel
+        sel_fc = 'y'; sel_ec = 'k';
+    else
+        sel_fc = 'k'; sel_ec = 'y';
+    end
     plot(ax, t(inds_m(sel_slot)), sig(inds_m(sel_slot)), shapes(k), ...
-        'Color','k','MarkerSize',14,'LineWidth',2,'MarkerFaceColor','y', ...
+        'Color',sel_ec,'MarkerSize',14,'LineWidth',2,'MarkerFaceColor',sel_fc, ...
         'HandleVisibility','off','HitTest','off');
 end
-% Legend: one entry per selected wave showing its shape
+% Legend: wave shapes group, then spacer, then peak/trough group
 wl = ["I","II","III","IV","V"];
-leg_h   = gobjects(1, n_waves);
+leg_h   = gobjects(1, n_waves + 3);
 leg_lbl = {};
 ki = 0;
 for k = 1:n_waves
@@ -709,7 +732,22 @@ for k = 1:n_waves
     ki = ki + 1;
     leg_h(ki) = plot(ax, nan, nan, shapes(k), 'Color','k', ...
         'MarkerSize',9,'LineWidth',1.5,'MarkerFaceColor','g');
-    leg_lbl{ki} = sprintf('Wave %s', wl(k)); %#ok<AGROW>
+    leg_lbl{ki} = sprintf('Wave %s', wl(k));
+end
+% Spacer, then peak/trough example using first selected wave shape
+first_k = find(wave_sel, 1);
+if ~isempty(first_k)
+    ki = ki + 1;
+    leg_h(ki) = plot(ax, nan, nan, 'Color','none','LineStyle','none');
+    leg_lbl{ki} = ' ';
+    ki = ki + 1;
+    leg_h(ki) = plot(ax, nan, nan, shapes(first_k), 'Color','k', ...
+        'MarkerSize',9,'LineWidth',1.5,'MarkerFaceColor','g');
+    leg_lbl{ki} = 'Peak';
+    ki = ki + 1;
+    leg_h(ki) = plot(ax, nan, nan, shapes(first_k), 'Color','g', ...
+        'MarkerSize',9,'LineWidth',1.5,'MarkerFaceColor','k');
+    leg_lbl{ki} = 'Trough';
 end
 if ki > 0
     lg = legend(ax, leg_h(1:ki), leg_lbl, 'Location','northeast', ...
@@ -718,15 +756,6 @@ if ki > 0
     lg.HitTest       = 'off';
     lg.PickableParts = 'none';
 end
-grid(ax,'on');
-xlabel(ax, xu, 'FontWeight','bold','FontSize',15);
-ylabel(ax, yu, 'FontWeight','bold','FontSize',15);
-xlim(ax, xlims);
-vis = t >= xlims(1) & t <= xlims(2);
-if any(vis), y_lo = min(sig(vis)); y_hi = max(sig(vis));
-else,        y_lo = min(sig);      y_hi = max(sig); end
-pad = 0.30 * max(y_hi - y_lo, eps);
-ylim(ax, [y_lo - pad, y_hi + pad]);
 set(ax,'FontSize',13);
 end
 
