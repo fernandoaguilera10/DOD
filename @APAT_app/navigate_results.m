@@ -441,7 +441,7 @@ if ~any(strcmp(titles, app.FigFreqDD.Value)), app.FigFreqDD.Value = titles{1}; e
 
 is_freq = any(cellfun(@(t) ~isempty(regexp(t,'\d+\s*(k?Hz|click)','once','ignorecase')), titles));
 if ~isempty(lbl_f)
-    lbl_f.Text    = ternary(is_freq, 'Freq:', 'Cond:');
+    lbl_f.Text    = 'Frequency:';
     lbl_f.Visible = 'on';
 end
 app.FigFreqDD.Visible = 'on';

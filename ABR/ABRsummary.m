@@ -113,6 +113,53 @@ if exist(outpath,"dir")
             end
         end
     elseif strcmp(analysis_type1,'Peaks')
+        % Pre-scan all saved ABR Peaks MAT files to compute global y-limits
+        % so amplitude and latency axes are comparable across subjects.
+        global_amp_lim = [Inf, -Inf];
+        global_lat_lim = [Inf, -Inf];
+        peak_scan = dir(fullfile(OUTdir, 'ABR', '**', '*ABRpeaks_dtw*.mat'));
+        for ps_i = 1:length(peak_scan)
+            try
+                tmp_ps = load(fullfile(peak_scan(ps_i).folder, peak_scan(ps_i).name), 'abrs');
+                if isfield(tmp_ps, 'abrs')
+                    pamp = tmp_ps.abrs.peak_amplitude;
+                    plat = tmp_ps.abrs.peak_latency;
+                    if ~isempty(pamp) && any(mean(abs(pamp(:))) > 10), pamp = pamp/1e2; end
+                    if ~isempty(plat) && any(mean(abs(plat(:))) > 1000), plat = plat/1e3; end
+                    if ~isempty(pamp)
+                        n_slots = floor(size(pamp,2)/2);
+                        for ks = 1:n_slots
+                            amp_pp = pamp(:,2*ks-1) - pamp(:,2*ks);
+                            amp_pp = amp_pp(isfinite(amp_pp));
+                            if ~isempty(amp_pp)
+                                global_amp_lim(1) = min(global_amp_lim(1), min(amp_pp));
+                                global_amp_lim(2) = max(global_amp_lim(2), max(amp_pp));
+                            end
+                        end
+                    end
+                    if ~isempty(plat)
+                        lat_vals = plat(isfinite(plat) & plat > 0);
+                        if ~isempty(lat_vals)
+                            global_lat_lim(1) = min(global_lat_lim(1), min(lat_vals));
+                            global_lat_lim(2) = max(global_lat_lim(2), max(lat_vals));
+                        end
+                    end
+                end
+            catch, end  % skip unreadable files
+        end
+        % Add 20% padding; fall back to [] (data-driven) if no files found
+        if isfinite(global_amp_lim(1)) && isfinite(global_amp_lim(2))
+            rng_a = global_amp_lim(2) - global_amp_lim(1); if rng_a == 0, rng_a = 1; end
+            global_amp_ylim = [max(0, global_amp_lim(1) - 0.2*rng_a), global_amp_lim(2) + 0.2*rng_a];
+        else
+            global_amp_ylim = [];
+        end
+        if isfinite(global_lat_lim(1)) && isfinite(global_lat_lim(2))
+            rng_l = global_lat_lim(2) - global_lat_lim(1); if rng_l == 0, rng_l = 1; end
+            global_lat_ylim = [max(0, global_lat_lim(1) - 0.2*rng_l), global_lat_lim(2) + 0.2*rng_l];
+        else
+            global_lat_ylim = [];
+        end
         for z = 1:length(freq)
             if freq(z) == 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_click.mat']); end
             if freq(z) ~= 0, search_file = cell2mat(['*',Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',num2str(freq(z)),'Hz.mat']); end
@@ -136,7 +183,7 @@ if exist(outpath,"dir")
                 abr_peaks_level{ChinIND,CondIND} = abrs.levels;
                 abr_peaks_waveform{ChinIND,CondIND} = abrs.waveforms;
                 abr_peaks_waveform_time{ChinIND,CondIND} = abrs.waveforms_time;
-                plot_ind_abr(abrs,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],ylimits_ind_peaks,ylimits_ind_lat,freq,wave_sel)
+                plot_ind_abr(abrs,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,[],global_amp_ylim,global_lat_ylim,freq,wave_sel)
             end
         end
     end
@@ -221,6 +268,25 @@ if average_flag == 1
             else,            filename = ['ABR_PeakLatency_Average_dtw_',mat2str(freq(z))]; end
             plot_avg_abr(latencies,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath_avg,filename,fig_num_avg,[],idx_plot_relative,'Latency',freq(z),wave_sel)
 
+            % Build trough-latency table: move N columns (even) to odd positions so
+            % avg_abr's 1:2:width scan picks them up as w1…w5.
+            lat_trough_freq = cell(n_subj, n_cond);
+            for ci_t = 1:n_subj
+                for cj_t = 1:n_cond
+                    m = lat_freq{ci_t, cj_t};
+                    if isempty(m) || size(m,2) < 2, continue; end
+                    n_waves = floor(size(m,2)/2);
+                    tmp = zeros(size(m,1), n_waves*2);
+                    for ww = 1:n_waves
+                        tmp(:, 2*ww-1) = m(:, 2*ww);   % N (trough) into odd column
+                    end
+                    lat_trough_freq{ci_t, cj_t} = tmp;
+                end
+            end
+            [trough_lat,~] = avg_abr(lev_freq, lat_trough_freq, Chins2Run, Conds2Run, ...
+                all_Conds2Run, fig_num_avg, colors, shapes, idx_plot_relative, ...
+                analysis_type1, 'Latency');
+
             % Waveform waterfall (fig base+3)
             waveforms.x         = wft_freq;
             waveforms.y         = wf_freq;
@@ -229,7 +295,7 @@ if average_flag == 1
             waveforms.subjects  = Chins2Run;
             waveforms.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
             fig_num_wf = fig_num_base + 3;
-            plot_abr_waterfall(waveforms, latencies, colors, shapes, Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq(z), outpath_avg, fig_num_wf);
+            plot_abr_waterfall(waveforms, latencies, trough_lat, colors, shapes, Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq(z), outpath_avg, fig_num_wf);
 
             cd(outpath_avg);
             if freq(z) == 0, filename = 'ABR_Waveforms_click';

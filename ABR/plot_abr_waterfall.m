@@ -1,4 +1,4 @@
-function plot_abr_waterfall(waveforms, latencies, colors, shapes, ...
+function plot_abr_waterfall(waveforms, latencies, trough_latencies, colors, shapes, ...
         Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq, outpath, fig_num)
 %PLOT_ABR_WATERFALL  Waterfall plot of ABR waveforms across sound levels.
 %
@@ -45,6 +45,7 @@ n_t      = length(t_ref);
 
 %% Average waveforms across subjects per (level, condition)
 wave_mean = cell(n_levels, n_conds);   % each: [1 × n_t]
+wave_ci   = cell(n_levels, n_conds);   % 95% CI half-width: 1.96 * SEM
 for lev = 1:n_levels
     for c = 1:n_conds
         stack = [];
@@ -63,26 +64,16 @@ for lev = 1:n_levels
         end
         if ~isempty(stack)
             wave_mean{lev,c} = nanmean(stack, 1);
+            n_valid = sum(~isnan(stack(:,1)));
+            if n_valid > 1
+                wave_ci{lev,c} = 1.96 * nanstd(stack, 0, 1) / sqrt(n_valid);
+            end
         end
     end
 end
 
-%% Average latencies per (level, wave) across all used conditions
-wave_fields = {'avg_w1','avg_w2','avg_w3','avg_w4','avg_w5'};
-lat_mean = nan(n_levels, 5);   % rows = levels, cols = waves I–V
-for w = 1:5
-    fld = wave_fields{w};
-    if ~isfield(latencies, fld), continue; end
-    for lev = 1:n_levels
-        vals = [];
-        for c = conds_idx(:)'
-            col_data = latencies.(fld){1,c};
-            if isempty(col_data) || size(col_data,1) < lev, continue; end
-            vals(end+1) = col_data(lev); %#ok<AGROW>
-        end
-        lat_mean(lev, w) = nanmean(vals);
-    end
-end
+% Latency field names as stored by avg_abr
+wave_lat_fields = {'w1','w2','w3','w4','w5'};
 
 %% Compute vertical spacing
 all_ranges = [];
@@ -107,22 +98,32 @@ y_ticks      = zeros(1, n_levels);
 y_tick_labels = cell(1, n_levels);
 wave_labels  = {'W I','W II','W III','W IV','W V'};
 
+% Track which conditions already have a legend entry (one entry per condition total)
+cond_in_legend = false(1, size(waveforms.y, 2) + 1);
+
 for lev = 1:n_levels
     offset = -(lev - 1) * vert_spacing;
     y_ticks(lev)       = offset;
-    y_tick_labels{lev} = sprintf('%d dB', levels(lev));
+    y_tick_labels{lev} = sprintf('%d', levels(lev));
 
-    % --- Waveforms (one trace per condition, coloured) ---
-    first_plotted = false;
+    % --- Waveforms (one trace per condition, coloured) with 95% CI shading ---
     for c = conds_idx(:)'
         if isempty(wave_mean{lev,c}), continue; end
         cond_parts = strsplit(all_Conds2Run{c}, filesep);
         lbl = cond_parts{end};
-        if ~first_plotted
+        % Shaded 95% CI
+        if ~isempty(wave_ci{lev,c})
+            y_upper = wave_mean{lev,c} + wave_ci{lev,c} + offset;
+            y_lower = wave_mean{lev,c} - wave_ci{lev,c} + offset;
+            fill(ax, [t_ref, fliplr(t_ref)], [y_upper, fliplr(y_lower)], ...
+                colors(c,:), 'FaceAlpha', 0.2, 'EdgeColor', 'none', ...
+                'HandleVisibility', 'off');
+        end
+        if ~cond_in_legend(c)
             plot(ax, t_ref, wave_mean{lev,c} + offset, ...
                 'Color', colors(c,:), 'LineWidth', 2.5, ...
                 'DisplayName', lbl);
-            first_plotted = true;
+            cond_in_legend(c) = true;
         else
             plot(ax, t_ref, wave_mean{lev,c} + offset, ...
                 'Color', colors(c,:), 'LineWidth', 2.5, ...
@@ -130,24 +131,52 @@ for lev = 1:n_levels
         end
     end
 
-    % --- Peak markers ---
-    % Use the first condition's average waveform for amplitude reference
-    ref_wf = [];
+    % --- Peak markers — shape by wave, color by condition, filled ---
+    % Match this level's dB value into each condition's latency vector.
+    level_db = levels(lev);
     for c = conds_idx(:)'
-        if ~isempty(wave_mean{lev,c}), ref_wf = wave_mean{lev,c}; break; end
+        ref_wf  = wave_mean{lev, c};
+        lat_x_c = latencies.x{1, c};   % dB levels for this condition (descending)
+        if isempty(ref_wf) || isempty(lat_x_c), continue; end
+        [min_diff, lev_idx] = min(abs(lat_x_c - level_db));
+        if min_diff > 5, continue; end  % no matching level within 5 dB
+        for w = 1:5
+            fld = wave_lat_fields{w};
+            if ~isfield(latencies, fld) || isempty(latencies.(fld){1,c}), continue; end
+            lat_ms = latencies.(fld){1,c}(lev_idx);
+            if isnan(lat_ms) || lat_ms <= 0, continue; end
+            [~, t_idx] = min(abs(t_ref - lat_ms));
+            if t_idx < 1 || t_idx > length(ref_wf), continue; end
+            pk_amp = ref_wf(t_idx) + offset;
+            plot(ax, lat_ms, pk_amp, shapes(w), ...
+                'Color', colors(c,:), 'MarkerFaceColor', colors(c,:), ...
+                'MarkerSize', 9, 'LineWidth', 1.5, ...
+                'HandleVisibility', 'off');
+        end
     end
-    if isempty(ref_wf), continue; end
 
-    for w = 1:5
-        lat_ms = lat_mean(lev, w);
-        if isnan(lat_ms), continue; end
-        [~, t_idx] = min(abs(t_ref - lat_ms));
-        if t_idx < 1 || t_idx > length(ref_wf), continue; end
-        pk_amp = ref_wf(t_idx) + offset;
-        plot(ax, lat_ms, pk_amp, shapes(w), ...
-            'Color', colors(w+4,:), 'MarkerFaceColor', colors(w+4,:), ...
-            'MarkerSize', 9, 'LineWidth', 1.5, ...
-            'HandleVisibility','off');
+    % --- Trough markers (N points) — same shape, hollow ---
+    if ~isempty(trough_latencies)
+        for c = conds_idx(:)'
+            ref_wf  = wave_mean{lev, c};
+            lat_x_c = trough_latencies.x{1, c};
+            if isempty(ref_wf) || isempty(lat_x_c), continue; end
+            [min_diff, lev_idx] = min(abs(lat_x_c - level_db));
+            if min_diff > 5, continue; end
+            for w = 1:5
+                fld = wave_lat_fields{w};
+                if ~isfield(trough_latencies,fld) || isempty(trough_latencies.(fld){1,c}), continue; end
+                lat_ms = trough_latencies.(fld){1,c}(lev_idx);
+                if isnan(lat_ms) || lat_ms <= 0, continue; end
+                [~, t_idx] = min(abs(t_ref - lat_ms));
+                if t_idx < 1 || t_idx > length(ref_wf), continue; end
+                tr_amp = ref_wf(t_idx) + offset;
+                plot(ax, lat_ms, tr_amp, shapes(w), ...
+                    'Color', colors(c,:), 'MarkerFaceColor', 'none', ...
+                    'MarkerSize', 9, 'LineWidth', 1.5, ...
+                    'HandleVisibility', 'off');
+            end
+        end
     end
 end
 hold(ax,'off');
@@ -157,19 +186,39 @@ xlim(ax, [0 20]);
 yticks(ax, flip(y_ticks));
 yticklabels(ax, flip(y_tick_labels));
 xlabel(ax, 'Time (ms)',     'FontWeight','bold','FontSize',16);
-ylabel(ax, 'Sound Level',   'FontWeight','bold','FontSize',16);
+ylabel(ax, 'Sound Level (dB SPL)',   'FontWeight','bold','FontSize',16);
 title(ax,  sprintf('ABR Waveforms – %s', freq_label), ...
     'FontSize',18,'FontWeight','bold');
 grid(ax,'on');
 set(ax,'FontSize',14);
-
-% Build wave legend handles manually (invisible sentinel points)
+% 1 µV scale bar anchored to the center of the bottom-most waveform
+x_sb   = 19.75;                  % ms, 0.25 ms before right edge
+y_sb_b = min(y_ticks);           % center of bottom (highest-level) waveform
 hold(ax,'on');
+plot(ax, [x_sb x_sb], [y_sb_b, y_sb_b+1], 'k-', 'LineWidth', 3, 'HandleVisibility','off');
+text(ax, x_sb-0.3, y_sb_b+0.5, '1 \muV', 'FontSize', 12, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right');
+hold(ax,'off');
+
+% Legend sentinels — three groups separated by blank spacer entries:
+%   Group 1: wave shapes (W I–V)
+%   Group 2: peak / trough example
+% (Condition color lines were added during the waveform loop above.)
+hold(ax,'on');
+% Spacer between conditions and waves
+plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
+% Wave markers (black, filled)
 for w = 1:5
     plot(ax, nan, nan, shapes(w), ...
-        'Color', colors(w+4,:), 'MarkerFaceColor', colors(w+4,:), ...
+        'Color', 'k', 'MarkerFaceColor', 'k', ...
         'MarkerSize', 9, 'LineWidth', 1.5, 'DisplayName', wave_labels{w});
 end
+% Spacer between waves and peak/trough example
+plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
+% Peak / trough example using shapes(1)
+plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','k', ...
+    'MarkerSize',9, 'LineWidth',1.5, 'DisplayName','Peak');
+plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','none', ...
+    'MarkerSize',9, 'LineWidth',1.5, 'DisplayName','Trough');
 hold(ax,'off');
 legend(ax,'Location','northeastoutside','FontSize',13,'Box','off');
 

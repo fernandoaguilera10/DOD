@@ -203,10 +203,10 @@ if isempty(idx_plot_relative)
             end
             xticks(ax, x_tks);
             if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
-            title(ax, wn, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            title(ax, wn, 'FontSize',14); grid(ax,'on'); set(ax,'FontSize',14);
             % Per-tile axis labels: ylabel on left column, xlabel on every tile
-            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',10, 'FontWeight','bold'); end
-            xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold');
+            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',14, 'FontWeight','bold'); end
+            xlabel(ax, x_units, 'FontSize',14, 'FontWeight','bold');
             hold(ax,'off');
         end
         % Link wave y-axes so amplitudes/latencies are directly comparable
@@ -238,7 +238,7 @@ if isempty(idx_plot_relative)
                 set(wave_axes, 'YTick', t0:1:t1, 'YLim', [t0-step/2, t1+step/2]);
             end
         end
-        % --- Condition legend (south of layout) ---
+        % --- Condition legend (south of entire layout) ---
         if ~isempty(ax1) && ~isempty(cols_idx)
             hold(ax1,'on');
             lh = gobjects(numel(cols_idx),1);
@@ -250,8 +250,8 @@ if isempty(idx_plot_relative)
                 leg_str{li} = sprintf('%s (n = %s)', cell2mat(all_Conds2Run(c)), mat2str(sum(idx(:,c))));
             end
             hold(ax1,'off');
-            legend(ax1, lh, leg_str, 'Orientation','horizontal', ...
-                'Location','southoutside', 'Box','off');
+            lg = legend(ax1, lh, leg_str, 'Orientation','horizontal', 'Box','off');
+            lg.Layout.Tile = 'south';
         end
         average.subjects   = Chins2Run;
         average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
@@ -447,10 +447,10 @@ if ~isempty(idx_plot_relative)
             x_tks = round(unique(average.x{1,1}));
             xticks(ax, x_tks);
             if numel(x_tks) > 1, x_pad = (x_tks(end)-x_tks(1))*0.06; xlim(ax,[x_tks(1)-x_pad, x_tks(end)+x_pad]); end
-            title(ax, wn, 'FontSize',12); grid(ax,'on'); set(ax,'FontSize',12);
+            title(ax, wn, 'FontSize',14); grid(ax,'on'); set(ax,'FontSize',14);
             % Per-tile axis labels: ylabel on left column, xlabel on every tile
-            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',10, 'FontWeight','bold'); end
-            xlabel(ax, x_units, 'FontSize',10, 'FontWeight','bold');
+            if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',14, 'FontWeight','bold'); end
+            xlabel(ax, x_units, 'FontSize',14, 'FontWeight','bold');
             hold(ax,'off');
             wave_axes(wi_idx) = ax;
         end
@@ -484,7 +484,7 @@ if ~isempty(idx_plot_relative)
                 set(valid_wave_ax, 'YTick', t0:step:t1, 'YLim', [t0-step/2, t1+step/2]);
             end
         end
-        % --- Condition legend (south of layout) ---
+        % --- Condition legend (south of entire layout) ---
         if ~isempty(ax1)
             hold(ax1,'on');
             lh = gobjects(n_rel_cols,1);
@@ -496,8 +496,8 @@ if ~isempty(idx_plot_relative)
                 leg_str{cols} = sprintf('%s (n = %s)', cell2mat(Conds2Run(cols+1)), mat2str(sum(idx(:,conds_idx(cols+1)))));
             end
             hold(ax1,'off');
-            legend(ax1, lh, leg_str, 'Orientation','horizontal', ...
-                'Location','southoutside', 'Box','off');
+            lg = legend(ax1, lh, leg_str, 'Orientation','horizontal', 'Box','off');
+            lg.Layout.Tile = 'south';
         end
         average.subjects   = Chins2Run;
         average.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
