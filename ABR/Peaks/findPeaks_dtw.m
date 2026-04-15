@@ -7,8 +7,8 @@ function [peaks,latencies] = findPeaks_dtw(t_signal,signal,template,latencies_te
 %  wave_sel – 1×5 logical; which waves (I–V) to show/edit (default all true).
 
 % ── Defaults ─────────────────────────────────────────────────────────────
-if nargin < 21, peak_ui  = []; end
-if nargin < 22 || isempty(wave_sel), wave_sel = true(1,5); end
+if ~exist('peak_ui','var'), peak_ui  = []; end
+if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
 
 % global is used by the classic waterfall only (cross-call level spacing)
 global vertical_spacing

@@ -1,6 +1,6 @@
 function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels,wave_sel)% ABR summary
 global abr_f abr_thresholds abr_peaks_amp abr_peaks_lat abr_peaks_f abr_peaks_label abr_peaks_level abr_peaks_waveform abr_peaks_waveform_time
-if nargin < 24 || isempty(wave_sel), wave_sel = true(1,5); end
+if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -14,7 +14,7 @@ if exist(outpath,"dir")
         abr_out_full = abr_out;   % preserve all fields before frequency filtering
         cd(cwd);
         % Filter to currently selected frequencies when freq list is provided
-        if nargin >= 21 && ~isempty(freq)
+        if exist('freq','var') && ~isempty(freq)
             mask = ismember(abr_out.freqs, freq);
             if any(mask)
                 abr_out.freqs      = abr_out.freqs(mask);
@@ -39,7 +39,7 @@ if exist(outpath,"dir")
             pd   = abr_out_full.plot_data;
             fs_r = abr_out_full.fs;
             % Filter plot_data to selected frequencies (same filter applied to abr_out above)
-            if nargin >= 21 && ~isempty(freq)
+            if exist('freq','var') && ~isempty(freq)
                 pd_freqs = arrayfun(@(p) p.freq, pd);
                 pd = pd(ismember(pd_freqs, freq));
             end

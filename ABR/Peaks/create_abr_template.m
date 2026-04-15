@@ -23,7 +23,7 @@ function create_abr_template(ROOTdir, subject, condition, template_freq, templat
 %Author: Andrew Sivaprakasam / Fernando Aguilera de Alba
 %Last Updated: Apr 2026
 
-if nargin < 7, done_callback = []; end
+if ~exist('done_callback','var'), done_callback = []; end
 
 %% Locate data file
 datapath = fullfile(ROOTdir, 'Data', subject, 'ABR', condition);

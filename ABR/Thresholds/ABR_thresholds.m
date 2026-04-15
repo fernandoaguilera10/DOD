@@ -17,7 +17,7 @@ if exist(datapath,"dir")
     all_freqs(strcmp(all_freqs,'click')) = {'0'};
     freqs = unique(str2double(all_freqs));
     % Apply frequency filter if provided (0 = click, values in Hz)
-    if nargin >= 6 && ~isempty(freq_filter)
+    if exist('freq_filter','var') && ~isempty(freq_filter)
         freqs = freqs(ismember(freqs, freq_filter));
     end
     %% Fitting Properties

@@ -155,7 +155,7 @@ if isempty(idx_plot_relative)
             title_str = sprintf('ABR Absolute Peak Latency (%s)',freq_str);
         end
         % Wave selection defaults
-        if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
+        if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
         valid_cols = cellfun(@(c) ~(isempty(c) || (isnumeric(c) && isequal(size(c),[0 0]))), average.w1);
         cols_idx = find(any(valid_cols, 1));
         if strcmp(peak_analysis,'Latency'), cat_label = 'Latencies'; else, cat_label = [peak_analysis 's']; end
@@ -405,7 +405,7 @@ if ~isempty(idx_plot_relative)
             title_str = sprintf('ABR Absolute Peak Latency');
         end
         % Wave selection defaults
-        if nargin < 17 || isempty(wave_sel), wave_sel = true(1,5); end
+        if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
         all_wave_names  = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
         all_wave_fields = {'w1','w2','w3','w4','w5'};
         all_wave_std    = {'w1_std','w2_std','w3_std','w4_std','w5_std'};

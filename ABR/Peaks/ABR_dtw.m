@@ -13,9 +13,9 @@ function ABR_dtw(ROOTdir,CODEdir,datapaths,outpaths,Chins2Run,ChinIND,all_Conds2
 %  so the waterfall accumulates across conditions before moving to the next freq.
 
 template_shift = 'none';        % xcorr / peak / none
-if nargin < 16 || isempty(template_per_level), template_per_level = false; end
-if nargin < 17, peak_ui  = []; end
-if nargin < 18 || isempty(wave_sel), wave_sel = true(1,5); end
+if ~exist('template_per_level','var') || isempty(template_per_level), template_per_level = false; end
+if ~exist('peak_ui','var'), peak_ui  = []; end
+if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 

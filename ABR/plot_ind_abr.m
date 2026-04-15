@@ -66,7 +66,7 @@ if strcmp(plot_type,'Thresholds')
     set(gca,'FontSize',25); set(gca,'xscale','linear'); set(lh,'visible','on');
     set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
 elseif strcmp(plot_type,'Peaks')
-    if nargin < 15 || isempty(wave_sel), wave_sel = true(1,5); end
+    if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
     wave_names = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
     x_units = 'Sound Level (dB SPL)';
     y_units_amp = 'Amplitude (\muV)';
