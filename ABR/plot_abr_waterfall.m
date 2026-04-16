@@ -1,5 +1,5 @@
 function plot_abr_waterfall(waveforms, latencies, trough_latencies, colors, shapes, ...
-        Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq, outpath, fig_num)
+        Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq, outpath, fig_num, wave_sel)
 %PLOT_ABR_WATERFALL  Waterfall plot of ABR waveforms across sound levels.
 %
 %   One figure per frequency.  Waveforms are averaged across subjects for
@@ -40,6 +40,7 @@ for r = 1:n_subj
     if ~isempty(t_ref), break; end
 end
 if isempty(t_ref), return; end
+if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
 n_levels = length(levels);
 n_t      = length(t_ref);
 
@@ -141,6 +142,7 @@ for lev = 1:n_levels
         [min_diff, lev_idx] = min(abs(lat_x_c - level_db));
         if min_diff > 5, continue; end  % no matching level within 5 dB
         for w = 1:5
+            if ~wave_sel(w), continue; end
             fld = wave_lat_fields{w};
             if ~isfield(latencies, fld) || isempty(latencies.(fld){1,c}), continue; end
             lat_ms = latencies.(fld){1,c}(lev_idx);
@@ -164,6 +166,7 @@ for lev = 1:n_levels
             [min_diff, lev_idx] = min(abs(lat_x_c - level_db));
             if min_diff > 5, continue; end
             for w = 1:5
+                if ~wave_sel(w), continue; end
                 fld = wave_lat_fields{w};
                 if ~isfield(trough_latencies,fld) || isempty(trough_latencies.(fld){1,c}), continue; end
                 lat_ms = trough_latencies.(fld){1,c}(lev_idx);
@@ -206,8 +209,9 @@ hold(ax,'off');
 hold(ax,'on');
 % Spacer between conditions and waves
 plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
-% Wave markers (black, filled)
+% Wave markers (black, filled) — only for selected waves
 for w = 1:5
+    if ~wave_sel(w), continue; end
     plot(ax, nan, nan, shapes(w), ...
         'Color', 'k', 'MarkerFaceColor', 'k', ...
         'MarkerSize', 9, 'LineWidth', 1.5, 'DisplayName', wave_labels{w});

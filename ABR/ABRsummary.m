@@ -295,7 +295,7 @@ if average_flag == 1
             waveforms.subjects  = Chins2Run;
             waveforms.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
             fig_num_wf = fig_num_base + 3;
-            plot_abr_waterfall(waveforms, latencies, trough_lat, colors, shapes, Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq(z), outpath_avg, fig_num_wf);
+            plot_abr_waterfall(waveforms, latencies, trough_lat, colors, shapes, Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq(z), outpath_avg, fig_num_wf, wave_sel);
 
             cd(outpath_avg);
             if freq(z) == 0, filename = 'ABR_Waveforms_click';

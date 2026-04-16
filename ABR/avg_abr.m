@@ -26,7 +26,10 @@ if strcmp(analysis_type,'Thresholds')
                 avg_x{1,cols} = mean([avg_x{1,cols}; x{rows, cols}],1);
                 avg_y{1,cols} = mean([avg_y{1,cols}; y{rows, cols}],1);
                 all_y{rows,cols} = y{rows, cols};
-                y_std{1,cols} = std(cell2mat(all_y(:,cols)),0,1);
+                ne_mask = ~cellfun(@isempty, all_y(:,cols));
+                if sum(ne_mask) > 1
+                    y_std{1,cols} = std(cell2mat(all_y(ne_mask,cols)), 0, 1);
+                end
                 % check if data is present for a given timepoint and subject
                 if idx(rows,cols) == 1
                     % Plot individual traces with average
@@ -58,7 +61,10 @@ if strcmp(analysis_type,'Thresholds')
                     avg_x{1,cols-1} = mean([avg_x{1,cols-1}; x{rows, cols}],1);
                     avg_y{1,cols-1} = mean([avg_y{1,cols-1}; y{rows, cols}-y{rows, idx_plot_relative}],1);
                     all_y{rows,cols-1} = y{rows, cols}-y{rows, idx_plot_relative};
-                    y_std{1,cols-1} = std(cell2mat(all_y(:,cols-1)),0,1);
+                    ne_mask = ~cellfun(@isempty, all_y(:,cols-1));
+                    if sum(ne_mask) > 1
+                        y_std{1,cols-1} = std(cell2mat(all_y(ne_mask,cols-1)), 0, 1);
+                    end
                     % check if data is present for a given timepoint and subject
                     if idx(rows,cols) == 1
                         % Plot individual traces with average

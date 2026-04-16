@@ -441,7 +441,7 @@ if ~any(strcmp(titles, app.FigFreqDD.Value)), app.FigFreqDD.Value = titles{1}; e
 
 is_freq = any(cellfun(@(t) ~isempty(regexp(t,'\d+\s*(k?Hz|click)','once','ignorecase')), titles));
 if ~isempty(lbl_f)
-    lbl_f.Text    = 'Frequency:';
+    lbl_f.Text    = ternary(is_freq, 'Frequency:', 'Condition:');
     lbl_f.Visible = 'on';
 end
 app.FigFreqDD.Visible = 'on';
@@ -509,7 +509,15 @@ end
 
 function switch_panel(app, mode, meas_idx)
 if ~isempty(app.res.panels)
-    app.res.panels{app.res.mode, app.res.meas_idx}.Visible = 'off';
+    % Hide the previously tracked panel (may be a different measure)
+    old_p = app.res.panels{app.res.mode, app.res.meas_idx};
+    if isvalid(old_p), old_p.Visible = 'off'; end
+    % Belt-and-suspenders: hide both ind/avg panels for the target measure
+    % so stale Visible='on' from rapid back-to-back calls can't bleed through.
+    for m = 1:size(app.res.panels, 1)
+        p = app.res.panels{m, meas_idx};
+        if isvalid(p), p.Visible = 'off'; end
+    end
 end
 app.res.mode     = mode;
 app.res.meas_idx = meas_idx;
