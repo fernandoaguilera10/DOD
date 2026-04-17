@@ -84,6 +84,9 @@ end
 
 [DATAdir, OUTdir, CODEdir, PRIVATEdir] = get_directory(ROOTdir, EXPname, EXPname2);
 addpath(genpath(CODEdir));
+if strcmp(EXPname, 'EFR')
+    addpath(fileparts(CODEdir));  % EFR/ parent holds shared helpers like plot_ind_efr
+end
 
 %% ── File search patterns ─────────────────────────────────────────────────
 [filepath_searchfile, datapath_searchfile] = get_file_patterns(EXPname, EXPname2);
@@ -745,21 +748,16 @@ switch EXPname
         end
         lvl_files = dir(fullfile(filepath, lvl_pattern));
         lvl_files = lvl_files(~strncmp({lvl_files.name},'._',2));
-        efr_level = 80;   % fallback level
-        if ~isempty(lvl_files)
-            tok = regexp(lvl_files(1).name, '_(\d+)dBSPL', 'tokens');
-            if ~isempty(tok), efr_level = str2double(tok{1}{1}); end
+        all_efr_levels = [];
+        for lfi = 1:numel(lvl_files)
+            tok = regexp(lvl_files(lfi).name, '_(\d+)dBSPL', 'tokens');
+            if ~isempty(tok), all_efr_levels(end+1) = str2double(tok{1}{1}); end %#ok<AGROW>
         end
-        switch EXPname2
-            case 'dAM'
-                dAMsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
-                    ChinIND, CondIND, limits.avg, idx_plot_relative, efr_level, shapes, colors, ...
-                    is_last_pair, subject_idx, subj_active_conds);
-            case 'RAM'
-                RAMsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
-                    ChinIND, CondIND, limits.avg, idx_plot_relative, efr_level, shapes, colors, ...
-                    is_last_pair, subject_idx, subj_active_conds);
-        end
+        all_efr_levels = sort(unique(all_efr_levels));
+        if isempty(all_efr_levels), all_efr_levels = 80; end
+        EFRsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
+            ChinIND, CondIND, limits.avg, idx_plot_relative, all_efr_levels, shapes, colors, ...
+            is_last_pair, subject_idx, subj_active_conds, EXPname2);
     case 'OAE'
         cd(CODEdir);
         switch EXPname2
