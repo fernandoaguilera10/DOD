@@ -91,6 +91,7 @@ vert_spacing = 1.4 * median(all_ranges);
 
 %% Create figure
 fh = figure(fig_num); clf;
+set(fh,'Visible','off');
 set(fh, 'Name', ['Waveforms|' freq_label], ...
     'Units','Normalized','OuterPosition',[0.05 0.05 0.50 0.90]);
 ax = axes(fh); hold(ax, 'on');

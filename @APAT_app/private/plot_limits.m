@@ -22,7 +22,7 @@ if isempty(idx_plot_relative)
         case 'ABR'
             switch EXPname2 
                 case 'Thresholds'
-                    limits.avg = [-5,65];
+                    limits.avg = [];    % data-driven in plot_avg_abr
                     limits.ind = [0,80];
                 case 'Peaks'
                     limits.avg.peaks = [-4,6];
@@ -54,7 +54,7 @@ else
         case 'ABR'
             switch EXPname2 
                 case 'Thresholds'
-                    limits.avg = [-40,70];
+                    limits.avg = [];    % data-driven in plot_avg_abr
                     limits.ind = [0,80];
                 case 'Peaks'
                     limits.avg.peaks = [-inf,inf];

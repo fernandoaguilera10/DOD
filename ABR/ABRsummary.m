@@ -1,6 +1,7 @@
-function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels,wave_sel)% ABR summary
+function ABRsummary(outpath,OUTdir,PRIVATEdir,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,idx_plot_relative,ylimits_ind_threshold,ylimits_ind_peaks,ylimits_ind_lat,ylimits_avg_threshold,ylimits_avg_peaks,ylimits_avg_lat,colors,shapes,analysis_type1,average_flag,conds_idx,freq,levels,wave_sel,exp_name)% ABR summary
 global abr_f abr_thresholds abr_peaks_amp abr_peaks_lat abr_peaks_f abr_peaks_label abr_peaks_level abr_peaks_waveform abr_peaks_waveform_time
 if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
+if ~exist('exp_name','var') || isempty(exp_name), exp_name = ''; end
 cwd = pwd;
 %% INDIVIDUAL PLOTS
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -199,7 +200,11 @@ if average_flag == 1
         [thresholds,idx] = avg_abr(abr_f,abr_thresholds,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative,analysis_type1,[]);
         % Plot average lines
         outpath = strcat(OUTdir,filesep,'ABR');
-        filename = 'ABR_Thresholds_Average_dBSPL';
+        if ~isempty(exp_name)
+            filename = ['ABR_Thresholds_Average_dBSPL_' exp_name];
+        else
+            filename = 'ABR_Thresholds_Average_dBSPL';
+        end
         plot_avg_abr(thresholds,analysis_type1,colors,shapes,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename,fig_num_avg,ylimits_avg_threshold,idx_plot_relative,[])
     elseif strcmp(analysis_type1,'Peaks')
         % Average section reloads per-frequency data directly from saved files.

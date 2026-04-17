@@ -96,7 +96,7 @@ if exist(datapath,"dir")
             %Cross-correlate first half w/second half
             xcor_t = helper.xcorr_matrix(combined_1,combined_2);
             
-            wforms(:,d) = mean(combined_1+combined_2,2);
+            wforms(:,d) = real(mean(combined_1+combined_2,2));
             %points at zero lag
             midpoint = ceil(size(xcor_t,1)/2);
             cor = mean(xcor_t(midpoint,:)); %maybe can use the variability here too?
@@ -139,7 +139,8 @@ if exist(datapath,"dir")
             y_thresh= cor_fit.d + 0.1; % go a little above d?
 
             %invert
-            thresh(f) = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
+            thresh_raw = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
+            thresh(f) = real(thresh_raw);
         else
             thresh(f) = NaN;
             cor_fit = zeros(1,80);
@@ -169,7 +170,7 @@ if exist(datapath,"dir")
         clr_no = [0,0,0,.3];
         clr_yes = [0,0,0,1];
         
-        figure(abr_vis);
+        set(0,'CurrentFigure', abr_vis);
         subplot(ceil(length(freqs)/3),3,f);
         buff = 1.25*max(max(wforms))*(1:size(wforms,2));
         wform_plot = wforms+buff;
@@ -206,7 +207,7 @@ if exist(datapath,"dir")
         end
         subtitle(sprintf('Threshold: %.1f dB SPL',thresh(f)));
         
-        figure(fit_vis);
+        set(0,'CurrentFigure', fit_vis);
         subplot(ceil(length(freqs)/3),3,f);
         hold on
         if freqs(f)==0

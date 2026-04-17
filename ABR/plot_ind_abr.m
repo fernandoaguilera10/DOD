@@ -23,11 +23,10 @@ if strcmp(plot_type,'Thresholds')
     subj_name = cell2mat(Chins2Run(ChinIND));
     fh_t = findobj('Type','figure','Name', subj_name);
     if isempty(fh_t)
-        fh_t = figure('Name', subj_name, 'NumberTitle','off');
+        fh_t = figure('Name', subj_name, 'NumberTitle','off', 'Visible','off');
     else
-        fh_t = fh_t(1);  figure(fh_t);
+        fh_t = fh_t(1);  set(0,'CurrentFigure', fh_t);
     end
-    set(fh_t, 'Visible', 'off');
     hold on;
     % Only draw the click series when click was actually selected
     if any(click_mask)

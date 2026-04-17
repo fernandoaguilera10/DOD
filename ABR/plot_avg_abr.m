@@ -10,11 +10,10 @@ if isempty(idx_plot_relative)
         fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
         if isempty(fh_thr_avg)
             fh_thr_avg = figure('Name','ABR Thresholds Average', ...
-                'NumberTitle','off','Tag','APAT_thr_avg');
+                'NumberTitle','off','Tag','APAT_thr_avg','Visible','off');
         else
-            fh_thr_avg = fh_thr_avg(1); figure(fh_thr_avg);
+            fh_thr_avg = fh_thr_avg(1); set(0,'CurrentFigure', fh_thr_avg);
         end
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh_thr_avg,'Visible','off'); end
         clf; hold on;
         % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
@@ -123,6 +122,13 @@ if isempty(idx_plot_relative)
         set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
+        else
+            valid_thr = thresholds(isfinite(thresholds));
+            if ~isempty(valid_thr)
+                lo = min(valid_thr); hi = max(valid_thr);
+                pad = max(0.15 * (hi - lo), 5);
+                ylim([lo - pad, hi + pad]);
+            end
         end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
@@ -170,7 +176,7 @@ if isempty(idx_plot_relative)
         t_rows = ceil(n_tiles / t_cols);
         % Build single tiledlayout figure
         fh = figure(counter); clf;
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh,'Visible','off'); end
+        set(fh,'Visible','off');
         set(fh, 'Name', fig_name_str);
         tl = tiledlayout(fh, t_rows, t_cols, 'TileSpacing','compact', 'Padding','compact');
         title(tl, title_str, 'FontSize',16, 'FontWeight','bold');
@@ -269,11 +275,10 @@ if ~isempty(idx_plot_relative)
         fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
         if isempty(fh_thr_avg)
             fh_thr_avg = figure('Name','ABR Thresholds Average', ...
-                'NumberTitle','off','Tag','APAT_thr_avg');
+                'NumberTitle','off','Tag','APAT_thr_avg','Visible','off');
         else
-            fh_thr_avg = fh_thr_avg(1); figure(fh_thr_avg);
+            fh_thr_avg = fh_thr_avg(1); set(0,'CurrentFigure', fh_thr_avg);
         end
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh_thr_avg,'Visible','off'); end
         hold on;
         % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
@@ -385,6 +390,13 @@ if ~isempty(idx_plot_relative)
         set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
         if ~isempty(ylimits_threshold)
             ylim(ylimits_threshold);
+        else
+            valid_thr = thresholds(isfinite(thresholds));
+            if ~isempty(valid_thr)
+                lo = min(valid_thr); hi = max(valid_thr);
+                pad = max(0.15 * (hi - lo), 5);
+                ylim([lo - pad, hi + pad]);
+            end
         end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
@@ -416,7 +428,7 @@ if ~isempty(idx_plot_relative)
         t_rows = ceil(n_tiles / t_cols);
         % Build single tiledlayout figure
         fh = figure(counter); clf;
-        if strcmp(get(0,'DefaultFigureVisible'),'off'), set(fh,'Visible','off'); end
+        set(fh,'Visible','off');
         tl = tiledlayout(fh, t_rows, t_cols, 'TileSpacing','compact', 'Padding','compact');
         title(tl, title_str, 'FontSize',16, 'FontWeight','bold');
         n_rel_cols = size(average.w1, 1);  % number of post conditions (rows in average struct)

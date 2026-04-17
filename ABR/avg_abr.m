@@ -36,9 +36,9 @@ if strcmp(analysis_type,'Thresholds')
                     fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
                     if isempty(fh_thr_avg)
                         fh_thr_avg = figure('Name','ABR Thresholds Average', ...
-                            'NumberTitle','off','Tag','APAT_thr_avg');
+                            'NumberTitle','off','Tag','APAT_thr_avg','Visible','off');
                     else
-                        figure(fh_thr_avg(1));
+                        set(0,'CurrentFigure', fh_thr_avg(1));
                     end
                     hold on;
                     freq = 1:length(x{rows,cols});
@@ -71,9 +71,9 @@ if strcmp(analysis_type,'Thresholds')
                         fh_thr_avg = findobj('Type','figure','Tag','APAT_thr_avg');
                         if isempty(fh_thr_avg)
                             fh_thr_avg = figure('Name','ABR Thresholds Average', ...
-                                'NumberTitle','off','Tag','APAT_thr_avg');
+                                'NumberTitle','off','Tag','APAT_thr_avg','Visible','off');
                         else
-                            figure(fh_thr_avg(1));
+                            set(0,'CurrentFigure', fh_thr_avg(1));
                         end
                         hold on;
                         freq = 1:length(x{rows,cols});

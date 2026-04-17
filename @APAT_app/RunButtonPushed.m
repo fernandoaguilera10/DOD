@@ -181,6 +181,12 @@ if ~isempty(cfg.peak_ui)
     setappdata(fig_, 'peak_wf_ax',   []);
 end
 
+% Close any stale MATLAB figures left over from a previous interrupted run.
+% These can cause findobj/exportgraphics/copyobj to pick up bad handles.
+stale_figs = findall(0, 'Type', 'figure');
+stale_figs = stale_figs(~arrayfun(@(f) isa(f, 'matlab.ui.Figure'), stale_figs));
+if ~isempty(stale_figs), close(stale_figs); end
+
 analysis_errored = false;
 try
     analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, sheet, cfg);
