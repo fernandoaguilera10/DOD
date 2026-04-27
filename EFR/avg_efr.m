@@ -52,16 +52,12 @@ if isempty(idx_plot_relative)
             peaks_std{1,cols}      = nanstd(cell2mat(all_peaks(:,cols)), 0, 1);
             avg_plv_env{1,cols}    = mean([avg_plv_env{1,cols}; plv_env{rows,cols}], 1);
             avg_f{1,cols}          = mean([avg_f{1,cols};       f{rows,cols}],       1);
-            if idx(rows,cols) == 1
-                fh_avg = figure(counter); set(fh_avg,'Visible','off');
-                hold on;
-            end
         end
     end
 else
     for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
-            if cols ~= idx_plot_relative && idx(rows,cols) == 1
+            if cols ~= idx_plot_relative
                 avg_peaks_locs{1,cols-1} = nanmean([avg_peaks_locs{1,cols-1}; peaks_locs{rows,cols}], 1);
                 avg_peaks{1,cols-1}      = nanmean([avg_peaks{1,cols-1}; peaks{rows,cols}-peaks{rows,idx_plot_relative}], 1);
                 plv_sum1   = nansum(peaks{rows,cols}(idx_plv_sum));
@@ -74,10 +70,6 @@ else
                 peaks_std{1,cols-1}      = nanstd(cell2mat(all_peaks(:,cols-1)), 0, 1);
                 avg_plv_env{1,cols-1}    = mean([avg_plv_env{1,cols-1}; plv_env{rows,cols}-plv_env{rows,idx_plot_relative}], 1);
                 avg_f{1,cols-1}          = mean([avg_f{1,cols-1}; f{rows,cols}], 1);
-                if idx(rows,cols) == 1
-                    fh_avg = figure(counter); set(fh_avg,'Visible','off');
-                    hold on;
-                end
             end
         end
     end
@@ -115,17 +107,12 @@ if isempty(idx_plot_relative)
             all_NFpower{rows,cols}    = NFpower{rows,cols};
             dAMpower_std{1,cols} = nanstd(cell2mat(all_dAMpower(:,cols)), 0, 1);
             NFpower_std{1,cols}  = nanstd(cell2mat(all_NFpower(:,cols)),  0, 1);
-            if idx(rows,cols) == 1
-                fh_avg = figure(counter); set(fh_avg,'Visible','off');
-                hold on;
-                set(gca,'XScale','log');
-            end
         end
     end
 else
     for cols = 1:length(all_Conds2Run)
         for rows = 1:length(Chins2Run)
-            if cols ~= idx_plot_relative && idx(rows,cols) == 1
+            if cols ~= idx_plot_relative
                 avg_trajectory{1,cols-1} = nanmean([avg_trajectory{1,cols-1}; trajectory{rows,cols}], 1);
                 avg_dAMpower{1,cols-1}   = nanmean([avg_dAMpower{1,cols-1}; dAMpower{rows,cols}-dAMpower{rows,idx_plot_relative}], 1);
                 avg_NFpower{1,cols-1}    = nanmean([avg_NFpower{1,cols-1};  NFpower{rows,cols}-NFpower{rows,idx_plot_relative}],    1);
@@ -134,11 +121,6 @@ else
                 all_NFpower{rows,cols-1}    = NFpower{rows,cols}  - NFpower{rows,idx_plot_relative};
                 dAMpower_std{1,cols-1} = nanstd(cell2mat(all_dAMpower(:,cols-1)), 0, 1);
                 NFpower_std{1,cols-1}  = nanstd(cell2mat(all_NFpower(:,cols-1)),  0, 1);
-                if idx(rows,cols) == 1
-                    fh_avg = figure(counter); set(fh_avg,'Visible','off');
-                    hold on;
-                    set(gca,'XScale','log');
-                end
             end
         end
     end
