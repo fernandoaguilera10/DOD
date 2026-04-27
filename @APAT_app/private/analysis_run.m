@@ -818,6 +818,21 @@ if strcmp(EXPname, 'ABR')
         [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
         ind_figs = ind_figs(si);
     end
+elseif strcmp(EXPname, 'EFR')
+    % EFR individual figures have '|' in their name (Category|Label).
+    % Average figures from plot_avg_efr never have '|'.
+    % Tab figures from plot_avg_efr_tabs also have '|' but route to avg panel.
+    fig_names  = arrayfun(@(f) get(f,'Name'), from_subj, 'UniformOutput', false);
+    has_pipe   = cellfun(@(nm) contains(nm,'|'), fig_names);
+    is_avg_tab = cellfun(@(nm) strncmp(nm,'PLV Average|',12) || strncmp(nm,'PLV Sum|',8), fig_names);
+    ind_figs   = from_subj(has_pipe & ~is_avg_tab);
+    avg_figs   = [from_subj(~has_pipe); from_subj(is_avg_tab)];
+    if isempty(ind_figs), ind_figs = from_subj(~is_avg_tab); end
+    % Sort individual figures so tabs appear in creation order
+    if ~isempty(ind_figs)
+        [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
+        ind_figs = ind_figs(si);
+    end
 else
     % Timing-based split: figures created before this summary call = individual
     ind_figs = setdiff(from_subj, new_this_call);

@@ -24,96 +24,143 @@ else
     fprintf('No directory found.\n');
 end
 
-%% Store globals — use highest found level as reference for average functions
-ref_li = find(~cellfun(@isempty, data_by_level), 1, 'last');
-if ~isempty(ref_li)
-    efr_ref = data_by_level{ref_li};
-    switch plot_type
-        case 'RAM'
-            efr_f{ChinIND,CondIND}             = efr_ref.f';
-            efr_envelope{ChinIND,CondIND}      = efr_ref.t_env';
-            efr_PLV{ChinIND,CondIND}           = efr_ref.plv_env';
-            efr_peak_amp{ChinIND,CondIND}      = efr_ref.peaks;
-            efr_peak_freq{ChinIND,CondIND}     = efr_ref.peaks_locs;
-            efr_peak_freq_all{ChinIND,CondIND} = efr_ref.peaks_locs_all;
-            dim_f             = size(efr_ref.f');
-            dim_envelope      = size(efr_ref.t_env');
-            dim_PLV           = size(efr_ref.plv_env');
-            dim_peak_amp      = size(efr_ref.peaks);
-            dim_peak_freq     = size(efr_ref.peaks_locs);
-            dim_peak_freq_all = size(efr_ref.peaks_locs_all);
-        case 'dAM'
-            efr_trajectory{ChinIND,CondIND}        = efr_ref.trajectory';
-            efr_dAMpower{ChinIND,CondIND}          = efr_ref.dAMpower';
-            efr_NFpower{ChinIND,CondIND}           = efr_ref.NFpower';
-            efr_trajectory_smooth{ChinIND,CondIND} = efr_ref.smooth.f';
-            efr_dAMpower_smooth{ChinIND,CondIND}   = efr_ref.smooth.dAM';
-            efr_NFpower_smooth{ChinIND,CondIND}    = efr_ref.smooth.NF';
-            dim_trajectory      = size(efr_ref.trajectory');
-            dim_dAMpower        = size(efr_ref.dAMpower');
-            dim_NFpower         = size(efr_ref.NFpower');
-            dim_dAMpower_smooth = size(efr_ref.smooth.dAM');
-            dim_NFpower_smooth  = size(efr_ref.smooth.NF');
+%% Store globals per level (3D: {ChinIND, CondIND, LevelIND})
+for li = 1:numel(all_levels)
+    if ~isempty(data_by_level{li})
+        d = data_by_level{li};
+        switch plot_type
+            case 'RAM'
+                efr_f{ChinIND,CondIND,li}             = d.f';
+                efr_envelope{ChinIND,CondIND,li}      = d.t_env';
+                efr_PLV{ChinIND,CondIND,li}           = d.plv_env';
+                efr_peak_amp{ChinIND,CondIND,li}      = d.peaks;
+                efr_peak_freq{ChinIND,CondIND,li}     = d.peaks_locs;
+                efr_peak_freq_all{ChinIND,CondIND,li} = d.peaks_locs_all;
+                if isempty(dim_f)
+                    dim_f             = size(d.f');
+                    dim_envelope      = size(d.t_env');
+                    dim_PLV           = size(d.plv_env');
+                    dim_peak_amp      = size(d.peaks);
+                    dim_peak_freq     = size(d.peaks_locs);
+                    dim_peak_freq_all = size(d.peaks_locs_all);
+                end
+            case 'dAM'
+                efr_trajectory{ChinIND,CondIND,li}        = d.trajectory';
+                efr_dAMpower{ChinIND,CondIND,li}          = d.dAMpower';
+                efr_NFpower{ChinIND,CondIND,li}           = d.NFpower';
+                efr_trajectory_smooth{ChinIND,CondIND,li} = d.smooth.f';
+                efr_dAMpower_smooth{ChinIND,CondIND,li}   = d.smooth.dAM';
+                efr_NFpower_smooth{ChinIND,CondIND,li}    = d.smooth.NF';
+                if isempty(dim_trajectory)
+                    dim_trajectory      = size(d.trajectory');
+                    dim_dAMpower        = size(d.dAMpower');
+                    dim_NFpower         = size(d.NFpower');
+                    dim_dAMpower_smooth = size(d.smooth.dAM');
+                    dim_NFpower_smooth  = size(d.smooth.NF');
+                end
+        end
     end
+end
 
+ref_li = find(~cellfun(@isempty, data_by_level), 1, 'last');
+
+if ~isempty(ref_li)
     %% Individual plot — accumulate this condition on the per-subject multi-level figure
     plot_ind_efr(data_by_level, all_levels, plot_type, colors, shapes, ...
         Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, outpath, idx_plot_relative, conds_idx);
 
-    %% Export individual figure when last condition for this subject is done
+    %% Export individual figures when last condition for this subject is done
     if CondIND == conds_idx(end)
         subj_name = Chins2Run{ChinIND};
-        fig_name  = [subj_name ' | EFR ' plot_type];
-        fh = findobj('Type','figure','Name',fig_name);
+        cd(outpath); drawnow;
+        % Summary: one figure for all conditions
+        fh = findobj('Type','figure','Name', sprintf('Summary|EFR %s', plot_type));
         if ~isempty(fh)
-            cd(outpath);
-            drawnow;
-            exportgraphics(fh(1), [subj_name '_EFR_' plot_type '_allLevels_figure.png'], 'Resolution',300);
-            cd(cwd);
+            exportgraphics(fh(1), sprintf('%s_EFR_%s_Summary_figure.png', subj_name, plot_type),'Resolution',300);
         end
+        % Time Domain and Frequency Domain: one figure per condition
+        for ci = 1:numel(conds_idx)
+            cp = strsplit(all_Conds2Run{conds_idx(ci)}, filesep);
+            cl = cp{end};
+            if strcmp(plot_type,'RAM')
+                fh = findobj('Type','figure','Name', sprintf('Time Domain|%s', cl));
+                if ~isempty(fh)
+                    exportgraphics(fh(1), sprintf('%s_EFR_%s_TimeDomain_%s_figure.png', subj_name, plot_type, cl),'Resolution',300);
+                end
+            end
+            fh = findobj('Type','figure','Name', sprintf('Frequency Domain|%s', cl));
+            if ~isempty(fh)
+                exportgraphics(fh(1), sprintf('%s_EFR_%s_FreqDomain_%s_figure.png', subj_name, plot_type, cl),'Resolution',300);
+            end
+        end
+        cd(cwd);
     end
 else
     switch plot_type
         case 'RAM'
             if ~isempty(dim_f)
-                efr_f{ChinIND,CondIND}             = nan(dim_f);
-                efr_envelope{ChinIND,CondIND}      = nan(dim_envelope);
-                efr_PLV{ChinIND,CondIND}           = nan(dim_PLV);
-                efr_peak_amp{ChinIND,CondIND}      = nan(dim_peak_amp);
-                efr_peak_freq{ChinIND,CondIND}     = nan(dim_peak_freq);
-                efr_peak_freq_all{ChinIND,CondIND} = nan(dim_peak_freq_all);
+                for li = 1:numel(all_levels)
+                    efr_f{ChinIND,CondIND,li}             = nan(dim_f);
+                    efr_envelope{ChinIND,CondIND,li}      = nan(dim_envelope);
+                    efr_PLV{ChinIND,CondIND,li}           = nan(dim_PLV);
+                    efr_peak_amp{ChinIND,CondIND,li}      = nan(dim_peak_amp);
+                    efr_peak_freq{ChinIND,CondIND,li}     = nan(dim_peak_freq);
+                    efr_peak_freq_all{ChinIND,CondIND,li} = nan(dim_peak_freq_all);
+                end
             end
         case 'dAM'
             if ~isempty(dim_trajectory)
-                efr_trajectory{ChinIND,CondIND}        = nan(dim_trajectory);
-                efr_dAMpower{ChinIND,CondIND}          = nan(dim_dAMpower);
-                efr_NFpower{ChinIND,CondIND}           = nan(dim_NFpower);
-                efr_trajectory_smooth{ChinIND,CondIND} = nan(dim_dAMpower_smooth);
-                efr_dAMpower_smooth{ChinIND,CondIND}   = nan(dim_dAMpower_smooth);
-                efr_NFpower_smooth{ChinIND,CondIND}    = nan(dim_NFpower_smooth);
+                for li = 1:numel(all_levels)
+                    efr_trajectory{ChinIND,CondIND,li}        = nan(dim_trajectory);
+                    efr_dAMpower{ChinIND,CondIND,li}          = nan(dim_dAMpower);
+                    efr_NFpower{ChinIND,CondIND,li}           = nan(dim_NFpower);
+                    efr_trajectory_smooth{ChinIND,CondIND,li} = nan(dim_dAMpower_smooth);
+                    efr_dAMpower_smooth{ChinIND,CondIND,li}   = nan(dim_dAMpower_smooth);
+                    efr_NFpower_smooth{ChinIND,CondIND,li}    = nan(dim_NFpower_smooth);
+                end
             end
     end
     fprintf('No EFR %s data found for %s %s at any level.\n', plot_type, Chins2Run{ChinIND}, condition{2});
 end
 
-%% Average plots
-fig_num_avg = length(Chins2Run)+1;
-if average_flag == 1 && ~isempty(ref_li)
-    switch plot_type
-        case 'RAM'
-            average = avg_efr(efr_peak_freq_all, efr_peak_amp, efr_f, efr_PLV, ...
-                Chins2Run, Conds2Run, all_Conds2Run, fig_num_avg, colors, shapes, ...
-                idx_plot_relative, subject_idx, conds_idx, plot_type);
-            filename = ['EFR_RAM223_Average_', num2str(all_levels(ref_li)), 'dBSPL'];
-        case 'dAM'
-            average = avg_efr(efr_trajectory_smooth, efr_dAMpower_smooth, efr_NFpower_smooth, [], ...
-                Chins2Run, Conds2Run, all_Conds2Run, fig_num_avg, colors, shapes, ...
-                idx_plot_relative, subject_idx, conds_idx, plot_type);
-            filename = ['EFR_dAM4kHz_Average_', num2str(all_levels(ref_li)), 'dBSPL'];
-    end
+%% Average plots — one figure per level
+if average_flag == 1
     outpath_avg = strcat(OUTdir, filesep, 'EFR');
-    plot_avg_efr(average, plot_type, all_levels(ref_li), colors, shapes, subject_idx, conds_idx, ...
-        Chins2Run, Conds2Run, all_Conds2Run, outpath_avg, filename, fig_num_avg, ylimits, idx_plot_relative);
+    fig_num_avg = length(Chins2Run) + 1;
+    all_averages_ram = cell(1, numel(all_levels));
+    for li = 1:numel(all_levels)
+        switch plot_type
+            case 'RAM'
+                if li > size(efr_peak_freq_all, 3), continue; end
+                sl_x   = efr_peak_freq_all(:,:,li);
+                sl_y   = efr_peak_amp(:,:,li);
+                sl_f   = efr_f(:,:,li);
+                sl_plv = efr_PLV(:,:,li);
+                if all(cellfun(@isempty, sl_x(:))), continue; end
+                average = avg_efr(sl_x, sl_y, sl_f, sl_plv, ...
+                    Chins2Run, Conds2Run, all_Conds2Run, fig_num_avg, colors, shapes, ...
+                    idx_plot_relative, subject_idx, conds_idx, plot_type);
+                all_averages_ram{li} = average;
+                filename = ['EFR_RAM223_Average_', num2str(all_levels(li)), 'dBSPL'];
+            case 'dAM'
+                if li > size(efr_trajectory_smooth, 3), continue; end
+                sl_x  = efr_trajectory_smooth(:,:,li);
+                sl_y  = efr_dAMpower_smooth(:,:,li);
+                sl_nf = efr_NFpower_smooth(:,:,li);
+                if all(cellfun(@isempty, sl_x(:))), continue; end
+                average = avg_efr(sl_x, sl_y, sl_nf, [], ...
+                    Chins2Run, Conds2Run, all_Conds2Run, fig_num_avg, colors, shapes, ...
+                    idx_plot_relative, subject_idx, conds_idx, plot_type);
+                filename = ['EFR_dAM4kHz_Average_', num2str(all_levels(li)), 'dBSPL'];
+        end
+        plot_avg_efr(average, plot_type, all_levels(li), colors, shapes, subject_idx, conds_idx, ...
+            Chins2Run, Conds2Run, all_Conds2Run, outpath_avg, filename, fig_num_avg, ylimits, idx_plot_relative);
+        fig_num_avg = fig_num_avg + 1;
+    end
+    if strcmp(plot_type, 'RAM') && any(~cellfun(@isempty, all_averages_ram))
+        plot_avg_efr_tabs(all_averages_ram, all_levels, colors, shapes, subject_idx, conds_idx, ...
+            Chins2Run, Conds2Run, all_Conds2Run, outpath_avg, ylimits, idx_plot_relative);
+    end
 end
 cd(cwd);
 end
