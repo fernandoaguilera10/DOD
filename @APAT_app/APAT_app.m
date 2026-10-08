@@ -55,8 +55,12 @@ properties (Access = public)
     RefreshSubjBtn         matlab.ui.control.Button
     ConditionsPanel        matlab.ui.container.Panel
     OptionsPanel           matlab.ui.container.Panel
-    ReanalyzeCheck         matlab.ui.control.CheckBox
-    PlotRelativeCheck      matlab.ui.control.CheckBox
+    ReanalyzeCheck         matlab.ui.control.StateButton
+    PlotRelativeCheck      matlab.ui.control.StateButton
+    BlindCheck             matlab.ui.control.StateButton
+    BlindOverlay           matlab.ui.container.Panel
+    BlindOverlayMsg        matlab.ui.control.Label
+    BlindRevealBtn         matlab.ui.control.Button
     MeasuresPanel          matlab.ui.container.Panel
     DescTitleLabel         matlab.ui.control.Label
     DescLabel              matlab.ui.control.Label
@@ -64,6 +68,7 @@ properties (Access = public)
     FigIndBtn              matlab.ui.control.StateButton
     FigAvgBtn              matlab.ui.control.StateButton
     FigSubjDropdown        matlab.ui.control.DropDown
+    FigSubjCaption         matlab.ui.control.Label
     FigFreqDD              matlab.ui.control.DropDown
     % Status tab
     RefreshStatusBtn       matlab.ui.control.Button
@@ -79,9 +84,9 @@ properties (Access = private)
     code_dir              % path to Code Archive/
     profile_file          % path to user_profiles.mat
     % Dynamic arrays (rebuilt when chinroster changes)
-    h_subj_checks         % uicheckbox array – subjects
+    h_subj_checks         % toggle-chip array – subjects
     subj_ids              % cell array of subject ID strings
-    h_cond_checks         % uicheckbox array – conditions
+    h_cond_checks         % toggle-chip array – conditions
     h_meas_btns           % uibutton array – setup-tab measure selector
     h_sub_btns            % cell of uibutton arrays – subtypes
     % Results tab state (created in createComponents, managed by navigate_results)
@@ -94,7 +99,6 @@ properties (Access = private)
     % ABR parameter controls
     h_abr_param_panel
     h_abr_freq_checks
-    h_abr_level_checks
     h_abr_wave_checks
     % EFR parameter controls
     h_efr_param_panel
@@ -104,6 +108,11 @@ properties (Access = private)
     % OAE / MEMR parameter panels
     h_oae_param_panel
     h_memr_param_panel
+    % Setup-tab live summary (Run Summary card + project status labels)
+    h_summary
+    h_summary_proj
+    h_row2_badges         % selection-count labels (Subjects, Conditions)
+    layout_row2_in
     % Progress and spinner
     h_progress_label
     h_spinner_label
@@ -122,6 +131,11 @@ properties (Access = private)
     PeakEditRedoBtn
     PeakEditCancelBtn
     PeakEditDoneBtn
+    PeakEditSnapToggle   % snap ON/OFF state button
+    PeakEditThreshBtn    % visual-threshold mode toggle
+    PeakEditWaveBtn    % 1×5 array of wave selector buttons (I–V)
+    PeakEditPtToggle   % peak / trough toggle button
+    PeakEditAbsentBtn  % mark selected wave absent (NaN)
 end
 
 
@@ -139,6 +153,7 @@ methods (Access = private)
     chinroster_ops(app, action, varargin)
     profile_ops(app, action, varargin)
     settings_ops(app, action, varargin)
+    update_summary(app)
 
     % ── Startup ──────────────────────────────────────────────────────────
 
@@ -278,12 +293,14 @@ methods (Access = private)
         for ii = 1:numel(app.h_subj_checks)
             if isvalid(app.h_subj_checks(ii)), app.h_subj_checks(ii).Value = true; end
         end
+        update_summary(app);
     end
 
     function ClearButtonPushed(app)
         for ii = 1:numel(app.h_subj_checks)
             if isvalid(app.h_subj_checks(ii)), app.h_subj_checks(ii).Value = false; end
         end
+        update_summary(app);
     end
 
     function RefreshButtonPushed(app)

@@ -40,6 +40,7 @@ app.FigIndBtn.Value = true;   app.FigAvgBtn.Value = false;
 app.FigIndBtn.BackgroundColor = app.clr_gold;
 app.FigAvgBtn.BackgroundColor = app.clr_btn;
 app.FigSubjDropdown.Visible   = 'on';
+if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'on'; end
 switch_panel(app, 1, app.res.meas_idx);
 subj = app.FigSubjDropdown.Value;
 if ~strcmp(subj,'-')
@@ -53,6 +54,7 @@ app.FigAvgBtn.Value = true;   app.FigIndBtn.Value = false;
 app.FigAvgBtn.BackgroundColor = app.clr_gold;
 app.FigIndBtn.BackgroundColor = app.clr_btn;
 app.FigSubjDropdown.Visible   = 'off';
+if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'off'; end
 switch_panel(app, 2, app.res.meas_idx);
 set_freq_visible(app, app.res.meas_idx);
 sync_avg_freq(app, app.res.meas_idx);
@@ -67,7 +69,7 @@ end
 function do_meas_btn(app, idx)
 for k = 1:numel(app.res.btns)
     if isvalid(app.res.btns(k))
-        app.res.btns(k).BackgroundColor = ternary(k==idx, app.clr_gold, app.clr_btn);
+        set_chip(app, app.res.btns(k), k==idx);
     end
 end
 switch_panel(app, app.res.mode, idx);
@@ -122,7 +124,6 @@ function do_measures(app)
 if isempty(app.h_meas_btns) || ~any(isvalid(app.h_meas_btns)), return; end
 m      = app.state.measure_idx;
 k      = app.state.subtype_idx;
-COMB_H = app.layout_meas_h;
 
 % Highlight selected measure; show/hide subtype buttons
 for mi = 1:app.n_meas
@@ -145,42 +146,20 @@ for mi = 1:app.n_meas
     end
 end
 
-% Description label positioning
-subs     = app.MEASURES(m).subtypes;
-PAD      = 8;  panel_w = app.MeasuresPanel.Position(3);
-sub_end  = app.meas_sub_area_start;
-if ~isempty(subs) && ~isempty(app.h_sub_btns{m})
-    last_valid = find(isvalid(app.h_sub_btns{m}), 1, 'last');
-    if ~isempty(last_valid)
-        lp = app.h_sub_btns{m}(last_valid).Position;
-        sub_end = lp(1) + lp(3);
-    end
-end
-DESC_GAP = 12;  DESC_W = max(200, round(panel_w * 0.20));
-DESC_X   = sub_end + DESC_GAP;
-ABR_X    = DESC_X + DESC_W + DESC_GAP;
-ABR_W    = max(300, panel_w - ABR_X - PAD);
-
-y_sel     = 0.99 - m*(app.meas_h + app.meas_gap) + app.meas_gap;
-btn_top_y = round((y_sel + app.meas_h) * COMB_H);
-btn_bot_y = round(y_sel * COMB_H);
-title_h   = 22;
-body_bot  = max(6, btn_bot_y - 4);
-body_h    = max(20, btn_top_y - title_h - body_bot - 6);
-title_y   = body_bot + body_h + 4;
+% Description (About card) — fixed position, text only
+subs = app.MEASURES(m).subtypes;
 if ~isempty(subs)
     app.DescTitleLabel.Text = sprintf('%s (%s): %s', app.MEASURES(m).label, app.MEASURES(m).name, subs{k});
 else
     app.DescTitleLabel.Text = sprintf('%s (%s)', app.MEASURES(m).label, app.MEASURES(m).name);
 end
 app.DescLabel.Text = app.MEASURES(m).descriptions{k};
-app.DescTitleLabel.Position = [DESC_X title_y DESC_W title_h];
-app.DescLabel.Position      = [DESC_X body_bot DESC_W body_h];
 
 % Show only the parameter panel for the selected measure
 is_abr  = (m==1);  is_efr = (m==2);  is_oae = (m==3);  is_memr = (m==4);
 is_peaks = is_abr && (k==2);
-update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks, ABR_X, ABR_W);
+update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks);
+update_summary(app);
 end
 
 
@@ -192,7 +171,7 @@ function do_after_ind_embed(app, meas_idx, subject)
 % Highlight this measure's Results button
 for k = 1:numel(app.res.btns)
     if isvalid(app.res.btns(k))
-        app.res.btns(k).BackgroundColor = ternary(k==meas_idx, app.clr_gold, app.clr_btn);
+        set_chip(app, app.res.btns(k), k==meas_idx);
     end
 end
 switch_panel(app, 1, meas_idx);
@@ -200,6 +179,7 @@ app.FigIndBtn.Value = true;  app.FigAvgBtn.Value = false;
 app.FigIndBtn.BackgroundColor = app.clr_gold;
 app.FigAvgBtn.BackgroundColor = app.clr_btn;
 app.FigSubjDropdown.Visible   = 'on';
+if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'on'; end
 % Populate subject dropdown
 data = app.res.subj_data{meas_idx};
 if isempty(data.names)
@@ -223,7 +203,7 @@ end
 function do_after_avg_embed(app, meas_idx)
 for k = 1:numel(app.res.btns)
     if isvalid(app.res.btns(k))
-        app.res.btns(k).BackgroundColor = ternary(k==meas_idx, app.clr_gold, app.clr_btn);
+        set_chip(app, app.res.btns(k), k==meas_idx);
     end
 end
 switch_panel(app, 2, meas_idx);
@@ -231,6 +211,7 @@ app.FigAvgBtn.Value = true;  app.FigIndBtn.Value = false;
 app.FigAvgBtn.BackgroundColor = app.clr_gold;
 app.FigIndBtn.BackgroundColor = app.clr_btn;
 app.FigSubjDropdown.Visible   = 'off';
+if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'off'; end
 set_freq_visible(app, meas_idx);
 end
 
@@ -604,23 +585,14 @@ if isempty(titled_ps)
 end
 end
 
-function update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks, ABR_X, ABR_W)
+function update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks)
+% Panels are created at their final positions; only visibility changes here
+% (so AutoResizeChildren keeps them correct after window resizes).
 if ~isempty(app.h_abr_param_panel) && isvalid(app.h_abr_param_panel)
-    if is_abr
-        old = app.h_abr_param_panel.Position;
-        app.h_abr_param_panel.Position = [ABR_X old(2) ABR_W old(4)];
-    end
     app.h_abr_param_panel.Visible = ternary(is_abr, 'on', 'off');
     lev_vis = ternary(is_peaks, 'on', 'off');
-    for tag = {'abr_lev_lbl','abr_wave_lbl'}
-        h = findall(app.h_abr_param_panel,'Tag',tag{1});
-        if ~isempty(h), h.Visible = lev_vis; end
-    end
-    for li = 1:numel(app.h_abr_level_checks)
-        if isvalid(app.h_abr_level_checks(li))
-            app.h_abr_level_checks(li).Visible = lev_vis;
-        end
-    end
+    h = findall(app.h_abr_param_panel,'Tag','abr_wave_lbl');
+    set(h, 'Visible', lev_vis);
     for wi = 1:numel(app.h_abr_wave_checks)
         if isvalid(app.h_abr_wave_checks(wi))
             app.h_abr_wave_checks(wi).Visible = lev_vis;
@@ -628,16 +600,12 @@ if ~isempty(app.h_abr_param_panel) && isvalid(app.h_abr_param_panel)
     end
 end
 if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
-    if is_efr
-        old = app.h_efr_param_panel.Position;
-        app.h_efr_param_panel.Position = [ABR_X old(2) ABR_W old(4)];
-    end
     app.h_efr_param_panel.Visible = ternary(is_efr, 'on', 'off');
     ram_vis = ternary(is_efr && (app.state.subtype_idx==2), 'on', 'off');
     for tag = {'efr_ram_hdr','efr_ram_info','efr_harm_lbl','efr_win_lbl', ...
                'efr_win_s_lbl','efr_win_e_lbl','efr_harmonics','efr_win_start','efr_win_end'}
         h = findall(app.h_efr_param_panel,'Tag',tag{1});
-        if ~isempty(h), h.Visible = ram_vis; end
+        set(h, 'Visible', ram_vis);
     end
     for fld = {'h_efr_harmonics_field','h_efr_window_start_field','h_efr_window_end_field'}
         if ~isempty(app.(fld{1})) && isvalid(app.(fld{1}))
@@ -646,17 +614,21 @@ if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
     end
 end
 if ~isempty(app.h_oae_param_panel) && isvalid(app.h_oae_param_panel)
-    if is_oae
-        old = app.h_oae_param_panel.Position;
-        app.h_oae_param_panel.Position = [ABR_X old(2) ABR_W old(4)];
-    end
     app.h_oae_param_panel.Visible = ternary(is_oae, 'on', 'off');
 end
 if ~isempty(app.h_memr_param_panel) && isvalid(app.h_memr_param_panel)
-    if is_memr
-        old = app.h_memr_param_panel.Position;
-        app.h_memr_param_panel.Position = [ABR_X old(2) ABR_W old(4)];
-    end
     app.h_memr_param_panel.Visible = ternary(is_memr, 'on', 'off');
+end
+end
+
+
+function set_chip(app, btn, on)
+%SET_CHIP  Selected Results measure button = dark gold with white text
+%   (same style as the Setup tab's selected sub-type), otherwise neutral.
+if ~isvalid(btn), return; end
+if on
+    btn.BackgroundColor = app.clr_gold_dk;  btn.FontColor = [1 1 1];
+else
+    btn.BackgroundColor = app.clr_btn;      btn.FontColor = app.clr_black;
 end
 end

@@ -1,77 +1,110 @@
-function movefiles(Chins2Run,Conds2Run,ChinIND,CondIND,sourcepath,EXPname,DATAdir,CODEdir)
-% Ensure the source directory exists
+function move_files(Chins2Run, Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir)
+%MOVE_FILES  Copy RAW session files into the organised subject/measure/condition tree.
+%
+%   Source: sourcepath/<session_folder>
+%   Target: DATAdir/<AnimalID>/<EXPname>/<Condition>/
+%
+%   Auto-selects when exactly one matching folder exists.
+%   Prompts with listdlg only when multiple candidates are found.
+
+animalID  = Chins2Run{ChinIND};
+condLabel = Conds2Run{CondIND};           % e.g. 'pre/Baseline'
+parts     = strsplit(condLabel, filesep);
+condDisp  = parts{end};                   % e.g. 'Baseline'  (for display)
+targetDir = fullfile(DATAdir, animalID, EXPname, condLabel);
+numericID = regexprep(animalID, '^[Qq]', '');   % strip Q-prefix for broader match
+
+fprintf('\n══ move_files: %s  |  %s  |  %s ══\n', animalID, EXPname, condDisp);
+
+% ── Guard: source root must exist ────────────────────────────────────────
 if ~isfolder(sourcepath)
-    error('Source directory does not exist.');
+    fprintf('  [SKIP] RAW source folder not found:\n    %s\n', sourcepath);
+    cd(CODEdir);
+    return
 end
 
-targetDir = strcat(DATAdir,filesep,Chins2Run{ChinIND},filesep,EXPname,filesep,Conds2Run{CondIND});
-temp = dir(fullfile(sourcepath, ['*',Chins2Run{ChinIND},'*']));
-temp = temp([temp.isdir]); % Filter for directories only
-for i=1:length(temp)
-    sourceDir_temp(i) = {temp(i).name};
-end
-if ~isempty(temp)
-    [selectionIndex, tf] = listdlg('PromptString', sprintf('Select source directory: %s (%s - %s):',cell2mat(Chins2Run(ChinIND)),EXPname,cell2mat(Conds2Run(CondIND))), ...
-        'SelectionMode', 'single', ...
-        'ListString', sourceDir_temp,'ListSize', [500 150]);
-    if tf
-        sourceDir = cell2mat(strcat(sourcepath,filesep,sourceDir_temp(selectionIndex)));
-    else
-        disp('\nPlease select the source directory');
-        sourceDir = [];
+% ── Find candidate session directories ───────────────────────────────────
+hits = dir(fullfile(sourcepath, ['*', numericID, '*']));
+hits = hits([hits.isdir] & ~startsWith({hits.name}, '.'));
+
+if isempty(hits)
+    fprintf('  [SKIP] No directories matching *%s* in RAW folder:\n    %s\n', ...
+            numericID, sourcepath);
+    fprintf('  Contents of RAW:\n');
+    all_raw = dir(sourcepath);
+    all_raw = all_raw([all_raw.isdir] & ~startsWith({all_raw.name}, '.'));
+    for k = 1 : numel(all_raw)
+        fprintf('    %s\n', all_raw(k).name);
     end
+    cd(CODEdir);
+    return
 end
-% Ensure the target directory exists or create it
+
+% ── Select source folder ──────────────────────────────────────────────────
+if numel(hits) == 1
+    % Only one candidate — auto-select, no dialog needed
+    sourceDir = fullfile(sourcepath, hits(1).name);
+    fprintf('  Source (auto): %s\n', hits(1).name);
+else
+    % Multiple candidates — ask user to choose
+    names = {hits.name};
+    fprintf('  Multiple session folders found for %s — showing selection dialog.\n', animalID);
+    [sel, tf] = listdlg( ...
+        'PromptString', sprintf('Select folder for  %s  [%s — %s]:', animalID, EXPname, condDisp), ...
+        'SelectionMode', 'single', ...
+        'ListString',    names, ...
+        'ListSize',      [520 160]);
+    if ~tf
+        fprintf('  [SKIP] No folder selected — skipping.\n');
+        cd(CODEdir);
+        return
+    end
+    sourceDir = fullfile(sourcepath, names{sel});
+    fprintf('  Source (selected): %s\n', names{sel});
+end
+
+% ── Collect data files (measure-specific, no subdirectories) ─────────────
+if strcmp(EXPname, 'EFR')
+    datafiles = dir(fullfile(sourceDir, '*FFR*'));
+else
+    datafiles = dir(fullfile(sourceDir, ['*', EXPname, '*']));
+end
+datafiles = datafiles(~[datafiles.isdir]);
+
+% ── Collect calibration files (p*calib*, coef*calib*, etc.) ──────────────
+calibfiles = dir(fullfile(sourceDir, '*calib*'));
+calibfiles = calibfiles(~[calibfiles.isdir]);
+
+if isempty(datafiles)
+    fprintf('  [SKIP] No *%s* files found in:\n    %s\n', EXPname, sourceDir);
+    cd(CODEdir);
+    return
+end
+
+% ── Create target directory if needed ────────────────────────────────────
 if ~isfolder(targetDir)
     mkdir(targetDir);
 end
-cd(sourceDir)
-if strcmp(EXPname,'EFR')
-    datafiles = dir('*FFR*');
-else
-    datafiles = dir(['*',EXPname,'*']);
-end
-calibfiles = dir('*p*calib*');
-if ~isempty(datafiles)
-    fprintf('\nMoving files...');
-    fprintf('\nTarget directory: %s\n', targetDir);
-    fprintf('Source directory: %s\n', sourceDir);
-    if strcmp(EXPname,'ABR') || strcmp(EXPname,'EFR') || strcmp(EXPname,'OAE')
-        % Move each calib file to the target directory
-        for k = 1:length(calibfiles)
-            sourceFile = fullfile(sourceDir, calibfiles(k).name);
-            targetFile = fullfile(targetDir, calibfiles(k).name);
-            % Move the file
-            copyfile(sourceFile, targetFile);
-            % Display a message
-            fprintf('\nFile: %s', calibfiles(k).name);
-        end
-        % Move each data file to the target directory
-        for k = 1:length(datafiles)
-            sourceFile = fullfile(sourceDir, datafiles(k).name);
-            targetFile = fullfile(targetDir, datafiles(k).name);
-            % Move the file
-            copyfile(sourceFile, targetFile);
-            % Display a message
-            fprintf('\nFile: %s', datafiles(k).name);
-        end
-    elseif strcmp(EXPname,'MEMR')
-        % Move each data file to the target directory
-        for k = 1:length(datafiles)
-            sourceFile = fullfile(sourceDir, datafiles(k).name);
-            targetFile = fullfile(targetDir, datafiles(k).name);
-            % Move the file
-            copyfile(sourceFile, targetFile);
-            % Display a message
-            fprintf('\nFile: %s', datafiles(k).name);
-        end
-    end
-    fprintf('\n\nFiles have been succesfully copied for %s (%s)\n\n',Chins2Run{ChinIND},Conds2Run{CondIND});
-else
-    fprintf('\nNo files found under current directory');
-end
-clear temp sourceDir sourceDir_temp;
-beep;
 
-cd(CODEdir)
+fprintf('  Target: %s\n', targetDir);
+fprintf('  Copying %d data + %d calib files...\n', numel(datafiles), numel(calibfiles));
+
+% Copy calibration files
+for k = 1 : numel(calibfiles)
+    copyfile(fullfile(sourceDir, calibfiles(k).name), ...
+             fullfile(targetDir, calibfiles(k).name));
+end
+
+% Copy data files
+for k = 1 : numel(datafiles)
+    copyfile(fullfile(sourceDir, datafiles(k).name), ...
+             fullfile(targetDir, datafiles(k).name));
+    fprintf('    %s\n', datafiles(k).name);
+end
+
+% ── Verify ────────────────────────────────────────────────────────────────
+copied = dir(fullfile(targetDir, '*.mat'));
+fprintf('  Done: %d .mat files now in target.\n', numel(copied));
+
+cd(CODEdir);
 end

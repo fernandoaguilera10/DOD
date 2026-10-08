@@ -19,7 +19,7 @@ function analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, chinro
 %   .show_figs          struct  – .analysis / .ind / .avg logicals
 %   .embed_fns          struct  – .analysis / .average / .progress callbacks
 %   .abr_freq           numeric – frequencies to include (Hz)
-%   .abr_levels         numeric – levels to include (dB)
+%   .abr_levels         numeric – levels to include (dB); empty = all levels in the data
 %   .abr_tpl_per_level  logical – require per-level template          [false]
 %   .abr_wave_sel       logical 1×5 – ABR waves to show
 %   .efr_harmonics      integer – max harmonics for RAM EFR           [16]
@@ -47,6 +47,7 @@ embed_fns_in       = cfg_get(cfg, 'embed_fns', []);
 
 % In-app mode: all figures suppressed; embed callbacks route them into tabs
 use_embed = isstruct(embed_fns_in);
+blind     = logical(cfg_get(cfg, 'blind', false));   % blind mode: hide subject/condition
 if use_embed
     embed_fns          = embed_fns_in;
     show_figs.analysis = false;
@@ -198,64 +199,22 @@ filepath_dir(filepath_idx == 1) = filepath_dir_temp(filepath_idx == 1);
 datapath_dir(datapath_idx == 1) = datapath_dir_temp(datapath_idx == 1);
 define_global_vars(Chins2Run, all_Conds2Run, EXPname, EXPname2);
 
-%% ── NEL delay (ABR Peaks only) ───────────────────────────────────────────
-nel_delay = [];
-if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks')
-    nel_delay_file = fullfile(OUTdir, 'ABR', ['ABR_NEL_delay_' chinroster_sheet '.mat']);
-    nel_delay.delay_ms      = nan(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.nel           = nan(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.is_estimated  = false(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.nel_confirmed = false(length(Chins2Run), length(all_Conds2Run));
-    nel_delay.subjects      = Chins2Run(:);
-    nel_delay.timepoints    = all_Conds2Run;
-    if exist(nel_delay_file, 'file')
-        tmp   = load(nel_delay_file, 'nel_delay');
-        saved = tmp.nel_delay;
-        for s = 1:length(Chins2Run)
-            saved_s = find(strcmp(saved.subjects, Chins2Run{s}), 1);
-            if isempty(saved_s), continue; end
-            for t = 1:length(all_Conds2Run)
-                saved_t = find(strcmp(saved.timepoints, all_Conds2Run{t}), 1);
-                if isempty(saved_t), continue; end
-                nel_delay.delay_ms(s,t)     = saved.delay_ms(saved_s, saved_t);
-                nel_delay.nel(s,t)          = saved.nel(saved_s, saved_t);
-                nel_delay.is_estimated(s,t) = saved.is_estimated(saved_s, saved_t);
-                if isfield(saved, 'nel_confirmed')
-                    nel_delay.nel_confirmed(s,t) = saved.nel_confirmed(saved_s, saved_t);
-                end
-                % Guard: clear stale delay if NEL number is unknown
-                if isnan(nel_delay.nel(s,t)) && ~nel_delay.nel_confirmed(s,t)
-                    nel_delay.delay_ms(s,t)     = NaN;
-                    nel_delay.is_estimated(s,t) = false;
-                end
-            end
-        end
-        fprintf('  [NEL] Loaded existing ABR_NEL_delay.mat (%d subjects, %d timepoints mapped)\n', ...
-            length(Chins2Run), length(all_Conds2Run));
-    end
-    for ChinIND = 1:length(Chins2Run)
-        for CondIND = 1:length(all_Conds2Run)
-            if datapath_idx(ChinIND,CondIND) && isnan(nel_delay.delay_ms(ChinIND,CondIND))
-                nel_delay = get_nel_delay(ROOTdir, datapath_dir{ChinIND,CondIND}, Chins2Run, ChinIND, ...
-                    all_Conds2Run, CondIND, nel_delay, nel_delay_file);
-            end
-        end
-    end
-    nel_expected = false(length(Chins2Run), length(all_Conds2Run));
-    for s = 1:length(Chins2Run)
-        for t = 1:length(all_Conds2Run)
-            if strcmp(chinroster.signal(s,t),'X') || strcmp(chinroster.signal(s,t),'x')
-                nel_expected(s,t) = true;
-            end
-        end
-    end
-    nel_delay = prompt_missing_nel(nel_delay, Chins2Run, all_Conds2Run, nel_delay_file, nel_expected);
-end
-
 %% ── Main processing loop ─────────────────────────────────────────────────
 n_total = sum(sum(subject_idx));
 
-for ChinIND = 1:length(Chins2Run)
+% Blind mode: random subject order and anonymous progress labels.
+% (Averages don't depend on order — they trigger on the dataset counter.)
+subj_order = 1:length(Chins2Run);
+if blind, subj_order = subj_order(randperm(numel(subj_order))); end
+blind_k = 0;
+
+for ChinIND = subj_order
+    blind_k = blind_k + 1;
+    if blind
+        who_lbl = sprintf('blinded subject %d / %d', blind_k, numel(subj_order));
+    else
+        who_lbl = Chins2Run{ChinIND};
+    end
     % Conditions that are active (have data + are in subject roster) for this subject
     subj_active_conds = find(subject_idx(ChinIND,:) == 1);
     Conds2Run         = all_Conds2Run(subj_active_conds);
@@ -330,8 +289,9 @@ for ChinIND = 1:length(Chins2Run)
                 fprintf('\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
                 if use_embed && isfield(embed_fns,'progress')
                     cond_lbl = condition{end};
+                    if blind, cond_lbl = 'hidden condition'; end
                     embed_fns.progress(max(0,counter), n_total, ...
-                        sprintf('Analyzing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, max(0,counter), n_total));
+                        sprintf('Analyzing  %s \x2014 %s  (%d / %d)', who_lbl, cond_lbl, max(0,counter), n_total));
                 end
                 filepath = strcat(OUTdir, filesep, EXPname, filesep, Chins2Run{ChinIND}, filesep, all_Conds2Run{CondIND});
                 datapath = datapath_dir{ChinIND, CondIND};
@@ -344,7 +304,7 @@ for ChinIND = 1:length(Chins2Run)
 
                 run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
                     Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
-                    nel_delay, colors, shapes, limits, mparams, ROOTdir, CODEdir);
+                    colors, shapes, limits, mparams, ROOTdir, CODEdir);
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
                 new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
@@ -367,8 +327,9 @@ for ChinIND = 1:length(Chins2Run)
                 fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
                 if use_embed && isfield(embed_fns,'progress')
                     cond_lbl = condition{end};
+                    if blind, cond_lbl = 'hidden condition'; end
                     embed_fns.progress(counter, n_total, ...
-                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
+                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', who_lbl, cond_lbl, counter, n_total));
                 end
                 filepath = filepath_dir{ChinIND, CondIND};
                 datapath = datapath_dir{ChinIND, CondIND};
@@ -433,17 +394,6 @@ for ChinIND = 1:length(Chins2Run)
             end
         end
 
-        % After B2: fill NEL delay for any conditions where files were just
-        % moved (datapath_idx: 0→1) and the delay is still unknown.
-        % This ensures ABR_dtw receives the correct delay on the first run.
-        for i = 1:length(subj_active_conds)
-            CondIND = subj_active_conds(i);
-            if datapath_idx(ChinIND, CondIND) && isnan(nel_delay.delay_ms(ChinIND, CondIND))
-                nel_delay = get_nel_delay(ROOTdir, datapath_dir{ChinIND, CondIND}, Chins2Run, ChinIND, ...
-                    all_Conds2Run, CondIND, nel_delay, nel_delay_file);
-            end
-        end
-
         % Branch 1: collect all conditions needing analysis, call ABR_dtw
         % once with all of them so the loop order becomes freq→cond→level.
         peaks_cond_INDs = [];
@@ -469,14 +419,24 @@ for ChinIND = 1:length(Chins2Run)
             fprintf('\nSubject: %s\n', Chins2Run{ChinIND});
             if use_embed && isfield(embed_fns,'progress')
                 embed_fns.progress(max(0,counter), n_total, ...
-                    sprintf('Analyzing  %s  (%d / %d)', Chins2Run{ChinIND}, max(0,counter), n_total));
+                    sprintf('Analyzing  %s  (%d / %d)', who_lbl, max(0,counter), n_total));
+            end
+            pk_ui = mparams.peak_ui;
+            if blind && isstruct(pk_ui)
+                % Random condition order + anonymous labels in the peak editor
+                perm = randperm(numel(peaks_cond_INDs));
+                peaks_cond_INDs = peaks_cond_INDs(perm);
+                peaks_datapaths = peaks_datapaths(perm);
+                peaks_outpaths  = peaks_outpaths(perm);
+                pk_ui.blind      = true;
+                pk_ui.blind_subj = sprintf('%d / %d', blind_k, numel(subj_order));
             end
             pre_figs_b1 = findall(0,'Type','figure');
             set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
             ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
-                all_Conds2Run, Conds2Run, peaks_cond_INDs, nel_delay, colors, shapes, ...
+                all_Conds2Run, Conds2Run, peaks_cond_INDs, colors, shapes, ...
                 limits.ind.peaks, mparams.abr_freq, mparams.abr_levels, mparams.abr_tpl_per_level, ...
-                mparams.peak_ui, mparams.abr_wave_sel);
+                pk_ui, mparams.abr_wave_sel);
             if ~use_embed, set(0,'DefaultFigureVisible','on'); end
             new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
             new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
@@ -506,8 +466,9 @@ for ChinIND = 1:length(Chins2Run)
                 fprintf('\nLoading Data for Averaging...\nSubject: %s (%s)\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
                 if use_embed && isfield(embed_fns,'progress')
                     cond_lbl = condition{end};
+                    if blind, cond_lbl = 'hidden condition'; end
                     embed_fns.progress(counter, n_total, ...
-                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', Chins2Run{ChinIND}, cond_lbl, counter, n_total));
+                        sprintf('Summarizing  %s \x2014 %s  (%d / %d)', who_lbl, cond_lbl, counter, n_total));
                 end
                 filepath = filepath_dir{ChinIND, CondIND};
                 datapath = datapath_dir{ChinIND, CondIND};
@@ -659,7 +620,7 @@ mparams = struct();
 switch EXPname
     case 'ABR'
         mparams.abr_freq          = cfg_get(cfg, 'abr_freq',          [0 0.5 1 2 4 8]*1e3);
-        mparams.abr_levels        = cfg_get(cfg, 'abr_levels',        [80 70 60 50 40]);
+        mparams.abr_levels        = cfg_get(cfg, 'abr_levels',        []);   % [] = all available
         mparams.abr_tpl_per_level = cfg_get(cfg, 'abr_tpl_per_level', false);
         mparams.abr_wave_sel      = cfg_get(cfg, 'abr_wave_sel',      true(1,5));
         mparams.peak_ui           = cfg_get(cfg, 'peak_ui',           []);
@@ -676,7 +637,7 @@ end
 
 function run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
         Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
-        nel_delay, colors, shapes, limits, mparams, ROOTdir, CODEdir)
+        colors, shapes, limits, mparams, ROOTdir, CODEdir)
 % RUN_ANALYSIS_STEP  Dispatch the Branch-1 analysis call for one subject/condition.
 %
 %   This is called when raw data exists but output does not (or reanalyze=true).
@@ -690,7 +651,7 @@ switch EXPname
                     mparams.abr_freq);
             case 'Peaks'
                 ABR_dtw(ROOTdir, CODEdir, datapath, filepath, Chins2Run, ChinIND, ...
-                    all_Conds2Run, Conds2Run, CondIND, nel_delay, colors, shapes, ...
+                    all_Conds2Run, Conds2Run, CondIND, colors, shapes, ...
                     limits.ind.peaks, mparams.abr_freq, mparams.abr_levels, mparams.abr_tpl_per_level, ...
                     mparams.peak_ui, mparams.abr_wave_sel);
         end
@@ -824,11 +785,28 @@ elseif strcmp(EXPname, 'EFR')
     % Tab figures from plot_avg_efr_tabs also have '|' but route to avg panel.
     fig_names  = arrayfun(@(f) get(f,'Name'), from_subj, 'UniformOutput', false);
     has_pipe   = cellfun(@(nm) contains(nm,'|'), fig_names);
-    is_avg_tab = cellfun(@(nm) strncmp(nm,'PLV Average|',12) || strncmp(nm,'PLV Sum|',8), fig_names);
+    is_avg_tab = cellfun(@(nm) strncmp(nm,'PLV Average|',12) || strncmp(nm,'PLV Sum|',8) || strncmp(nm,'dAM Power|',10), fig_names);
     ind_figs   = from_subj(has_pipe & ~is_avg_tab);
-    avg_figs   = [from_subj(~has_pipe); from_subj(is_avg_tab)];
-    if isempty(ind_figs), ind_figs = from_subj(~is_avg_tab); end
+    avg_figs   = from_subj(is_avg_tab);
+    if isempty(avg_figs)
+        avg_figs = from_subj(~has_pipe);   % dAM: average figures have no '|'
+    end
     % Sort individual figures so tabs appear in creation order
+    if ~isempty(ind_figs)
+        [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
+        ind_figs = ind_figs(si);
+    end
+elseif strcmp(EXPname, 'OAE')
+    % OAE individual figures: "Category|Label" names (Amplitudes|<cond>, Summary|<EXPname>).
+    % The combined average figure is identified by its 'oae_avg_*' Tag.
+    % avg_oae() creates intermediate numbered figures (no name, no tag) that
+    % must be excluded so the average panel receives exactly one figure.
+    fig_names = arrayfun(@(f) get(f,'Name'), from_subj,'UniformOutput',false);
+    fig_tags  = arrayfun(@(f) get(f,'Tag'),  from_subj,'UniformOutput',false);
+    has_pipe  = cellfun(@(nm) contains(nm,'|'), fig_names);
+    is_avg    = cellfun(@(t)  strncmp(t,'oae_avg_',8), fig_tags);
+    ind_figs  = from_subj(has_pipe);
+    avg_figs  = from_subj(is_avg);
     if ~isempty(ind_figs)
         [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
         ind_figs = ind_figs(si);

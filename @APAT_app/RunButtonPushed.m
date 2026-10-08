@@ -65,11 +65,8 @@ if ~isempty(meas_idx) && ~isempty(app.res.panels)
     if isvalid(p_avg)
         delete(p_avg.Children);
         pos = p_avg.Position;
-        uilabel(p_avg,'Tag','placeholder', ...
-            'Text','Run analysis to see average figures here.', ...
-            'Position',[0 round(pos(4)/2-30) pos(3) 60], ...
-            'FontSize',18,'FontColor',[0.55 0.55 0.55], ...
-            'HorizontalAlignment','center','WordWrap','on');
+        make_placeholder(p_avg, 'Analysis running…', ...
+            'Average figures appear here once the last subject is processed.');
     end
     if ~isempty(meas_idx) && app.res.meas_idx == meas_idx
         app.FigSubjDropdown.Items = {'-'};  app.FigSubjDropdown.Value = '-';
@@ -83,6 +80,7 @@ if ~isempty(meas_idx)
 end
 app.TabGroup.SelectedTab = app.ResultsTab;
 app.RunButton.Enable   = 'off';
+app.RunButton.Text     = 'Running…';
 app.abort_requested    = false;
 app.StopButton.Text    = '■  Stop';
 app.StopButton.Enable  = 'on';
@@ -99,22 +97,16 @@ embed_fns.progress = @(n, total, msg) update_progress(app, n, total, msg);
 
 % ── Collect ABR parameters ────────────────────────────────────────────
 abr_freq_sel      = [];
-abr_levels_sel    = [];
+abr_levels_sel    = [];   % empty = use every level available in the data
 abr_wave_sel      = [];
 if strcmp(EXPname,'ABR')
     all_freqs  = [0 0.5 1 2 4 8] * 1e3;
-    all_levels = [80 70 60 50 40];
     if ~isempty(app.h_abr_freq_checks) && any(isvalid(app.h_abr_freq_checks))
         sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_freq_checks);
         abr_freq_sel = all_freqs(sel);
         if isempty(abr_freq_sel), abr_freq_sel = all_freqs; end
     end
     if strcmp(EXPname2,'Peaks')
-        if ~isempty(app.h_abr_level_checks) && any(isvalid(app.h_abr_level_checks))
-            sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_level_checks);
-            abr_levels_sel = all_levels(sel);
-            if isempty(abr_levels_sel), abr_levels_sel = all_levels; end
-        end
         if ~isempty(app.h_abr_wave_checks) && any(isvalid(app.h_abr_wave_checks))
             abr_wave_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_wave_checks);
             if ~any(abr_wave_sel), abr_wave_sel = true(1,5); end
@@ -149,6 +141,7 @@ cfg.abr_levels        = abr_levels_sel;
 cfg.abr_wave_sel      = abr_wave_sel;
 cfg.efr_harmonics     = efr_harmonics;
 cfg.efr_window        = efr_window;
+cfg.blind             = logical(app.BlindCheck.Value);
 if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks') && ...
         ~isempty(app.PeakEditPanel) && isvalid(app.PeakEditPanel)
     cfg.peak_ui = struct( ...
@@ -161,6 +154,11 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks') && ...
         'redo_btn',   app.PeakEditRedoBtn, ...
         'cancel_btn', app.PeakEditCancelBtn, ...
         'done_btn',   app.PeakEditDoneBtn, ...
+        'snap_toggle',  app.PeakEditSnapToggle, ...
+        'wave_btns',  app.PeakEditWaveBtn, ...
+        'pt_toggle',  app.PeakEditPtToggle, ...
+        'absent_btn', app.PeakEditAbsentBtn, ...
+        'thresh_btn', app.PeakEditThreshBtn, ...
         'fig',        app.UIFigure);
 else
     cfg.peak_ui = [];
@@ -187,13 +185,52 @@ stale_figs = findall(0, 'Type', 'figure');
 stale_figs = stale_figs(~arrayfun(@(f) isa(f, 'matlab.ui.Figure'), stale_figs));
 if ~isempty(stale_figs), close(stale_figs); end
 
+% ── Blind mode: cover the Results tab and silence the Command Window ──
+blind = cfg.blind;
+if blind
+    app.BlindOverlayMsg.Text = ['Subject and condition information is hidden while the ' ...
+        'analysis runs. Subjects and conditions are processed in random order.'];
+    app.BlindRevealBtn.Enable = 'off';
+    app.BlindOverlay.Visible  = 'on';
+    uistack(app.BlindOverlay, 'top');
+else
+    app.BlindOverlay.Visible  = 'off';
+end
+
 analysis_errored = false;
+run_log = '';
 try
-    analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, sheet, cfg);
+    if blind
+        % evalc captures all console output (subject IDs, file names) so
+        % nothing identifying is printed while the user is analysing.
+        run_log = evalc('analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, sheet, cfg);');
+    else
+        analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, sheet, cfg);
+    end
 catch ME
     analysis_errored = true;
     if isvalid(app) && ~strcmp(ME.identifier,'APAT:UserAbort')
-        uialert(app.UIFigure, ME.message, 'Analysis Error');
+        if blind
+            uialert(app.UIFigure, ['The analysis stopped with an error. Details are hidden ' ...
+                'in blind mode and were saved to Analysis/APAT_blind_run_log.txt.'], 'Analysis Error');
+            run_log = sprintf('%s\n\nERROR: %s\n%s', run_log, ME.message, ...
+                strjoin(arrayfun(@(s) sprintf('  %s (line %d)', s.name, s.line), ME.stack, 'UniformOutput', false), '\n'));
+        else
+            uialert(app.UIFigure, ME.message, 'Analysis Error');
+        end
+    end
+end
+if blind
+    % Keep the hidden console output so nothing is lost
+    try
+        fid = fopen(fullfile(ROOTdir,'Analysis','APAT_blind_run_log.txt'), 'w');
+        if fid > 0, fprintf(fid, '%s', run_log); fclose(fid); end
+    catch
+    end
+    if isvalid(app)
+        app.BlindOverlayMsg.Text = ['Analysis finished. Results are still hidden — ' ...
+            'unblind when you are ready to see subject and condition labels.'];
+        app.BlindRevealBtn.Enable = 'on';
     end
 end
 
@@ -202,6 +239,7 @@ if isvalid(app)
         app.PeakEditPanel.Visible = 'off';
     end
     app.RunButton.Enable   = 'on';
+    app.RunButton.Text     = '▶  Run Analysis';
     app.StopButton.Visible = 'off';
     stop_spinner_anim(app, ~analysis_errored && ~app.abort_requested);
 end

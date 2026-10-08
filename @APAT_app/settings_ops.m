@@ -22,13 +22,11 @@ s.Chins2Run     = Chins2Run_sel;
 s.Conds2Run     = Conds2Run_sel;
 s.reanalyze     = app.ReanalyzeCheck.Value;
 s.plot_relative = app.PlotRelativeCheck.Value;
+s.blind_mode    = app.BlindCheck.Value;
 s.measure_idx   = app.state.measure_idx;
 s.subtype_idx   = app.state.subtype_idx;
 if ~isempty(app.h_abr_freq_checks) && any(isvalid(app.h_abr_freq_checks))
     s.abr_freq_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_freq_checks);
-end
-if ~isempty(app.h_abr_level_checks) && any(isvalid(app.h_abr_level_checks))
-    s.abr_level_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_level_checks);
 end
 if ~isempty(app.h_abr_wave_checks) && any(isvalid(app.h_abr_wave_checks))
     s.abr_wave_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_wave_checks);
@@ -50,6 +48,7 @@ s = tmp.last_settings;
 
 if isfield(s,'reanalyze'),     app.ReanalyzeCheck.Value    = logical(s.reanalyze);     end
 if isfield(s,'plot_relative'), app.PlotRelativeCheck.Value = logical(s.plot_relative); end
+if isfield(s,'blind_mode'),    app.BlindCheck.Value        = logical(s.blind_mode);    end
 if isfield(s,'measure_idx') && s.measure_idx >= 1 && s.measure_idx <= numel(app.MEASURES)
     app.state.measure_idx = s.measure_idx;
 end
@@ -60,13 +59,6 @@ if isfield(s,'abr_freq_sel') && ~isempty(app.h_abr_freq_checks)
     for fi = 1:min(numel(s.abr_freq_sel), numel(app.h_abr_freq_checks))
         if isvalid(app.h_abr_freq_checks(fi))
             app.h_abr_freq_checks(fi).Value = logical(s.abr_freq_sel(fi));
-        end
-    end
-end
-if isfield(s,'abr_level_sel') && ~isempty(app.h_abr_level_checks)
-    for li = 1:min(numel(s.abr_level_sel), numel(app.h_abr_level_checks))
-        if isvalid(app.h_abr_level_checks(li))
-            app.h_abr_level_checks(li).Value = logical(s.abr_level_sel(li));
         end
     end
 end
@@ -91,4 +83,5 @@ if isfield(s,'Conds2Run') && ~isempty(s.Conds2Run)
         end
     end
 end
+update_summary(app);
 end

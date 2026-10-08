@@ -128,6 +128,7 @@ if average_flag == 1
     outpath_avg = strcat(OUTdir, filesep, 'EFR');
     fig_num_avg = length(Chins2Run) + 1;
     all_averages_ram = cell(1, numel(all_levels));
+    all_averages_dAM = cell(1, numel(all_levels));
     for li = 1:numel(all_levels)
         switch plot_type
             case 'RAM'
@@ -151,6 +152,7 @@ if average_flag == 1
                 average = avg_efr(sl_x, sl_y, sl_nf, [], ...
                     Chins2Run, Conds2Run, all_Conds2Run, fig_num_avg, colors, shapes, ...
                     idx_plot_relative, subject_idx, conds_idx, plot_type);
+                all_averages_dAM{li} = average;
                 filename = ['EFR_dAM4kHz_Average_', num2str(all_levels(li)), 'dBSPL'];
         end
         plot_avg_efr(average, plot_type, all_levels(li), colors, shapes, subject_idx, conds_idx, ...
@@ -160,6 +162,10 @@ if average_flag == 1
     if strcmp(plot_type, 'RAM') && any(~cellfun(@isempty, all_averages_ram))
         plot_avg_efr_tabs(all_averages_ram, all_levels, colors, shapes, subject_idx, conds_idx, ...
             Chins2Run, Conds2Run, all_Conds2Run, outpath_avg, ylimits, idx_plot_relative);
+    end
+    if strcmp(plot_type, 'dAM') && any(~cellfun(@isempty, all_averages_dAM))
+        plot_avg_efr_dAM_tabs(all_averages_dAM, all_levels, colors, shapes, subject_idx, ...
+            all_Conds2Run, idx_plot_relative);
     end
 end
 cd(cwd);

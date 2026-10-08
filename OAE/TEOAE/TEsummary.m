@@ -14,15 +14,14 @@ if exist(outpath,"dir")
     load(datafile);
     cd(cwd);
     cd ..
-    % PLOTTING SPL
+    % Store globals for averaging (SPL)
     te_f_spl{ChinIND,CondIND} = data.spl.f';
     te_amp_spl{ChinIND,CondIND} = data.spl.oae;
     te_nf_spl{ChinIND,CondIND} = data.spl.nf;
     te_f_band_spl = data.spl.centerFreq';
     te_amp_band_spl{ChinIND,CondIND} = data.spl.bandOAE';
     te_nf_band_spl{ChinIND,CondIND} = data.spl.bandNF';
-    fig_num_ind = ChinIND;
-    plot_ind_oae(data,'SPL','TEOAE',colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,fig_num_ind,ylimits_ind,shapes)
+    plot_ind_oae(data,'TEOAE',colors,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,shapes,conds_idx)
     cd(cwd);
     cd ..
 else
@@ -34,12 +33,13 @@ if average_flag == 1
     figure(fig_num_avg);
     if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
     clf;  % clear stale content before drawing
-    % Plot individual lines
+    % Compute average
     [average_spl,idx] = avg_oae(te_f_spl,te_amp_spl,te_nf_spl,te_f_band_spl,te_amp_band_spl,te_nf_band_spl,Chins2Run,Conds2Run,all_Conds2Run,fig_num_avg,colors,shapes,idx_plot_relative);
-    % Plot average lines
+    % SPL-only average figure (TEOAE has no EPL)
     outpath = strcat(OUTdir,filesep,'OAE');
-    filename_spl = 'TEOAE_Average_SPL';
-    plot_avg_oae(average_spl,'SPL','TEOAE',colors,idx,conds_idx,Chins2Run,Conds2Run,all_Conds2Run,outpath,filename_spl,fig_num_avg,ylimits_avg,idx_plot_relative,shapes);
+    plot_avg_oae({average_spl},{'SPL'},'TEOAE',colors,idx,conds_idx, ...
+        Chins2Run,Conds2Run,all_Conds2Run,outpath, ...
+        {'TEOAE_Average_SPL'},fig_num_avg,idx_plot_relative,shapes);
 end
 cd(cwd);
 end

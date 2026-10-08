@@ -46,13 +46,13 @@ for k = 1:n_valid
         cidx = mod(c - 1 + col_offset, n_colors) + 1;
         if ~isempty(average.plv_env{1,c}) && ~isempty(average.f{1,c})
             plot(ax, average.f{1,c}, average.plv_env{1,c}, ...
-                'LineStyle','-','LineWidth',1, ...
-                'Color',[colors(cidx,:) 0.18], ...
+                'LineStyle','-','LineWidth',1.5, ...
+                'Color',[colors(cidx,:) 0.25], ...
                 'HandleVisibility','off');
         end
     end
 
-    % Harmonic peaks with error bars
+    % Harmonic peaks with error bars (mean ± SD)
     for c = 1:numel(average.peaks)
         cidx   = mod(c - 1 + col_offset, n_colors) + 1;
         sh_idx = mod(c - 1 + col_offset, n_shapes) + 1;
@@ -63,13 +63,8 @@ for k = 1:n_valid
         dname = '';
         if c <= numel(legend_string), dname = legend_string{c}; end
         errorbar(ax, locs, pks, pks_sd, ...
-            'Marker',shapes(sh_idx,:),'LineStyle','none', ...
-            'LineWidth',1.5,'MarkerSize',8,'CapSize',3, ...
-            'Color',colors(cidx,:),'MarkerFaceColor',colors(cidx,:), ...
-            'HandleVisibility','off');
-        plot(ax, locs, pks, ...
             'Marker',shapes(sh_idx,:),'LineStyle','-', ...
-            'LineWidth',1.5,'MarkerSize',8, ...
+            'LineWidth',2,'MarkerSize',9,'CapSize',5, ...
             'Color',colors(cidx,:),'MarkerFaceColor',colors(cidx,:), ...
             'DisplayName',dname);
     end
@@ -91,16 +86,16 @@ for k = 1:n_valid
     xtickangle(ax, 45);
     set_ylim_local(ax);
 
-    title(ax, sprintf('%.0f dB SPL', all_levels(li)), 'FontWeight','bold','FontSize',13);
+    title(ax, sprintf('%.0f dB SPL', all_levels(li)), 'FontWeight','bold','FontSize',14);
     if k == 1
         if isempty(idx_plot_relative)
-            ylabel(ax,'PLV','FontWeight','bold','FontSize',12);
+            ylabel(ax,'PLV','FontWeight','bold','FontSize',14);
         else
-            ylabel(ax,'PLV Shift (re. Baseline)','FontWeight','bold','FontSize',12);
+            ylabel(ax,'PLV Shift (re. Baseline)','FontWeight','bold','FontSize',14);
         end
     end
-    xlabel(ax,'Frequency (Hz)','FontWeight','bold','FontSize',12);
-    set(ax,'FontSize',11);
+    xlabel(ax,'Frequency (Hz)','FontWeight','bold','FontSize',13);
+    set(ax,'FontSize',13);
     hold(ax,'off');
 end
 
@@ -108,7 +103,7 @@ end
 if n_valid >= 1 && ~isempty(legend_string)
     ax_last = findobj(fh1,'Type','axes');
     ax_last = ax_last(1);   % most recently created = last subplot
-    legend(ax_last, legend_string, 'Location','northeast','FontSize',10,'Box','off');
+    legend(ax_last, legend_string, 'Location','northeast','FontSize',12,'Box','off');
 end
 annotation(fh1,'textbox',[0 0.93 1 0.07], ...
     'String','EFR RAM 223 Hz — Average PLV Spectrum', ...
@@ -121,8 +116,6 @@ fh2 = figure('Name','PLV Sum|All Levels','NumberTitle','off', ...
     'Visible','off','Color','w','Units','normalized', ...
     'Position',[0.05 0.1 min(0.3*n_valid+0.2, 0.9) 0.75]);
 
-freq_labels_3 = {'Low (1-4)','High (5-16)','Total'};
-
 for k = 1:n_valid
     li      = valid_li(k);
     average = averages{li};
@@ -132,61 +125,72 @@ for k = 1:n_valid
     ax = axes(fh2, 'Position',[x PAD_B w_ax 1-PAD_T-PAD_B]); %#ok<LAXES>
     hold(ax,'on'); grid(ax,'on'); box(ax,'off');
 
-    % Build 3-group combined data matrix for boxplot
-    vals = []; grps = []; tps = [];
-    for s = 1:n_subj
-        for t = 1:n_c
-            lh = average.all_low_high_peaks{s,t};
-            ps = average.all_plv_sum{s,t};
-            if isempty(lh) || numel(lh) < 2, lh = [NaN NaN]; end
-            if isempty(ps)  || ~isscalar(ps), ps = NaN; end
-            d = [lh(1), lh(2), ps];
-            for g = 1:3
-                vals(end+1) = d(g); %#ok<AGROW>
-                grps(end+1) = g;    %#ok<AGROW>
-                tps(end+1)  = t;    %#ok<AGROW>
-            end
-        end
+    if n_c > 1
+        offsets = linspace(-0.25, 0.25, n_c);
+    else
+        offsets = 0;
     end
 
-    if ~isempty(vals) && any(~isnan(vals))
-        boxplot(ax, vals(:), {grps(:), tps(:)}, ...
-            'factorseparator',1,'labelverbosity','minor', ...
-            'ColorGroup',tps(:),'Symbol','*');
-        color_boxplot_local(ax, colors, col_offset, n_c);
-        group_ticks = (1:3)*n_c - (n_c-1)/2;
-        set(ax,'XTick',group_ticks,'XTickLabel',freq_labels_3,'FontSize',11);
+    for g = 1:3
+        for c = 1:n_c
+            data_vals = nan(n_subj, 1);
+            for s = 1:n_subj
+                lh = average.all_low_high_peaks{s,c};
+                ps = average.all_plv_sum{s,c};
+                if isempty(lh) || numel(lh) < 2, lh = [NaN NaN]; end
+                if isempty(ps) || ~isscalar(ps), ps = NaN; end
+                switch g
+                    case 1, data_vals(s) = lh(1);
+                    case 2, data_vals(s) = lh(2);
+                    case 3, data_vals(s) = ps;
+                end
+            end
+            valid = data_vals(~isnan(data_vals));
+            if isempty(valid), continue; end
+            cidx = mod(c - 1 + col_offset, n_colors) + 1;
+            xc   = g + offsets(c);
+            % Individual subject dots
+            hs = scatter(ax, xc*ones(numel(valid),1), valid, 20, colors(cidx,:), 'filled', ...
+                'HandleVisibility','off');
+            hs.MarkerFaceAlpha = 0.35;
+            % Mean ± SD errorbar (legend entry only for first group)
+            m  = nanmean(valid);
+            sd = nanstd(valid);
+            if g == 1 && c <= numel(legend_string)
+                hv = 'on'; dname = legend_string{c};
+            else
+                hv = 'off'; dname = '';
+            end
+            errorbar(ax, xc, m, sd, ...
+                'Color',colors(cidx,:),'LineWidth',2,'CapSize',6, ...
+                'Marker','o','MarkerFaceColor',colors(cidx,:),'MarkerSize',8, ...
+                'DisplayName',dname,'HandleVisibility',hv);
+        end
     end
 
     if ~isempty(idx_plot_relative)
-        yline(ax, 0,'k--','LineWidth',1.5);
+        yline(ax, 0,'k--','LineWidth',1.5,'HandleVisibility','off');
     end
 
-    title(ax, sprintf('%.0f dB SPL', all_levels(li)),'FontWeight','bold','FontSize',13);
+    set(ax,'XTick',1:3,'XTickLabel',{'Low (1-4)','High (5-16)','Total'},'FontSize',13);
+    xlim(ax,[0.5, 3.5]);
+    title(ax, sprintf('%.0f dB SPL', all_levels(li)),'FontWeight','bold','FontSize',14);
     if k == 1
         if isempty(idx_plot_relative)
-            ylabel(ax,'PLV Sum','FontWeight','bold','FontSize',12);
+            ylabel(ax,'PLV Sum','FontWeight','bold','FontSize',14);
         else
-            ylabel(ax,'PLV Shift (re. Baseline)','FontWeight','bold','FontSize',12);
+            ylabel(ax,'PLV Shift (re. Baseline)','FontWeight','bold','FontSize',14);
         end
     end
-    set(ax,'FontSize',11);
+    set(ax,'FontSize',13);
     hold(ax,'off');
 end
 
-% Condition legend in first subplot
+% Legend anchored to first subplot
 if n_valid >= 1 && ~isempty(legend_string) && n_conds > 0
     ax_first = findobj(fh2,'Type','axes');
     ax_first = ax_first(end);   % oldest = first subplot
-    leg_h = gobjects(n_conds, 1);
-    for ci = 1:n_conds
-        cidx      = mod(ci - 1 + col_offset, n_colors) + 1;
-        leg_h(ci) = plot(ax_first, NaN, NaN, 's', ...
-            'MarkerFaceColor',colors(cidx,:),'MarkerEdgeColor','k','MarkerSize',9);
-    end
-    valid_leg = isgraphics(leg_h);
-    legend(ax_first, leg_h(valid_leg), legend_string(1:sum(valid_leg)), ...
-        'Location','northeast','FontSize',10,'Box','off');
+    legend(ax_first,'Location','northeast','FontSize',12,'Box','off');
 end
 annotation(fh2,'textbox',[0 0.93 1 0.07], ...
     'String','EFR RAM 223 Hz — PLV Sum (Low / High / Total)', ...
@@ -212,32 +216,6 @@ end
 ls = temp(~cellfun(@isempty, temp));
 end
 
-
-function color_boxplot_local(ax, colors_in, col_offset, n_conds)
-bH  = flipud(findobj(ax,'Tag','Box'));
-mH  = flipud(findobj(ax,'Tag','Median'));
-uwH = flipud(findobj(ax,'Tag','Upper Whisker'));
-lwH = flipud(findobj(ax,'Tag','Lower Whisker'));
-c1H = flipud(findobj(ax,'Tag','Upper Adjacent Value'));
-c2H = flipud(findobj(ax,'Tag','Lower Adjacent Value'));
-oH  = flipud(findobj(ax,'Tag','Outliers'));
-n_boxes  = numel(bH);
-n_colors = size(colors_in, 1);
-for bi = 1:n_boxes
-    tp_idx = mod(bi-1, n_conds) + 1;
-    cidx   = mod(tp_idx + col_offset - 1, n_colors) + 1;
-    c      = colors_in(cidx, :);
-    xd = get(bH(bi),'XData'); yd = get(bH(bi),'YData');
-    patch(ax, xd([1 2 3 4 1]), yd([1 2 3 4 1]), c, 'FaceAlpha',0.5,'EdgeColor','none');
-    set(bH(bi),'Color',c,'LineWidth',2);
-    set(mH(bi),'Color',c,'LineWidth',2);
-    if ~isempty(uwH), set(uwH(bi),'Color',c,'LineWidth',2); end
-    if ~isempty(lwH), set(lwH(bi),'Color',c,'LineWidth',2); end
-    if ~isempty(c1H), set(c1H(bi),'Color',c,'LineWidth',2); end
-    if ~isempty(c2H), set(c2H(bi),'Color',c,'LineWidth',2); end
-    if ~isempty(oH),  set(oH(bi),'MarkerEdgeColor',c,'LineWidth',2); end
-end
-end
 
 
 function set_ylim_local(ax, pad)

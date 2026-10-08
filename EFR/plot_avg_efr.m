@@ -79,7 +79,6 @@ end
 
 %% Helper: draw a boxplot dataset
     function [timepoints, n_tp_unique] = draw_boxplot(ax, data_cell, freq_labels)
-        axes(ax); %#ok<LAXES>
         [n_subj, n_tp] = size(data_cell);
         n_freq = length(freq_labels);
         vals = []; freqs = []; timepoints = [];
@@ -92,7 +91,7 @@ end
                 timepoints = [timepoints, repmat(t,1,n_freq)]; %#ok<AGROW>
             end
         end
-        boxplot(vals(:), {freqs(:), timepoints(:)}, ...
+        boxplot(ax, vals(:), {freqs(:), timepoints(:)}, ...
             'factorseparator',1,'labelverbosity','minor','ColorGroup',timepoints(:),'Symbol','*');
         n_tp_unique = length(unique(timepoints));
     end
@@ -373,11 +372,15 @@ average.subjects   = Chins2Run;
 average.conditions = [convertCharsToStrings(all_Conds2Run(:)'); idx];
 cd(outpath);
 save(filename,'average');
-drawnow;
+set(fh1,'Visible','off');
 exportgraphics(fh1,[filename,'_figure.png'],'Resolution',300);
 if strcmp(plot_type,'RAM')
+    set(fh2,'Visible','off');
     exportgraphics(fh2,[filename,'_PLVharmonics_figure.png'],'Resolution',300);
+    close(fh2);
+    set(fh3,'Visible','off');
     exportgraphics(fh3,[filename,'_PLVsum_figure.png'],'Resolution',300);
+    close(fh3);
 end
 cd(cwd);
 end

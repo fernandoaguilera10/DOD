@@ -30,18 +30,12 @@ end
 if isfield(p,'last_sheet'),         app.state.sheet = p.last_sheet;                              end
 if isfield(p,'reanalyze'),          app.ReanalyzeCheck.Value    = logical(p.reanalyze);          end
 if isfield(p,'plot_relative_flag'), app.PlotRelativeCheck.Value = logical(p.plot_relative_flag); end
+if isfield(p,'blind_mode'),         app.BlindCheck.Value        = logical(p.blind_mode);         end
 
 if isfield(p,'abr_freq_sel') && ~isempty(app.h_abr_freq_checks)
     for fi = 1:min(numel(p.abr_freq_sel), numel(app.h_abr_freq_checks))
         if isvalid(app.h_abr_freq_checks(fi))
             app.h_abr_freq_checks(fi).Value = logical(p.abr_freq_sel(fi));
-        end
-    end
-end
-if isfield(p,'abr_level_sel') && ~isempty(app.h_abr_level_checks)
-    for li = 1:min(numel(p.abr_level_sel), numel(app.h_abr_level_checks))
-        if isvalid(app.h_abr_level_checks(li))
-            app.h_abr_level_checks(li).Value = logical(p.abr_level_sel(li));
         end
     end
 end
@@ -66,6 +60,7 @@ end
 preferred = '';
 if isfield(p,'chinroster_filename'), preferred = p.chinroster_filename; end
 chinroster_ops(app, 'scan', preferred);
+update_summary(app);
 end
 
 
@@ -84,11 +79,9 @@ end
 app.profiles.(pname).last_sheet         = app.state.sheet;
 app.profiles.(pname).reanalyze          = app.ReanalyzeCheck.Value;
 app.profiles.(pname).plot_relative_flag = app.PlotRelativeCheck.Value;
+app.profiles.(pname).blind_mode         = app.BlindCheck.Value;
 if ~isempty(app.h_abr_freq_checks) && any(isvalid(app.h_abr_freq_checks))
     app.profiles.(pname).abr_freq_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_freq_checks);
-end
-if ~isempty(app.h_abr_level_checks) && any(isvalid(app.h_abr_level_checks))
-    app.profiles.(pname).abr_level_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_level_checks);
 end
 if ~isempty(app.h_abr_wave_checks) && any(isvalid(app.h_abr_wave_checks))
     app.profiles.(pname).abr_wave_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_wave_checks);

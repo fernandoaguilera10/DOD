@@ -85,45 +85,49 @@ settings_ops(app, 'load');
 end
 
 
-% ── Rebuild subject checkbox grid ─────────────────────────────────────
+% ── Rebuild subject chip grid ─────────────────────────────────────────
 
 function do_set_subj(app, subjs, checked)
 valid = app.h_subj_checks(isvalid(app.h_subj_checks));
 if ~isempty(valid), delete(valid); end
 app.h_subj_checks = gobjects(0);
 app.subj_ids      = {};
-if isempty(subjs), return; end
+if isempty(subjs), update_summary(app); return; end
 subjs   = subjs(:);
 checked = checked(:);
 n       = numel(subjs);
 app.subj_ids = subjs;
 
-pp          = app.SubjectsPanel.Position;
-pw          = pp(3) - 14;
-ph          = pp(4);
-item_w      = 68;
-n_cols      = max(1, floor(pw / item_w));
-n_rows      = ceil(n / n_cols);
-TITLE_CLEAR = 38;
-BTN_CLEAR   = 48;
-grid_top    = ph - TITLE_CLEAR;
-grid_bot    = BTN_CLEAR;
-item_h      = min(24, (grid_top - grid_bot) / max(n_rows,1));
+% Toggle chips laid out in a grid between the panel title and the
+% bottom action strip. Styling (gold = selected) is applied by update_summary.
+pp       = app.SubjectsPanel.Position;
+inner_w  = pp(3) - 24;
+IN2      = app.layout_row2_in;
+grid_top = IN2 - 6;
+grid_bot = 6 + 28 + 12;
+gap      = 6;
+chip_w   = 76;
+n_cols   = max(1, floor((inner_w + gap) / (chip_w + gap)));
+chip_w   = floor((inner_w - (n_cols-1)*gap) / n_cols);     % stretch to fill width
+n_rows   = ceil(n / n_cols);
+chip_h   = max(18, min(28, floor((grid_top - grid_bot) / max(n_rows,1)) - gap));
 
 app.h_subj_checks = gobjects(1, n);
 for ii = 1:n
     row = ceil(ii / n_cols) - 1;
     col = mod(ii - 1, n_cols);
-    x   = 4 + col * item_w;
-    y   = grid_top - (row + 1) * item_h;
-    app.h_subj_checks(ii) = uicheckbox(app.SubjectsPanel, ...
+    x   = 12 + col * (chip_w + gap);
+    y   = grid_top - (row + 1) * (chip_h + gap) + gap;
+    app.h_subj_checks(ii) = uibutton(app.SubjectsPanel,'state', ...
         'Text',subjs{ii},'Value',logical(checked(ii)), ...
-        'Position',[x y item_w item_h], 'FontSize',15);
+        'Position',[x y chip_w chip_h], 'FontSize',14,'FontWeight','bold', ...
+        'ValueChangedFcn',@(~,~) update_summary(app));
 end
+update_summary(app);
 end
 
 
-% ── Rebuild condition checkbox list ───────────────────────────────────
+% ── Rebuild condition chip list ───────────────────────────────────────
 
 function do_refresh_conds(app)
 valid = app.h_cond_checks(isvalid(app.h_cond_checks));
@@ -131,19 +135,32 @@ if ~isempty(valid), delete(valid); end
 app.h_cond_checks = gobjects(0);
 labels = app.state.cond_labels;
 n = numel(labels);
-if n == 0, return; end
+if n == 0, update_summary(app); return; end
 
+% Toggle chips, one per condition.
+pp       = app.ConditionsPanel.Position;
+inner_w  = pp(3) - 24;
+IN2      = app.layout_row2_in;
+grid_top = IN2 - 6;
+grid_bot = 6 + 28 + 12;
+gap      = 6;
+% Use as many columns as needed so every chip keeps a readable height
+% (~30 px); e.g. 4 conditions → 2×2, 5 → 2 columns × 3 rows.
+max_rows = max(1, floor((grid_top - grid_bot + gap) / (30 + gap)));
+n_cols   = ceil(n / max_rows);
+n_rows   = ceil(n / n_cols);
+chip_w   = floor((inner_w - (n_cols-1)*gap) / n_cols);
+chip_h   = max(24, min(32, floor((grid_top - grid_bot) / n_rows) - gap));
 app.h_cond_checks = gobjects(1, n);
-ROW2_H      = app.layout_row2_h;
-TITLE_CLEAR = 38;
-avail_h     = ROW2_H - TITLE_CLEAR - 10;
-item_h      = max(18, min(28, floor(avail_h / n)));
-pp_cond     = app.ConditionsPanel.Position;
-cond_inner_w = max(120, pp_cond(3) - 18);
 for ci = 1:n
-    y_pos = ROW2_H - TITLE_CLEAR - ci * item_h;
-    app.h_cond_checks(ci) = uicheckbox(app.ConditionsPanel, ...
-        'Text',labels{ci},'Value',true, ...
-        'Position',[10 y_pos cond_inner_w item_h], 'FontSize',16);
+    row = ceil(ci / n_cols) - 1;
+    col = mod(ci - 1, n_cols);
+    txt = labels{ci};
+    app.h_cond_checks(ci) = uibutton(app.ConditionsPanel,'state', ...
+        'Text',txt,'Value',true,'HorizontalAlignment','left', ...
+        'Position',[12+col*(chip_w+gap) grid_top-(row+1)*(chip_h+gap)+gap chip_w chip_h], ...
+        'FontSize',15,'FontWeight','bold', ...
+        'ValueChangedFcn',@(~,~) update_summary(app));
 end
+update_summary(app);
 end

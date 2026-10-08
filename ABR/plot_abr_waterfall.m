@@ -177,7 +177,7 @@ for lev = 1:n_levels
                 tr_amp = ref_wf(t_idx) + offset;
                 plot(ax, lat_ms, tr_amp, shapes(w), ...
                     'Color', colors(c,:), 'MarkerFaceColor', 'none', ...
-                    'MarkerSize', 9, 'LineWidth', 1.5, ...
+                    'MarkerSize', 10, 'LineWidth', 2, ...
                     'HandleVisibility', 'off');
             end
         end
@@ -210,7 +210,7 @@ hold(ax,'off');
 hold(ax,'on');
 % Spacer between conditions and waves
 plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
-% Wave markers (black, filled) — only for selected waves
+% Wave markers (black, filled = peak style) — only for selected waves
 for w = 1:5
     if ~wave_sel(w), continue; end
     plot(ax, nan, nan, shapes(w), ...
@@ -223,7 +223,7 @@ plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
 plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','k', ...
     'MarkerSize',9, 'LineWidth',1.5, 'DisplayName','Peak');
 plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','none', ...
-    'MarkerSize',9, 'LineWidth',1.5, 'DisplayName','Trough');
+    'MarkerSize',10, 'LineWidth',2, 'DisplayName','Trough');
 hold(ax,'off');
 legend(ax,'Location','northeastoutside','FontSize',13,'Box','off');
 
