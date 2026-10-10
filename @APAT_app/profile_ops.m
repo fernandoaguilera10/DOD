@@ -57,6 +57,20 @@ if isfield(p,'efr_window') && numel(p.efr_window) == 2
         app.h_efr_window_end_field.Value = p.efr_window(2);
     end
 end
+if isfield(p,'efr_ctl') && isstruct(p.efr_ctl) && ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
+    for f = fieldnames(p.efr_ctl)'
+        h = findall(app.h_efr_param_panel,'Tag',f{1});
+        if ~isempty(h)
+            try, h(1).Value = p.efr_ctl.(f{1}); catch, end
+            if strcmp(f{1},'efr_norm_btn')
+                on = logical(h(1).Value);
+                h(1).Text = ternary(on,'ON','OFF');
+                h(1).BackgroundColor = ternary(on, app.clr_gold, [1 1 1]);
+                h(1).FontColor = ternary(on, app.clr_black, [0.6 0.6 0.6]);
+            end
+        end
+    end
+end
 preferred = '';
 if isfield(p,'chinroster_filename'), preferred = p.chinroster_filename; end
 chinroster_ops(app, 'scan', preferred);
@@ -93,6 +107,14 @@ if ~isempty(app.h_efr_window_start_field) && isvalid(app.h_efr_window_start_fiel
    ~isempty(app.h_efr_window_end_field)   && isvalid(app.h_efr_window_end_field)
     app.profiles.(pname).efr_window = [app.h_efr_window_start_field.Value, ...
                                         app.h_efr_window_end_field.Value];
+end
+if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
+    ec = struct();
+    for t = {'efr_low_from','efr_low_to','efr_high_from','efr_high_to','efr_sum_dd','efr_norm_btn','efr_dam_bands'}
+        h = findall(app.h_efr_param_panel,'Tag',t{1});
+        if ~isempty(h), ec.(t{1}) = h(1).Value; end
+    end
+    app.profiles.(pname).efr_ctl = ec;
 end
 end
 

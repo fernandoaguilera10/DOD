@@ -1,8 +1,9 @@
-function dAManalysis(datapath,outpath,subject,condition)% EFR dAM analysis
+function dAManalysis(datapath,outpath,subject,condition,n_bands)% EFR dAM analysis
 % Author: Satya Parida
 % Updated: July 2025 by Fernando Aguilera de Alba
 % Purpose: Script to import/plot/apply additional processing to dAM_EFR files (chin version)
 smooth_type = 'band';
+if nargin < 5 || isempty(n_bands), n_bands = 16; end   % dAM bands (Setup; 16 = RAM harmonics)
 noise_flag = 0; % check if including broadband noise stimuli
 t_dur = 1.5; % duration of stimuli in s
 flist=4000;%tone carrier in Hz
@@ -81,6 +82,25 @@ if exist(datapath,'dir')
         dam_traj_Hz = dam_traj_Hz(nan_idx);
         dAM_pow_frac = dAM_pow_frac(nan_idx);
         dAM_powNF_frac = dAM_powNF_frac(nan_idx);
+        %% Time series (same approach as EFR RAM)
+        % RAM: T_env = mean((pos + neg)/2) in µV (helper.getSpectAverage).
+        % Trials alternate stimulus polarity (odd = +, even = -). Averaging
+        % the two polarities keeps the envelope-following response (EFR)
+        % and cancels the carrier / stimulus artifact; half their
+        % difference keeps the temporal fine structure.
+        all_trials = cell2mat(data.AD_Data.AD_All_V{1,1}');   % trials x samples (V)
+        gain = 1;
+        if isfield(data.AD_Data,'Gain') && ~isempty(data.AD_Data.Gain), gain = data.AD_Data.Gain; end
+        all_trials = all_trials' * 1e6 / gain;                % samples x trials (µV)
+        all_trials = filtfilt(bp_filter_ffr, all_trials);     % same 10-1500 Hz band as the dAM power
+        pos = all_trials(:,1:2:end);
+        neg = all_trials(:,2:2:end);
+        n_pair = min(size(pos,2), size(neg,2));
+        t_env = detrend(mean((pos(:,1:n_pair) + neg(:,1:n_pair))/2, 2));   % envelope (EFR)
+        t_tfs = detrend(mean((pos(:,1:n_pair) - neg(:,1:n_pair))/2, 2));   % fine structure
+        t_sig = (0:numel(t_env)-1)' / fs_resp;                % s, from stimulus onset
+        clear all_trials pos neg
+
         %% Plot dAM
         blck = [0.25, 0.25, 0.25, 0.25];
         rd = [0.8500, 0.3250, 0.0980, 0.25];
@@ -94,28 +114,9 @@ if exist(datapath,'dir')
         % Plot smoothing
         switch smooth_type
             case 'band'
-                %% Smoothing: band average
-                fmin = dam_traj_Hz(1);
-                fmax = dam_traj_Hz(find(~isnan(dam_traj_Hz), 1, 'last')); % find last non-nan value
-                edges = 2 .^ linspace(log2(fmin), log2(fmax), 36);
-                bandEdges = edges(2:2:end-1);
-                centerFreqs = edges(3:2:end-2)';
-                dAM_w = zeros(length(centerFreqs),1);
-                nf_w = zeros(length(centerFreqs),1);
-                % resample / average to 9 center frequencies
-                for z = 1:length(centerFreqs)
-                    band = find( dam_traj_Hz >= bandEdges(z) & dam_traj_Hz < bandEdges(z+1));
-                    % Do some weighting by SNR
-                    SNR = dAM_pow_frac(band) - dAM_powNF_frac(band);
-                    weight = (10.^(SNR./10)).^2;
-                    dAM_mean(z, 1) = mean(dAM_pow_frac(band));
-                    nf_mean(z,1) = mean(dAM_powNF_frac(band));
-                    dAM_w(z,1) = sum(weight.*dAM_pow_frac(band))/sum(weight);
-                    nf_w(z,1) = sum(weight.*dAM_powNF_frac(band))/sum(weight);
-                end
-                dAM_smooth = dAM_w;
-                nf_smooth = nf_w;
-                f_smooth = centerFreqs;
+                %% Smoothing: SNR-weighted band average into n_bands log-spaced bands
+                [f_smooth, dAM_smooth, nf_smooth] = efr_dam_smooth(dam_traj_Hz, dAM_pow_frac, dAM_powNF_frac, n_bands);
+                centerFreqs = f_smooth;
                 plot(centerFreqs,dAM_smooth,'ok','linestyle','--','linewidth',3,'markersize',12,'markerfacecolor','k','HandleVisibility','off');    % response
                 plot(centerFreqs,nf_smooth,'xr','linestyle','--','linewidth',3,'markersize',12,'markerfacecolor','r','HandleVisibility','off');    % noise floor
                 smooth_type_string = sprintf('%s Band-Average',num2str(length(centerFreqs)));
@@ -149,6 +150,9 @@ if exist(datapath,'dir')
         efr.smooth.f = f_smooth;
         efr.smooth.dAM = dAM_smooth;
         efr.smooth.NF = nf_smooth;
+        efr.t     = t_sig(:)';      % time series (see '%% Time series' above)
+        efr.t_env = t_env(:)';      % envelope response, µV
+        efr.t_tfs = t_tfs(:)';      % fine-structure response, µV
         save(fname,'efr')
     end
     cd(cwd)

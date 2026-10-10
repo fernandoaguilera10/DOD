@@ -87,6 +87,7 @@ properties (Access = private)
     h_subj_checks         % toggle-chip array – subjects
     subj_ids              % cell array of subject ID strings
     h_cond_checks         % toggle-chip array – conditions
+    h_cond_swatches       % colour swatch buttons – conditions (plot colour)
     h_meas_btns           % uibutton array – setup-tab measure selector
     h_sub_btns            % cell of uibutton arrays – subtypes
     % Results tab state (created in createComponents, managed by navigate_results)
@@ -133,6 +134,8 @@ properties (Access = private)
     PeakEditDoneBtn
     PeakEditSnapToggle   % snap ON/OFF state button
     PeakEditThreshBtn    % visual-threshold mode toggle
+    PeakEditNelDD        % NEL confirmation (?/1/2)
+    PeakEditSexDD        % sex confirmation (?/M/F)
     PeakEditWaveBtn    % 1×5 array of wave selector buttons (I–V)
     PeakEditPtToggle   % peak / trough toggle button
     PeakEditAbsentBtn  % mark selected wave absent (NaN)
@@ -154,6 +157,7 @@ methods (Access = private)
     profile_ops(app, action, varargin)
     settings_ops(app, action, varargin)
     update_summary(app)
+    subject_pick(app, action, src)
 
     % ── Startup ──────────────────────────────────────────────────────────
 
@@ -172,6 +176,8 @@ methods (Access = private)
         app.h_subj_checks = gobjects(0);
         app.subj_ids      = {};
         app.h_cond_checks = gobjects(0);
+        app.h_cond_swatches = gobjects(0);
+        app.state.cond_colors = zeros(0,3);
         initMeasures(app);
         navigate_results(app, 'measures');   % highlight first measure button
         [app.profiles, app.last_user] = APAT_app.load_profiles(app.profile_file);

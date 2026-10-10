@@ -162,11 +162,11 @@ if isempty(idx_plot_relative)
             % Figure 2: Low/High harmonics boxplot
             fh2 = get_fig('APAT_efr_RAM_harm', sprintf('EFR RAM Harmonics %s', level_tag));
             ax2 = axes(fh2); hold(ax2,'on'); grid(ax2,'on'); box(ax2,'off');
-            freq_labels_harm = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
+            LB = efr_ram_labels(efr_opts());  freq_labels_harm = {LB.low, LB.high};
             [~, n_tp] = draw_boxplot(ax2, average.all_low_high_peaks, freq_labels_harm);
             color_boxplot(ax2, colors, 0, n_tp);
             add_box_legend(ax2, legend_string, 0);
-            ylabel(ax2, y_units,'FontWeight','bold','FontSize',14);
+            ylabel(ax2, LB.measure,'FontWeight','bold','FontSize',14);
             title(ax2, sprintf('EFR Harmonic Contribution (%s) | %.0f dB SPL',title_str,level_spl),'FontWeight','bold','FontSize',14);
             set(ax2,'FontSize',14);
             group_ticks = (1:length(freq_labels_harm)) * n_tp - (n_tp-1)/2;
@@ -266,7 +266,7 @@ if ~isempty(idx_plot_relative)
             % Figure 2: Low/High harmonics boxplot (relative)
             fh2 = get_fig('APAT_efr_RAM_harm', sprintf('EFR RAM Harmonics %s', level_tag));
             ax2 = axes(fh2); hold(ax2,'on'); grid(ax2,'on'); box(ax2,'off');
-            freq_labels_harm = {'Low Harmonics (1-4)','High Harmonics (5-16)'};
+            LB = efr_ram_labels(efr_opts());  freq_labels_harm = {LB.low, LB.high};
             [~, n_tp] = draw_boxplot(ax2, average.all_low_high_peaks, freq_labels_harm);
             yline(ax2, 0,'k--','LineWidth',1.5);
             color_boxplot(ax2, colors, 1, n_tp);

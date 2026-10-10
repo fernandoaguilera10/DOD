@@ -1,225 +1,221 @@
 function plot_ind_efr(data_by_level, all_levels, plot_type, colors, shapes, ...
-    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, outpath, idx_plot_relative, conds_idx)
-%PLOT_IND_EFR  Per-condition EFR individual plots routed into the Results tab.
-%
-%   Figure naming follows the "Category|Label" convention for embed_results:
-%     Time Domain|<cond>       — one figure per condition (FigFreqDD switches)
-%     Frequency Domain|<cond>  — one figure per condition (FigFreqDD switches)
-%     Summary|EFR <type>       — one figure accumulated across all conditions
-%
-%   Summary carries a shared horizontal legend at the bottom centre.
-%   Time Domain and Frequency Domain show one condition each — no legend needed.
+    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, outpath, idx_plot_relative, conds_idx) %#ok<INUSL>
+%PLOT_IND_EFR  EFR individual results, all conditions overlaid (no dropdown).
+%   One figure per level, 'Level|<lev> dB SPL' (RAM and dAM); the app shows
+%   one level at a time, chosen with the Level dropdown in the Results bar:
+%     RAM: time series (left, 0.30–0.40 s), PLV spectrum + harmonic peaks
+%          (middle), harmonic-sum table (top right: Low / High in the Setup
+%          measure, Total PLV); the app puts time/Listen controls under it.
+%     dAM: time series (left) and dAM power / noise floor vs modulation
+%          frequency (right).
+%   Waveform lines carry Tag 'efr_wave', DisplayName = condition and
+%   UserData = level (dB SPL) so the app can play them as sound.
+%   Conditions accumulate in root appdata ('APAT_efr_ind_<type>'); reset on
+%   a new subject or on the first condition of a run.
 
-n_levels = numel(all_levels);
 cond_parts = strsplit(all_Conds2Run{CondIND}, filesep);
 cond_label = cond_parts{end};
+subj  = Chins2Run{ChinIND};
+clr   = colors(CondIND,1:3);
+mk    = strtrim(char(shapes(CondIND,:)));  if isempty(mk), mk = 'o'; end
+
+%% ── Accumulate this condition for the subject ──────────────────────────
+key = ['APAT_efr_ind_' plot_type];
+S = [];  if isappdata(0, key), S = getappdata(0, key); end
+if ~isstruct(S) || ~isfield(S,'subj') || ~strcmp(S.subj, subj) || ...
+        (~isempty(conds_idx) && CondIND == conds_idx(1))      % new subject / new run
+    S = struct('subj',subj, 'conds',struct('name',{},'clr',{},'shp',{},'data',{}));
+end
+k = find(strcmp({S.conds.name}, cond_label), 1);
+if isempty(k), k = numel(S.conds) + 1; end
+S.conds(k) = struct('name',cond_label, 'clr',clr, 'shp',mk, 'data',{data_by_level});
+setappdata(0, key, S);
 
 switch plot_type
-    case 'RAM', type_str = 'EFR RAM';  sup_td = sprintf('EFR RAM 223 Hz  |  %s  |  %s', Chins2Run{ChinIND}, cond_label);
-    case 'dAM', type_str = 'EFR dAM';  sup_td = sprintf('EFR dAM 4 kHz  |  %s  |  %s', Chins2Run{ChinIND}, cond_label);
-end
-sup_sum = sprintf('%s  |  %s', type_str, Chins2Run{ChinIND});
-
-%% ── Time Domain figure (one per condition; RAM only) ──────────────────
-if strcmp(plot_type,'RAM')
-    nm_time = sprintf('Time Domain|%s', cond_label);
-    fh_time = find_or_clear(nm_time);
-    tl_time = tiledlayout(fh_time, 1, n_levels,'TileSpacing','compact','Padding','compact');
-    title(tl_time, sup_td,'FontSize',16,'FontWeight','bold');
-    for li = 1:n_levels
-        ax = nexttile(tl_time);
-        ax.Tag = sprintf('lvl_%d', all_levels(li));
-        hold(ax,'on'); box(ax,'off'); grid(ax,'on'); set(ax,'FontSize',14);
-        title(ax, sprintf('%d dB SPL', all_levels(li)),'FontSize',14,'FontWeight','bold');
-        ylabel(ax,'Amplitude (\muV)','FontWeight','bold','FontSize',14);
-        xlabel(ax,'Time (s)','FontWeight','bold','FontSize',14);
-    end
-end
-
-%% ── Frequency Domain figure (one per condition) ───────────────────────
-nm_freq = sprintf('Frequency Domain|%s', cond_label);
-fh_freq = find_or_clear(nm_freq);
-tl_freq = tiledlayout(fh_freq, 1, n_levels,'TileSpacing','compact','Padding','compact');
-title(tl_freq, sup_td,'FontSize',16,'FontWeight','bold');
-for li = 1:n_levels
-    ax = nexttile(tl_freq);
-    ax.Tag = sprintf('lvl_%d', all_levels(li));
-    hold(ax,'on'); box(ax,'off'); grid(ax,'on'); set(ax,'FontSize',14);
-    title(ax, sprintf('%d dB SPL', all_levels(li)),'FontSize',14,'FontWeight','bold');
-    [ylbl,xlbl] = freq_labels(plot_type);
-    ylabel(ax,ylbl,'FontWeight','bold','FontSize',14);
-    xlabel(ax,xlbl,'FontWeight','bold','FontSize',14);
-    if strcmp(plot_type,'dAM'), set(ax,'XScale','log'); end
-end
-% dAM: add a small fixed legend (dAM / NF) on first subplot only
-if strcmp(plot_type,'dAM')
-    ax1 = findobj(fh_freq,'Type','axes','Tag',sprintf('lvl_%d',all_levels(1)));
-    if ~isempty(ax1)
-        lh_dam = legend(ax1(1),{'dAM','NF'},'Location','none','Box','off','FontSize',11,'Orientation','horizontal');
-        lh_dam.Units = 'normalized';
-        lh_dam.Position(1) = (1 - lh_dam.Position(3)) / 2;
-        lh_dam.Position(2) = 0.01;
-    end
-end
-
-%% ── Summary figure (accumulated across conditions) ────────────────────
-nm_sum  = sprintf('Summary|%s', type_str);
-fh_sum  = findobj('Type','figure','Name',nm_sum);
-is_first_cond = (CondIND == conds_idx(1));
-if isempty(fh_sum)
-    fh_sum = figure('Name',nm_sum,'NumberTitle','off','Visible','off');
-    set(fh_sum,'Units','normalized','OuterPosition',[0.05 0.05 0.9 0.85]);
-    build_summary(fh_sum, plot_type, n_levels, all_levels, sup_sum);
-elseif is_first_cond
-    fh_sum = fh_sum(1);  clf(fh_sum);
-    build_summary(fh_sum, plot_type, n_levels, all_levels, sup_sum);
-else
-    fh_sum = fh_sum(1);
-end
-
-%% ── Plot data onto each figure ────────────────────────────────────────
-for li = 1:n_levels
-    if isempty(data_by_level{li}), continue; end
-    d   = data_by_level{li};
-    clr = colors(CondIND,:);
-    mk  = shapes(CondIND,:);
-    tag = sprintf('lvl_%d', all_levels(li));
-
-    % Time Domain
-    if strcmp(plot_type,'RAM')
-        ax = findobj(fh_time,'Type','axes','Tag',tag);
-        if ~isempty(ax) && isfield(d,'t') && isfield(d,'t_env')
-            plot(ax(1), d.t, d.t_env,'Color',clr,'LineWidth',3);
+    case 'RAM'      % one tab per level: time + frequency + harmonic-sum table
+        for li = 1:numel(all_levels)
+            if ~any(arrayfun(@(C) ~isempty(C.data{li}), S.conds)), continue; end
+            fh = get_fig(sprintf('Level|%d dB SPL', round(all_levels(li))));
+            clf(fh);  set(fh,'Color','w');
+            draw_ram_level(fh, S, all_levels(li), li);
         end
-    end
-
-    % Frequency Domain
-    ax = findobj(fh_freq,'Type','axes','Tag',tag);
-    if ~isempty(ax)
-        ax = ax(1);
-        switch plot_type
-            case 'RAM'
-                plot(ax, d.f, d.plv_env,'LineStyle','-','LineWidth',3,'Color',clr,'HandleVisibility','off');
-                plot(ax, d.peaks_locs, d.peaks,'Marker',mk,'LineStyle','none','LineWidth',3,'Color',clr, ...
-                    'MarkerSize',9,'MarkerFaceColor',clr,'MarkerEdgeColor',clr);
-            case 'dAM'
-                plot(ax, d.trajectory, d.dAMpower,'LineStyle','-','LineWidth',3,'Color',clr,'DisplayName','dAM');
-                plot(ax, d.trajectory, d.NFpower, 'LineStyle','--','LineWidth',1.5,'Color',clr,'DisplayName','NF');
+    case 'dAM'      % one tab per level: time + frequency
+        for li = 1:numel(all_levels)
+            if ~any(arrayfun(@(C) ~isempty(C.data{li}), S.conds)), continue; end
+            fh = get_fig(sprintf('Level|%d dB SPL', round(all_levels(li))));
+            clf(fh);  set(fh,'Color','w');
+            draw_dam_level(fh, S, all_levels(li), li);
         end
-    end
+end
+end
 
-    % Summary
-    ax = findobj(fh_sum,'Type','axes','Tag',tag);
-    if ~isempty(ax)
-        ax = ax(1);
-        switch plot_type
-            case 'RAM'
-                plot(ax, d.peaks_locs, d.peaks,'Marker',mk,'LineStyle','-','LineWidth',3,'Color',clr, ...
-                    'MarkerSize',9,'MarkerFaceColor',clr,'MarkerEdgeColor',clr);
-            case 'dAM'
-                plot(ax, d.smooth.f, d.smooth.dAM,'Marker',mk,'LineStyle','-','LineWidth',3,'Color',clr, ...
-                    'MarkerSize',9,'MarkerFaceColor',clr,'MarkerEdgeColor',clr);
-                plot(ax, d.smooth.f, d.smooth.NF,'LineStyle','--','LineWidth',1.5,'Color',clr,'HandleVisibility','off');
+
+% ═════════════════════════════════════════════════════════════════════════
+function draw_dam_level(fh, S, lev, li)
+INK = [0.15 0.15 0.15];  MUTE = [0.45 0.45 0.45];
+axH = axes(fh,'Position',[0 0.93 0.86 0.06],'Visible','off');
+text(axH, 0.5, 0.5, sprintf('%s EFR dAM — %d dB SPL', S.subj, round(lev)), 'FontSize',16, ...
+    'FontWeight','bold', 'HorizontalAlignment','center', 'Interpreter','none', 'Color',INK);
+% Time series (left)
+axT = axes(fh,'Position',[0.06 0.13 0.40 0.70],'Tag','efr_time_tile');  hold(axT,'on');
+% Frequency (right)
+axF = axes(fh,'Position',[0.53 0.13 0.30 0.70],'Tag','efr_freq_tile');  hold(axF,'on');
+missing = false;  tmax = 0;
+for c = 1:numel(S.conds)
+    C = S.conds(c);  d = C.data{li};
+    if isempty(d), continue; end
+    if isfield(d,'t') && isfield(d,'t_env') && ~isempty(d.t_env)
+        plot(axT, d.t, d.t_env, '-', 'Color',C.clr, 'LineWidth',1, 'DisplayName',C.name, ...
+            'Tag','efr_wave', 'UserData',round(lev));
+        tmax = max(tmax, max(d.t));
+    else
+        missing = true;
+    end
+    plot(axF, d.trajectory, d.dAMpower, '-', 'Color',[C.clr 0.30], 'LineWidth',1, 'HandleVisibility','off');
+    if isfield(d,'smooth') && isfield(d.smooth,'f')
+        plot(axF, d.smooth.f, d.smooth.dAM, '-', 'Marker',C.shp, 'MarkerSize',9, 'MarkerFaceColor',C.clr, ...
+            'MarkerEdgeColor',C.clr, 'LineWidth',2, 'Color',C.clr, 'DisplayName',C.name);
+        plot(axF, d.smooth.f, d.smooth.NF, '--', 'Color',C.clr, 'LineWidth',1.5, 'HandleVisibility','off');
+    end
+end
+style_ax(axT, 'Time (s)', 'Amplitude (\muV)');
+title(axT, 'Time', 'FontSize',14, 'FontWeight','bold');
+if tmax > 0, xlim(axT, [0 tmax]); end
+pad_ylim(axT);
+if missing
+    text(axT, 0.02, 0.04, 'No saved time waveform for some conditions — re-run the dAM analysis.', ...
+        'Units','normalized', 'FontSize',11, 'Color',MUTE, 'VerticalAlignment','bottom');
+end
+style_ax(axF, 'Modulation Frequency (Hz)', 'Power (dB)');
+title(axF, 'Frequency', 'FontSize',14, 'FontWeight','bold');
+set(axF, 'XScale','log');
+pad_ylim(axF);
+text(axF, 1, -0.17, 'dashed = noise floor', 'Units','normalized', 'FontSize',11, ...
+    'Color',MUTE, 'HorizontalAlignment','right', 'VerticalAlignment','top');
+if ~isempty(findall(axF,'Type','line','HandleVisibility','on'))
+    lg = legend(axF, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
+    lg.Units = 'normalized';
+    lg.Position(1) = 0.06 + (0.77 - lg.Position(3))/2;
+    lg.Position(2) = 0.865;
+end
+end
+
+
+% ═════════════════════════════════════════════════════════════════════════
+function draw_ram_level(fh, S, lev, li)
+INK = [0.15 0.15 0.15];  MUTE = [0.45 0.45 0.45];  GOLD = [0.81 0.73 0.57];
+axH = axes(fh,'Position',[0 0.93 1 0.06],'Visible','off');
+text(axH, 0.5, 0.5, sprintf('%s EFR RAM — %d dB SPL', S.subj, round(lev)), 'FontSize',16, ...
+    'FontWeight','bold', 'HorizontalAlignment','center', 'Interpreter','none', 'Color',INK);
+axT = axes(fh,'Position',[0.05 0.13 0.30 0.70],'Tag','efr_time_tile');  hold(axT,'on');
+axF = axes(fh,'Position',[0.40 0.13 0.26 0.70],'Tag','efr_freq_tile');  hold(axF,'on');
+nC = numel(S.conds);  missing = false;  tmax = 0;  fmax = 0;  pmax = 0.1;
+for c = 1:nC
+    C = S.conds(c);  d = C.data{li};
+    if isempty(d), continue; end
+    if isfield(d,'t') && isfield(d,'t_env') && ~isempty(d.t_env)
+        plot(axT, d.t, d.t_env, '-', 'Color',C.clr, 'LineWidth',1.5, 'DisplayName',C.name, ...
+            'Tag','efr_wave', 'UserData',round(lev));
+        tmax = max(tmax, max(d.t));
+    else
+        missing = true;
+    end
+    plot(axF, d.f, d.plv_env, '-', 'Color',[C.clr 0.45], 'LineWidth',1, 'HandleVisibility','off');
+    plot(axF, d.peaks_locs, d.peaks, 'LineStyle','none', 'Marker',C.shp, 'MarkerSize',9, ...
+        'MarkerFaceColor',C.clr, 'MarkerEdgeColor',C.clr, 'LineWidth',2, 'DisplayName',C.name);
+    pl = d.peaks_locs(isfinite(d.peaks_locs));  if ~isempty(pl), fmax = max(fmax, max(pl)); end
+    pmax = max([pmax; d.peaks(:)]);
+end
+style_ax(axT, 'Time (s)', 'Amplitude (\muV)');
+title(axT, 'Time', 'FontSize',14, 'FontWeight','bold');
+if tmax >= 0.40, xlim(axT, [0.30 0.40]); elseif tmax > 0, xlim(axT, [0 tmax]); end
+pad_ylim(axT);
+if missing
+    text(axT, 0.02, 0.04, 'No saved time waveform for some conditions.', ...
+        'Units','normalized', 'FontSize',11, 'Color',MUTE, 'VerticalAlignment','bottom');
+end
+style_ax(axF, 'Frequency (Hz)', 'PLV');
+title(axF, 'Frequency', 'FontSize',14, 'FontWeight','bold');
+if fmax > 0, xlim(axF, [0 fmax + 200]); end
+ylim(axF, [0 1.15*pmax]);
+if ~isempty(findall(axF,'Type','line','HandleVisibility','on'))
+    lg = legend(axF, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
+    lg.Units = 'normalized';
+    lg.Position(1) = 0.05 + (0.61 - lg.Position(3))/2;
+    lg.Position(2) = 0.865;
+end
+% ── harmonic-sum table for this level (top right) ───────────────────────
+o  = efr_opts();  LB = efr_ram_labels(o);
+axS = axes(fh,'Position',[0.70 0.56 0.29 0.30],'Tag','efr_table');  hold(axS,'on');
+axis(axS,'off');  xlim(axS,[0 1]);  ylim(axS,[0 1]);
+fs = 13;  if nC > 3, fs = 11; end
+x0 = 0.46;  cw = (1 - x0) / max(nC,1);  rh = 0.15;
+text(axS, 0.5, 0.97, 'Harmonic sums', 'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
+    'HorizontalAlignment','center', 'VerticalAlignment','top');
+text(axS, 0.5, 0.80, sprintf('Low / High: %s', LB.measure), 'FontSize',fs-2, 'Color',MUTE, ...
+    'HorizontalAlignment','center', 'VerticalAlignment','middle');
+y = 0.64;
+for c = 1:nC
+    nm = S.conds(c).name;  if numel(nm) > 12, nm = [nm(1:11) '…']; end
+    text(axS, x0 + (c-0.5)*cw, y, nm, 'FontSize',fs, 'FontWeight','bold', 'Color',S.conds(c).clr, ...
+        'HorizontalAlignment','center', 'VerticalAlignment','middle', 'Interpreter','none');
+end
+plot(axS, [0 1], [y-rh/2 y-rh/2], '-', 'Color',GOLD, 'LineWidth',1.2);
+rowlab = {LB.low, LB.high, LB.total};
+for k = 1:3
+    y = y - rh;
+    if k == 3
+        patch(axS, [0 1 1 0], [y-rh/2 y-rh/2 y+rh/2 y+rh/2], [0.97 0.97 0.97], 'EdgeColor','none');
+    end
+    text(axS, 0.01, y, rowlab{k}, 'FontSize',fs-1, 'Color',INK, 'VerticalAlignment','middle');
+    for c = 1:nC
+        d = S.conds(c).data{li};  v = '—';
+        if ~isempty(d)
+            mt  = efr_ram_metrics(d.peaks, d.peaks_locs, d.f, d.plv_env, o);
+            val = [mt.low, mt.high, mt.total];
+            if ~isnan(val(k)), v = sprintf('%.2f', val(k)); end
         end
+        text(axS, x0 + (c-0.5)*cw, y, v, 'FontSize',fs, 'Color',INK, ...
+            'FontWeight',ternary_s(k==3,'bold','normal'), ...
+            'HorizontalAlignment','center', 'VerticalAlignment','middle');
     end
 end
-
-%% ── Update shared bottom-centre legend on Summary ─────────────────────
-plotted_idxs = conds_idx(conds_idx <= CondIND);
-cond_labels  = arrayfun(@(ci) strsplit(all_Conds2Run{ci},filesep), plotted_idxs,'UniformOutput',false);
-cond_labels  = cellfun(@(c) c{end}, cond_labels,'UniformOutput',false);
-update_summary_legend(fh_sum, colors, plotted_idxs, cond_labels);
-
-%% ── Auto y-limits centred on data ────────────────────────────────────────
-for li = 1:n_levels
-    tag = sprintf('lvl_%d', all_levels(li));
-    if strcmp(plot_type,'RAM')
-        ax = findobj(fh_time,'Type','axes','Tag',tag);
-        if ~isempty(ax), set_ylim_centered(ax(1)); end
-    end
-    ax = findobj(fh_freq,'Type','axes','Tag',tag);
-    if ~isempty(ax), set_ylim_centered(ax(1)); end
-    ax = findobj(fh_sum,'Type','axes','Tag',tag);
-    if ~isempty(ax), set_ylim_centered(ax(1)); end
-end
 end
 
 
-% ── Local helpers ────────────────────────────────────────────────────────
-
-function fh = find_or_clear(fig_name)
-fh = findobj('Type','figure','Name',fig_name);
-if isempty(fh)
-    fh = figure('Name',fig_name,'NumberTitle','off','Visible','off');
-    set(fh,'Units','normalized','OuterPosition',[0.05 0.05 0.9 0.85]);
-else
-    fh = fh(1);  clf(fh);
-end
-end
-
-function build_summary(fh, plot_type, n_levels, all_levels, sup_title)
-% Leave bottom 10% for the shared legend axes.
-tl = tiledlayout(fh, 1, n_levels,'TileSpacing','compact','Padding','compact');
-tl.OuterPosition = [0 0.10 1 0.90];
-title(tl, sup_title,'FontSize',16,'FontWeight','bold');
-for li = 1:n_levels
-    ax = nexttile(tl);
-    ax.Tag = sprintf('lvl_%d', all_levels(li));
-    hold(ax,'on'); box(ax,'off'); grid(ax,'on'); set(ax,'FontSize',14);
-    title(ax, sprintf('%d dB SPL', all_levels(li)),'FontSize',14,'FontWeight','bold');
-    [ylbl,xlbl] = freq_labels(plot_type);
-    ylabel(ax,ylbl,'FontWeight','bold','FontSize',14);
-    xlabel(ax,xlbl,'FontWeight','bold','FontSize',14);
-    if strcmp(plot_type,'dAM'), set(ax,'XScale','log'); end
-end
-% Create the shared legend axes (invisible, used only to hold the legend)
-ax_leg = axes(fh,'Position',[0.05 0 0.90 0.09],'Visible','off','Tag','legend_ax');
-hold(ax_leg,'on');
+% ── helpers ────────────────────────────────────────────────────────────
+function fh = get_fig(nm)
+% Always a fresh figure: an old one with the same name (left open by an
+% earlier, interrupted run) existed before this subject started, so the app
+% would not pick it up for embedding. Everything is redrawn from appdata.
+old = findobj('Type','figure','Name',nm,'-not','Tag','APAT_efr_avg');
+if ~isempty(old), close(old); end
+fh = figure('Name',nm,'NumberTitle','off','Visible','off','Color','w');
+set(fh,'Units','normalized','OuterPosition',[0.05 0.05 0.9 0.85]);
 end
 
-function update_summary_legend(fh, colors, plotted_idxs, cond_labels)
-ax_leg = findobj(fh,'Type','axes','Tag','legend_ax');
-if isempty(ax_leg), return; end
-ax_leg = ax_leg(1);
-delete(findobj(ax_leg,'Type','line'));
-for ci = 1:numel(plotted_idxs)
-    plot(ax_leg, nan, nan,'Color',colors(plotted_idxs(ci),:),'LineWidth',3,'DisplayName',cond_labels{ci});
-end
-lh = legend(ax_leg,'Orientation','horizontal','Box','off','FontSize',13,'Location','none');
-lh.Units = 'normalized';
-lh.Position(1) = max(0, (1 - lh.Position(3)) / 2);
-lh.Position(2) = 0.01;
+function style_ax(ax, xl, yl)
+set(ax, 'FontSize',14, 'Box','off');  grid(ax,'on');
+xlabel(ax, xl, 'FontWeight','bold');
+if ~isempty(yl), ylabel(ax, yl, 'FontWeight','bold'); end
 end
 
-function [ylbl, xlbl] = freq_labels(plot_type)
-if strcmp(plot_type,'RAM')
-    ylbl = 'PLV';          xlbl = 'Frequency (Hz)';
-else
-    ylbl = 'Power (dB)';   xlbl = 'Modulation Frequency (Hz)';
-end
+function s = plv_sum(p)
+p = p(:);  s = sum(p(1:min(16,numel(p))), 'omitnan');
 end
 
-function set_ylim_centered(ax, pad)
+function pad_ylim(ax, pad)
 if nargin < 2, pad = 0.12; end
-all_y = [];
-kids  = ax.Children;
-for k = 1:numel(kids)
-    try
-        yd = double(get(kids(k),'YData'));
-        all_y = [all_y, yd(isfinite(yd))]; %#ok<AGROW>
-        if isprop(kids(k),'YNegativeDelta')
-            v = yd - double(get(kids(k),'YNegativeDelta'));
-            all_y = [all_y, v(isfinite(v))]; %#ok<AGROW>
-        end
-        if isprop(kids(k),'YPositiveDelta')
-            v = yd + double(get(kids(k),'YPositiveDelta'));
-            all_y = [all_y, v(isfinite(v))]; %#ok<AGROW>
-        end
-    catch, end
+yy = [];
+for h = findall(ax, 'Type','line')'
+    v = double(h.YData);  yy = [yy, v(isfinite(v))]; %#ok<AGROW>
 end
-if isempty(all_y), return; end
-lo = min(all_y);  hi = max(all_y);
-rng = hi - lo;
-if rng == 0, rng = max(abs(lo), 0.1); end
-ylim(ax, [lo - pad*rng, hi + pad*rng]);
+if isempty(yy), return; end
+lo = min(yy);  hi = max(yy);  r = hi - lo;
+if r == 0, r = max(abs(lo), 0.1); end
+ylim(ax, [lo - pad*r, hi + pad*r]);
+end
+
+function s = ternary_s(c, a, b)
+if c, s = a; else, s = b; end
 end

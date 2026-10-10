@@ -30,8 +30,7 @@ if nargin < 6 || isempty(cfg), cfg = struct(); end
 
 %% ── Plotting constants ───────────────────────────────────────────────────
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
-colors = [0 0 0; 255 190 25; 77 192 181; 101 116 205; 149 97 226; ...
-          52 144 220; 246 109 155; 246 153 63; 227 52 47] / 255;
+colors = default_plot_colors();
 
 %% ── Unpack cfg ───────────────────────────────────────────────────────────
 EXPname  = cfg_get(cfg, 'EXPname',  '');
@@ -47,6 +46,15 @@ embed_fns_in       = cfg_get(cfg, 'embed_fns', []);
 
 % In-app mode: all figures suppressed; embed callbacks route them into tabs
 use_embed = isstruct(embed_fns_in);
+if use_embed
+    % Close hidden figures left open by an earlier, interrupted run. Plot
+    % functions that look figures up by name would otherwise reuse them, and
+    % a reused figure is not picked up for embedding (it existed before the
+    % subject started). The app window itself is visible and is kept.
+    stale = findall(0, 'Type','figure', 'Visible','off');
+    stale = stale(arrayfun(@(f) ~strcmp(f.Name, 'Auditory Physiology Analysis Toolkit (APAT)'), stale));
+    if ~isempty(stale), delete(stale); end
+end
 blind     = logical(cfg_get(cfg, 'blind', false));   % blind mode: hide subject/condition
 if use_embed
     embed_fns          = embed_fns_in;
@@ -126,6 +134,14 @@ if ~isempty(search_files(OUTdir, chinroster_filename).files)
             all_Conds2Run{i} = strcat('pre', filesep, all_temp{i});
         else
             all_Conds2Run{i} = strcat('post', filesep, all_temp{i});
+        end
+    end
+    % Condition colours chosen in the Setup tab (matched by condition path)
+    cc = cfg_get(cfg, 'cond_colors', []);
+    if isstruct(cc) && isfield(cc,'paths') && isfield(cc,'rgb')
+        for i = 1:length(all_Conds2Run)
+            k = find(strcmp(cc.paths, all_Conds2Run{i}), 1);
+            if ~isempty(k) && k <= size(cc.rgb,1), colors(i,:) = cc.rgb(k,:); end
         end
     end
     chins_idx = find(temp == 1);
@@ -627,6 +643,11 @@ switch EXPname
     case 'EFR'
         mparams.efr_harmonics     = cfg_get(cfg, 'efr_harmonics', 16);
         mparams.efr_window        = cfg_get(cfg, 'efr_window',    [0.2, 0.9]);
+        mparams.efr_ram_opts      = cfg_get(cfg, 'efr_ram_opts',  struct());
+        mparams.efr_dam_bands     = cfg_get(cfg, 'efr_dam_bands', 16);
+        % Read by efr_opts() in the EFR summary / plotting code
+        eo = mparams.efr_ram_opts;  eo.dam_bands = mparams.efr_dam_bands;
+        setappdata(0, 'APAT_efr_opts', eo);
     case 'OAE'
         % No extra parameters currently
     case 'MEMR'
@@ -658,7 +679,7 @@ switch EXPname
     case 'EFR'
         switch EXPname2
             case 'dAM'
-                dAManalysis(datapath, filepath, Chins2Run{ChinIND}, condition{2});
+                dAManalysis(datapath, filepath, Chins2Run{ChinIND}, condition{2}, mparams.efr_dam_bands);
                 cd(CODEdir);
             case 'RAM'
                 RAManalysis(datapath, filepath, Chins2Run{ChinIND}, condition{2}, ...
@@ -785,7 +806,9 @@ elseif strcmp(EXPname, 'EFR')
     % Tab figures from plot_avg_efr_tabs also have '|' but route to avg panel.
     fig_names  = arrayfun(@(f) get(f,'Name'), from_subj, 'UniformOutput', false);
     has_pipe   = cellfun(@(nm) contains(nm,'|'), fig_names);
-    is_avg_tab = cellfun(@(nm) strncmp(nm,'PLV Average|',12) || strncmp(nm,'PLV Sum|',8) || strncmp(nm,'dAM Power|',10), fig_names);
+    fig_tags   = arrayfun(@(f) get(f,'Tag'),  from_subj, 'UniformOutput', false);
+    is_avg_tab = cellfun(@(nm) strncmp(nm,'PLV Average|',12) || strncmp(nm,'PLV Sum|',8) || strncmp(nm,'dAM Power|',10), fig_names) | ...
+                 strcmp(fig_tags, 'APAT_efr_avg');            % per-level average figures ('Level|...')
     ind_figs   = from_subj(has_pipe & ~is_avg_tab);
     avg_figs   = from_subj(is_avg_tab);
     if isempty(avg_figs)

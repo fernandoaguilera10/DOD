@@ -13,6 +13,8 @@ switch action
     case 'refresh_from',  do_refresh_from(app, varargin{1});
     case 'set_subj',      do_set_subj(app, varargin{1}, varargin{2});
     case 'refresh_conds', do_refresh_conds(app);
+    case 'pick_color',    do_pick_color(app, varargin{1});
+    case 'paint_swatches', do_paint_swatches(app);
 end
 end
 
@@ -133,7 +135,14 @@ function do_refresh_conds(app)
 valid = app.h_cond_checks(isvalid(app.h_cond_checks));
 if ~isempty(valid), delete(valid); end
 app.h_cond_checks = gobjects(0);
+vs = app.h_cond_swatches(isgraphics(app.h_cond_swatches));
+if ~isempty(vs), delete(vs); end
+app.h_cond_swatches = gobjects(0);
 labels = app.state.cond_labels;
+% Plot colour per condition: defaults (roster order); saved choices are
+% restored afterwards by settings_ops('load')
+pal = default_plot_colors();
+app.state.cond_colors = pal(mod((1:numel(labels))-1, size(pal,1)) + 1, :);
 n = numel(labels);
 if n == 0, update_summary(app); return; end
 
@@ -151,16 +160,50 @@ n_cols   = ceil(n / max_rows);
 n_rows   = ceil(n / n_cols);
 chip_w   = floor((inner_w - (n_cols-1)*gap) / n_cols);
 chip_h   = max(24, min(32, floor((grid_top - grid_bot) / n_rows) - gap));
-app.h_cond_checks = gobjects(1, n);
+app.h_cond_checks   = gobjects(1, n);
+app.h_cond_swatches = gobjects(1, n);
+SW = chip_h;                                     % square colour swatch, left of each chip
 for ci = 1:n
     row = ceil(ci / n_cols) - 1;
     col = mod(ci - 1, n_cols);
     txt = labels{ci};
+    cx  = 12 + col*(chip_w+gap);
+    cy  = grid_top-(row+1)*(chip_h+gap)+gap;
+    app.h_cond_swatches(ci) = uibutton(app.ConditionsPanel,'push','Text','', ...
+        'BackgroundColor',app.state.cond_colors(ci,:), ...
+        'Tooltip',sprintf('Plot colour for %s — click to change', txt), ...
+        'Position',[cx cy SW chip_h], ...
+        'ButtonPushedFcn',@(~,~) chinroster_ops(app,'pick_color',ci));
     app.h_cond_checks(ci) = uibutton(app.ConditionsPanel,'state', ...
         'Text',txt,'Value',true,'HorizontalAlignment','left', ...
-        'Position',[12+col*(chip_w+gap) grid_top-(row+1)*(chip_h+gap)+gap chip_w chip_h], ...
+        'Position',[cx+SW+4 cy chip_w-SW-4 chip_h], ...
         'FontSize',15,'FontWeight','bold', ...
         'ValueChangedFcn',@(~,~) update_summary(app));
 end
 update_summary(app);
 end
+
+
+% ── Condition plot colours ─────────────────────────────────────────────
+
+function do_pick_color(app, ci)
+%DO_PICK_COLOR  Colour picker for condition ci; saved to the project settings.
+if ci > size(app.state.cond_colors,1), return; end
+lbl = app.state.cond_labels{ci};
+c = uisetcolor(app.state.cond_colors(ci,:), sprintf('Plot colour — %s', lbl));
+figure(app.UIFigure);                            % bring the app back to the front
+if numel(c) ~= 3, return; end                    % cancelled
+app.state.cond_colors(ci,:) = c;
+do_paint_swatches(app);
+settings_ops(app, 'save_colors');
+end
+
+
+function do_paint_swatches(app)
+for ci = 1:min(numel(app.h_cond_swatches), size(app.state.cond_colors,1))
+    if isgraphics(app.h_cond_swatches(ci))
+        app.h_cond_swatches(ci).BackgroundColor = app.state.cond_colors(ci,:);
+    end
+end
+end
+

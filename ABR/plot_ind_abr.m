@@ -3,67 +3,10 @@ global legend_string
 legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 if strcmp(plot_type,'Thresholds')
-    freq = 1:length(data.freqs);
-    x_units = 'Frequency (kHz)';
-    y_units = 'Threshold (dB SPL)';
     filename = cell2mat([Chins2Run(ChinIND),'_',condition,'_ABRthresholds',]);
-    left_width = 0.60;
-    right_width = 0.10;
-    height = 0.80;
-    % Build click vs. pure-tone vectors based on actual frequency content,
-    % not by position — works for any subset of selected frequencies.
-    click_mask = (data.freqs(:)' == 0);
-    tone_mask  = (data.freqs(:)' ~= 0);
-    click_threshold = nan(1, length(data.freqs));
-    click_threshold(click_mask) = data.thresholds(click_mask);
-    freq_threshold  = nan(1, length(data.freqs));
-    freq_threshold(tone_mask)   = data.thresholds(tone_mask);
-    % Find by Name to accumulate conditions via hold on, never by integer
-    % (integer lookup collides with Branch 1 diagnostic figures).
-    subj_name = cell2mat(Chins2Run(ChinIND));
-    fh_t = findobj('Type','figure','Name', subj_name);
-    if isempty(fh_t)
-        fh_t = figure('Name', subj_name, 'NumberTitle','off', 'Visible','off');
-    else
-        fh_t = fh_t(1);  set(0,'CurrentFigure', fh_t);
-    end
-    hold on;
-    % Only draw the click series when click was actually selected
-    if any(click_mask)
-        plot(freq,click_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew', 3, 'MarkerSize', 9, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:))
-    end
-    % Only draw the pure-tone series when at least one pure tone was selected
-    if any(tone_mask)
-        % Suppress legend entry when the click line already represents this condition
-        hv = 'off'; if ~any(click_mask), hv = 'on'; end
-        plot(freq,freq_threshold,'Marker',shapes(CondIND,:),'LineStyle','-', 'linew',3, 'MarkerSize', 9, 'Color', colors(CondIND,:),'MarkerFaceColor', colors(CondIND,:), 'MarkerEdgeColor', colors(CondIND,:),'HandleVisibility',hv)
-    end
-    if ~isempty(ylimits_threshold)
-        ylim(ylimits_threshold);
-    end 
-    ylabel(y_units, 'FontWeight', 'bold')
-    xlabel(x_units, 'FontWeight', 'bold')
-    freq_tick_labels = cell(1, length(data.freqs));
-    for fi = 1:length(data.freqs)
-        if data.freqs(fi) == 0
-            freq_tick_labels{fi} = 'Click';
-        else
-            freq_tick_labels{fi} = num2str(data.freqs(fi)/1000);
-        end
-    end
-    xticks(freq); xlim([0.5, length(freq)+0.5]);
-    xticklabels(freq_tick_labels);
-    % Build legend from plotted lines with HandleVisibility='on' so the
-    % entry count always matches the plotted count (avoids "Ignoring extra
-    % legend entries" on intermediate calls) and copyobj preserves it.
-    h_vis = findobj(gca, 'Type', 'line', 'HandleVisibility', 'on');
-    h_vis = flipud(h_vis);  % restore draw order (findobj returns newest first)
-    n_vis = numel(h_vis);
-    leg_labels = legend_string(1:min(n_vis, numel(legend_string)));
-    lh = legend(h_vis, leg_labels, 'Location','southoutside','Orientation','horizontal');
-    legend boxoff; grid on;
-    set(gca,'FontSize',25); set(gca,'xscale','linear'); set(lh,'visible','on');
-    set(gcf, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
+    % Summary tab: threshold vs frequency + values table (conditions accumulate)
+    fh_t = plot_thr_summary(cell2mat(Chins2Run(ChinIND)), data.freqs, data.thresholds, ...
+        condition{end}, colors(CondIND,:), shapes(CondIND,:), ylimits_threshold);
 elseif strcmp(plot_type,'Peaks')
     if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
     wave_names = {'Wave I','Wave II','Wave III','Wave IV','Wave V'};
@@ -90,7 +33,9 @@ elseif strcmp(plot_type,'Peaks')
     height = 0.375;     % Height for each of the stacked plots
     % Use Name-based figure creation to avoid collisions with pre-existing
     % figures (which would land in pre_subj_figs and never be closed).
-    fig_name = sprintf('%s|%s', condition{end}, fig_freq_label);
+    % 'Frequency|Condition': the app makes one tab per frequency and the
+    % Condition dropdown picks the condition (same layout as ABR Thresholds)
+    fig_name = sprintf('%s|%s', fig_freq_label, condition{end});
     fh = findobj('Type','figure','Name',fig_name);
     if isempty(fh)
         fh = figure('Visible','off','NumberTitle','off','Name',fig_name);

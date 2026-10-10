@@ -15,6 +15,13 @@ if exist(outpath,'dir')
         datafile = load_files(outpath, search_file, 'data', [], true);
         if ~isempty(datafile)
             cd(outpath); load(datafile); cd(cwd); %#ok<LOAD>
+            if strcmp(plot_type,'dAM') && isfield(efr,'trajectory') && isfield(efr,'NFpower')
+                % Re-band the saved dAM power with the Setup "dAM bands" value
+                % (no re-analysis needed).
+                o = efr_opts();
+                [efr.smooth.f, efr.smooth.dAM, efr.smooth.NF] = ...
+                    efr_dam_smooth(efr.trajectory, efr.dAMpower, efr.NFpower, o.dam_bands);
+            end
             data_by_level{li} = efr;
         else
             cd(cwd);
@@ -73,24 +80,13 @@ if ~isempty(ref_li)
     if CondIND == conds_idx(end)
         subj_name = Chins2Run{ChinIND};
         cd(outpath); drawnow;
-        % Summary: one figure for all conditions
-        fh = findobj('Type','figure','Name', sprintf('Summary|EFR %s', plot_type));
-        if ~isempty(fh)
-            exportgraphics(fh(1), sprintf('%s_EFR_%s_Summary_figure.png', subj_name, plot_type),'Resolution',300);
-        end
-        % Time Domain and Frequency Domain: one figure per condition
-        for ci = 1:numel(conds_idx)
-            cp = strsplit(all_Conds2Run{conds_idx(ci)}, filesep);
-            cl = cp{end};
-            if strcmp(plot_type,'RAM')
-                fh = findobj('Type','figure','Name', sprintf('Time Domain|%s', cl));
-                if ~isempty(fh)
-                    exportgraphics(fh(1), sprintf('%s_EFR_%s_TimeDomain_%s_figure.png', subj_name, plot_type, cl),'Resolution',300);
-                end
-            end
-            fh = findobj('Type','figure','Name', sprintf('Frequency Domain|%s', cl));
-            if ~isempty(fh)
-                exportgraphics(fh(1), sprintf('%s_EFR_%s_FreqDomain_%s_figure.png', subj_name, plot_type, cl),'Resolution',300);
+        % Every individual level figure ('Level|<lev> dB SPL', not the averages)
+        figs_x = findobj('Type','figure');
+        for fx = figs_x(:)'
+            nm = get(fx,'Name');
+            if strncmp(nm, 'Level|', 6) && ~strcmp(get(fx,'Tag'), 'APAT_efr_avg')
+                tag = regexprep(nm(7:end), '\s+', '');
+                exportgraphics(fx, sprintf('%s_EFR_%s_%s_figure.png', subj_name, plot_type, tag),'Resolution',300);
             end
         end
         cd(cwd);
@@ -165,7 +161,7 @@ if average_flag == 1
     end
     if strcmp(plot_type, 'dAM') && any(~cellfun(@isempty, all_averages_dAM))
         plot_avg_efr_dAM_tabs(all_averages_dAM, all_levels, colors, shapes, subject_idx, ...
-            all_Conds2Run, idx_plot_relative);
+            all_Conds2Run, idx_plot_relative, Chins2Run);
     end
 end
 cd(cwd);

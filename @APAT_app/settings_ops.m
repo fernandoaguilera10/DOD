@@ -7,6 +7,7 @@ function settings_ops(app, action, varargin)
 switch action
     case 'save', do_save(app, varargin{1}, varargin{2});
     case 'load', do_load(app);
+    case 'save_colors', do_save_colors(app);
 end
 end
 
@@ -31,8 +32,45 @@ end
 if ~isempty(app.h_abr_wave_checks) && any(isvalid(app.h_abr_wave_checks))
     s.abr_wave_sel = arrayfun(@(c) isvalid(c) && c.Value, app.h_abr_wave_checks);
 end
+s.cond_colors   = merge_colors(app, settings_file);
 last_settings = s; %#ok<NASGU>
 try, save(settings_file,'last_settings'); catch, end
+end
+
+
+function do_save_colors(app)
+%DO_SAVE_COLORS  Store condition colours right away (keeps other settings).
+ROOTdir = strtrim(app.RootDirField.Value);
+if isempty(ROOTdir), return; end
+settings_file = fullfile(ROOTdir,'Analysis','launcher_last_settings.mat');
+s = struct();
+if exist(settings_file,'file')
+    try, tmp = load(settings_file,'last_settings'); s = tmp.last_settings; catch, end
+end
+s.cond_colors = merge_colors(app, settings_file);
+last_settings = s; %#ok<NASGU>
+try, save(settings_file,'last_settings'); catch, end
+end
+
+
+function cc = merge_colors(app, settings_file)
+%MERGE_COLORS  Colours of the current conditions merged into the saved list,
+%   so colours of conditions from other experiments/sheets are kept.
+cc = struct('paths',{{}}, 'rgb',zeros(0,3));
+if exist(settings_file,'file')
+    try
+        tmp = load(settings_file,'last_settings');
+        if isfield(tmp.last_settings,'cond_colors'), cc = tmp.last_settings.cond_colors; end
+    catch
+    end
+end
+if ~isfield(app.state,'cond_colors'), return; end
+paths = app.state.conds_all;
+for i = 1:min(numel(paths), size(app.state.cond_colors,1))
+    k = find(strcmp(cc.paths, paths{i}), 1);
+    if isempty(k), cc.paths{end+1} = paths{i}; k = numel(cc.paths); end
+    cc.rgb(k,:) = app.state.cond_colors(i,:);
+end
 end
 
 
@@ -46,6 +84,13 @@ if ~exist(settings_file,'file'), return; end
 try, tmp = load(settings_file,'last_settings'); catch, return; end
 s = tmp.last_settings;
 
+if isfield(s,'cond_colors') && isfield(s.cond_colors,'paths')     % saved condition colours
+    for i = 1:min(numel(app.state.conds_all), size(app.state.cond_colors,1))
+        k = find(strcmp(s.cond_colors.paths, app.state.conds_all{i}), 1);
+        if ~isempty(k), app.state.cond_colors(i,:) = s.cond_colors.rgb(k,:); end
+    end
+    chinroster_ops(app, 'paint_swatches');
+end
 if isfield(s,'reanalyze'),     app.ReanalyzeCheck.Value    = logical(s.reanalyze);     end
 if isfield(s,'plot_relative'), app.PlotRelativeCheck.Value = logical(s.plot_relative); end
 if isfield(s,'blind_mode'),    app.BlindCheck.Value        = logical(s.blind_mode);    end

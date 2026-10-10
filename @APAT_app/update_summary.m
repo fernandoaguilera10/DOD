@@ -13,7 +13,7 @@ chips = [app.h_abr_freq_checks(:); app.h_abr_wave_checks(:)];
 for c = chips(:)'
     if ~isgraphics(c) || ~isprop(c,'Value'), continue; end
     if c.Value
-        c.BackgroundColor = app.clr_gold_dk;  c.FontColor = [1 1 1];
+        c.BackgroundColor = app.clr_gold;     c.FontColor = app.clr_black;
     else
         c.BackgroundColor = app.clr_btn;      c.FontColor = [0.45 0.45 0.45];
     end
@@ -23,7 +23,7 @@ end
 for c = [app.h_subj_checks(:); app.h_cond_checks(:)]'
     if ~isgraphics(c), continue; end
     if c.Value
-        c.BackgroundColor = app.clr_gold_dk;  c.FontColor = [1 1 1];
+        c.BackgroundColor = app.clr_gold;     c.FontColor = app.clr_black;
     else
         c.BackgroundColor = [0.98 0.97 0.94]; c.FontColor = [0.55 0.55 0.55];
     end

@@ -112,6 +112,7 @@ elseif strcmp(analysis_type,'Peaks')
     all_w4{1,conds}      = [];  all_w5{1,conds}      = [];  all_w1and5{1,conds}  = [];
     w1_std{1,conds}      = [];  w2_std{1,conds}      = [];  w3_std{1,conds}      = [];
     w4_std{1,conds}      = [];  w5_std{1,conds}      = [];  w1and5_std{1,conds}  = [];
+    n_cnt{1,conds}       = [];   % [n_levels × 5] subjects contributing per level & wave
     idx = ~cellfun(@isempty,y);
 
     if isempty(idx_plot_relative)
@@ -145,7 +146,7 @@ elseif strcmp(analysis_type,'Peaks')
             [avg_x{1,cols}, avg_w1{1,cols}, avg_w2{1,cols}, avg_w3{1,cols}, ...
              avg_w4{1,cols}, avg_w5{1,cols}, avg_w1and5{1,cols}, ...
              w1_std{1,cols}, w2_std{1,cols}, w3_std{1,cols}, ...
-             w4_std{1,cols}, w5_std{1,cols}, w1and5_std{1,cols}] = ...
+             w4_std{1,cols}, w5_std{1,cols}, w1and5_std{1,cols}, n_cnt{1,cols}] = ...
                 level_align_avg(all_x_subj(:,cols), all_w1(:,cols), all_w2(:,cols), ...
                                 all_w3(:,cols), all_w4(:,cols), all_w5(:,cols), all_w1and5(:,cols));
         end
@@ -204,7 +205,7 @@ elseif strcmp(analysis_type,'Peaks')
             [avg_x{1,out_col}, avg_w1{1,out_col}, avg_w2{1,out_col}, avg_w3{1,out_col}, ...
              avg_w4{1,out_col}, avg_w5{1,out_col}, avg_w1and5{1,out_col}, ...
              w1_std{1,out_col}, w2_std{1,out_col}, w3_std{1,out_col}, ...
-             w4_std{1,out_col}, w5_std{1,out_col}, w1and5_std{1,out_col}] = ...
+             w4_std{1,out_col}, w5_std{1,out_col}, w1and5_std{1,out_col}, n_cnt{1,out_col}] = ...
                 level_align_avg(all_x_subj(:,out_col), all_w1(:,out_col), all_w2(:,out_col), ...
                                 all_w3(:,out_col), all_w4(:,out_col), all_w5(:,out_col), all_w1and5(:,out_col));
         end
@@ -223,19 +224,21 @@ elseif strcmp(analysis_type,'Peaks')
     average.w4_std    = w4_std;
     average.w5_std    = w5_std;
     average.w1and5_std = w1and5_std;
+    average.n         = n_cnt;      % sample count per level (rows) and wave I–V (cols)
     average.all_w1    = all_w1;
     average.all_w2    = all_w2;
     average.all_w3    = all_w3;
     average.all_w4    = all_w4;
     average.all_w5    = all_w5;
     average.all_w1and5 = all_w1and5;
+    average.all_x_subj = all_x_subj;   % per-subject levels (for subject points)
 end
 end
 
 % ── Local helpers ──────────────────────────────────────────────────────────
 
 function [avg_x, avg_w1, avg_w2, avg_w3, avg_w4, avg_w5, avg_w1and5, ...
-          s1, s2, s3, s4, s5, s1and5] = level_align_avg(x_cells, w1c, w2c, w3c, w4c, w5c, w1and5c)
+          s1, s2, s3, s4, s5, s1and5, cnt] = level_align_avg(x_cells, w1c, w2c, w3c, w4c, w5c, w1and5c)
 % Average peak data across subjects with proper level alignment.
 % Subjects may have different dB SPL level sets or different frequencies;
 % data is aligned by level VALUE (not index position) before averaging.
@@ -247,7 +250,7 @@ for k = 1:numel(x_cells)
 end
 if isempty(all_lvls)
     [avg_x, avg_w1, avg_w2, avg_w3, avg_w4, avg_w5, avg_w1and5, ...
-     s1, s2, s3, s4, s5, s1and5] = deal([]);
+     s1, s2, s3, s4, s5, s1and5, cnt] = deal([]);
     return;
 end
 all_lvls = flip(sort(all_lvls(:)));   % descending (high → low, standard ABR sweep)
@@ -276,4 +279,6 @@ avg_w3     = nanmean(M3,2);  s3     = nanstd(M3,0,2);
 avg_w4     = nanmean(M4,2);  s4     = nanstd(M4,0,2);
 avg_w5     = nanmean(M5,2);  s5     = nanstd(M5,0,2);
 avg_w1and5 = nanmean(M15,2); s1and5 = nanstd(M15,0,2);
+cnt = [sum(~isnan(M1),2), sum(~isnan(M2),2), sum(~isnan(M3),2), ...
+       sum(~isnan(M4),2), sum(~isnan(M5),2)];
 end

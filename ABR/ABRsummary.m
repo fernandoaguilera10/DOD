@@ -26,92 +26,20 @@ if exist(outpath,"dir")
         abr_f{ChinIND,CondIND} = abr_out.freqs;
         abr_thresholds{ChinIND,CondIND} = abr_out.thresholds;
         plot_ind_abr(abr_out,analysis_type1,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_ind_threshold,[],[],[])
-        % Build diagnostic figures for this condition's waveforms and sigmoid fits.
-        % Always create fresh figures — never reuse open figures from prior runs.
-        % Branch 1 figures use a different naming convention ('Name | subj | cond'
-        % vs 'Name|cond') and are closed before Branch 3, so there is no risk of
-        % duplication within a single run.  Stale same-named figures from a
-        % previous run that were not properly closed would suppress creation via
-        % the old diag_missing guard; creating unconditionally avoids that trap.
-        diag_names = {sprintf('ABR Waveforms|%s', condition{end}), ...
-                      sprintf('Sigmoid Fits|%s',  condition{end})};
-
+        % Per-frequency figures named 'Freq|Condition' -> one tab per
+        % frequency with a Condition dropdown (same layout as ABR Peaks).
         if isfield(abr_out_full,'plot_data') && ~isempty(abr_out_full.plot_data)
-            pd   = abr_out_full.plot_data;
-            fs_r = abr_out_full.fs;
-            % Filter plot_data to selected frequencies (same filter applied to abr_out above)
+            pd = abr_out_full.plot_data;
             if exist('freq','var') && ~isempty(freq)
                 pd_freqs = arrayfun(@(p) p.freq, pd);
                 pd = pd(ismember(pd_freqs, freq));
             end
-            nf   = numel(pd);
-            clr_no  = [0,0,0,.3];  clr_yes = [0,0,0,1];
-
-            abr_vis = figure('Name',diag_names{1},'NumberTitle','off','Visible','off');
-            set(abr_vis,'Units','Normalized','OuterPosition',[0.35,0.025,0.65,0.9]);
-            fit_vis = figure('Name',diag_names{2},'NumberTitle','off','Visible','off');
-            set(fit_vis,'Units','Normalized','OuterPosition',[0,0.45,0.35,0.4725]);
-
-            for f_r = 1:nf
-                lev_r   = pd(f_r).lev;
-                wforms_r = pd(f_r).wforms;
-                thr_r   = pd(f_r).thresh;
-                if isempty(wforms_r), continue; end
-                t_r   = (1:size(wforms_r,1)) / fs_r * 1e3;
-                buff  = 1.25*max(max(wforms_r)) * (1:size(wforms_r,2));
-                wp    = wforms_r + buff;
-
-                set(0,'CurrentFigure', abr_vis);
-                subplot(ceil(nf/3),3,f_r); hold on
-                if sum(lev_r > thr_r) ~= 0
-                    plot(t_r, wp(:,lev_r>=round(thr_r,-1)), 'color',clr_yes,'linewidth',2);
-                end
-                if round(thr_r,-1)~=0 && ~isnan(thr_r) && sum(lev_r<round(thr_r,-1))~=0
-                    plot(t_r, wp(:,lev_r<round(thr_r,-1)), 'color',clr_no,'linewidth',2);
-                end
-                if sum(lev_r<round(thr_r,-1))==0 || isnan(thr_r)
-                    plot(t_r, wp, 'color',clr_yes,'linewidth',2);
-                end
-                xlim([0,30]); hold off; set(gca,'FontSize',15);
-                yticks(mean(wp)); yticklabels(round(lev_r));
-                ylim([0.9*min(min(wp)), 1.03*max(max(wp))]);
-                ylabel('Sound Level (dB SPL)','FontWeight','bold');
-                xlabel('Time (ms)','FontWeight','bold');
-                if pd(f_r).freq==0, title('Click');
-                else, title([num2str(pd(f_r).freq),' Hz']); end
-                subtitle(sprintf('Threshold: %.1f dB SPL', thr_r));
-
-                set(0,'CurrentFigure', fit_vis);
-                subplot(ceil(nf/3),3,f_r); hold on
-                if pd(f_r).freq==0, title('Click');
-                else, title([num2str(pd(f_r).freq),' Hz']); end
-                plot(1:80, pd(f_r).cor_fit_vals, '--k','linewidth',2);
-                errorbar(lev_r, pd(f_r).cor, pd(f_r).cor_err, '.b','linewidth',1.5,'markersize',10);
-                ylim([0,1]); xline(thr_r,'r','linewidth',2);
-                xticks(0:10:100); xtickangle(90); xlim([0,100]);
-                xlabel('Level (dB SPL)'); hold off; grid on
-            end
-            sgtitle(abr_vis,'ABR Waveforms','FontSize',13,'FontWeight','bold');
-            sgtitle(fit_vis,'Bootstrap Cross-Correlation  —  Sigmoid Fits','FontSize',13,'FontWeight','bold');
-        end
-
-        % Safety net: ensure each diagnostic figure exists and has at least one
-        % axes object so it passes the valid_figs filter in embed_results.
-        % Covers: (a) no plot_data field (old MAT format), (b) plot_data present
-        % but all waveforms empty (analysis ran but found no raw files).
-        for kdn = 1:numel(diag_names)
-            f_ex = findobj('Type','figure','Name',diag_names{kdn});
-            has_axes = ~isempty(f_ex) && ...
-                any(arrayfun(@(f) ~isempty(findall(f,'Type','axes')), f_ex));
-            if ~has_axes
-                if ~isempty(f_ex)
-                    close(f_ex);   % discard any axesless figure with this name
-                end
-                ph = figure('Name',diag_names{kdn},'NumberTitle','off','Visible','off');
-                ax = axes(ph); axis(ax,'off');
-                text(ax, 0.5, 0.5, 'No waveform data available.', ...
-                    'HorizontalAlignment','center','FontSize',14,'Units','normalized');
-            end
+            plot_thr_individual(pd, abr_out_full.fs, condition{end}, colors(CondIND,:));
+        else
+            ph = figure('Name',sprintf('No data|%s',condition{end}),'NumberTitle','off','Visible','off','Color','w');
+            ax = axes(ph); axis(ax,'off');
+            text(ax, 0.5, 0.5, 'No waveform data saved for this condition (re-run the analysis).', ...
+                'HorizontalAlignment','center','FontSize',14,'Color',[0.45 0.45 0.45],'Units','normalized');
         end
     elseif strcmp(analysis_type1,'Peaks')
         % Pre-scan all saved ABR Peaks MAT files to compute global y-limits
@@ -297,6 +225,7 @@ if average_flag == 1
             waveforms.y         = wf_freq;
             waveforms.freq      = freq_cell;
             waveforms.levels    = lev_freq;
+            waveforms.peak_lat  = lat_freq;   % per-subject peak/trough latencies (subject points)
             waveforms.subjects  = Chins2Run;
             waveforms.conditions = [convertCharsToStrings(all_Conds2Run(:)');idx];
             fig_num_wf = fig_num_base + 3;

@@ -28,6 +28,51 @@ switch action
     case 'filter_avg',      do_filter_avg(app);
     case 'reset_dds',       do_reset_dds(app);
 end
+% EFR (dAM / RAM): the dropdown picks the stimulus level, in both modes
+if isfield(app.res,'meas_idx') && any(app.res.meas_idx == [3 4]) && ...
+        ~any(strcmp(action, {'measures'}))
+    do_level(app);
+end
+end
+
+
+function do_level(app)
+%DO_LEVEL  EFR: show one level panel at a time; the Results-bar dropdown
+%   (label "Level:") lists the levels of the current subject / average.
+m = app.res.meas_idx;
+cont = [];
+if app.res.mode == 1
+    data = app.res.subj_data{m};
+    si = find(strcmp(data.names, app.FigSubjDropdown.Value), 1);
+    if ~isempty(si) && isvalid(data.panels{si}), cont = data.panels{si}; end
+else
+    if isvalid(app.res.panels{2,m}), cont = app.res.panels{2,m}; end
+end
+lbl_f = findall(app.UIFigure,'Tag','fig_freq_lbl');
+lp = [];
+if ~isempty(cont)
+    lp = findobj(cont.Children, 'flat', 'Type','uipanel', '-regexp', 'Tag', 'dB SPL$');
+end
+if isempty(lp)
+    app.FigFreqDD.Visible = 'off';
+    if ~isempty(lbl_f), lbl_f.Visible = 'off'; end
+    return;
+end
+tags = arrayfun(@(p) p.Tag, lp, 'UniformOutput', false);
+v = inf(1, numel(tags));
+for k = 1:numel(tags), x = sscanf(tags{k}, '%f'); if ~isempty(x), v(k) = x(1); end, end
+[~, o] = sort(v);  lp = lp(o);  tags = tags(o);
+cur = app.FigFreqDD.Value;
+if ~any(strcmp(tags, cur))
+    vis = find(arrayfun(@(p) strcmp(p.Visible,'on'), lp), 1);   % keep what is showing
+    if isempty(vis), vis = numel(tags); end              % default: highest level
+    cur = tags{vis};
+end
+if ~isequal(app.FigFreqDD.Items(:)', tags(:)'), app.FigFreqDD.Items = tags(:)'; end
+app.FigFreqDD.Value = cur;
+for k = 1:numel(lp), lp(k).Visible = ternary(strcmp(tags{k}, cur), 'on', 'off'); end
+app.FigFreqDD.Visible = 'on';
+if ~isempty(lbl_f), lbl_f.Text = 'Level:';  lbl_f.Visible = 'on'; end
 end
 
 
@@ -42,6 +87,7 @@ app.FigAvgBtn.BackgroundColor = app.clr_btn;
 app.FigSubjDropdown.Visible   = 'on';
 if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'on'; end
 switch_panel(app, 1, app.res.meas_idx);
+set_freq_visible(app, app.res.meas_idx);
 subj = app.FigSubjDropdown.Value;
 if ~strcmp(subj,'-')
     do_update_dds(app, app.res.meas_idx, subj);
@@ -111,6 +157,7 @@ if app.res.mode == 2, do_filter_avg(app); end
 end
 
 function do_cond_tab(app, meas_idx, subject)
+% Fired when the user switches tabs (frequency tabs for ABR Peaks)
 do_update_dds(app, meas_idx, subject);
 do_filter_ind(app);
 end
@@ -134,8 +181,8 @@ for mi = 1:app.n_meas
         if mi == m
             app.h_sub_btns{mi}(ki).Visible = 'on';
             if ki == k
-                app.h_sub_btns{mi}(ki).BackgroundColor = app.clr_gold_dk;
-                app.h_sub_btns{mi}(ki).FontColor = [1 1 1];
+                app.h_sub_btns{mi}(ki).BackgroundColor = app.clr_gold;
+                app.h_sub_btns{mi}(ki).FontColor = app.clr_black;
             else
                 app.h_sub_btns{mi}(ki).BackgroundColor = app.clr_btn;
                 app.h_sub_btns{mi}(ki).FontColor = app.clr_black;
@@ -456,17 +503,16 @@ for ti = 1:numel(tg.Children)
     end
 end
 
+% Average mode: the dropdown lists frequencies (Individual mode lists
+% conditions), so replace the items rather than merging them.
 if ~isempty(tab_freqs)
-    existing  = app.FigFreqDD.Items;
-    existing  = existing(~strcmp(existing,'—'));
-    new_items = tab_freqs(~ismember(tab_freqs, existing));
-    merged    = [existing, new_items];
-    if ~isempty(merged) && ~isequal(merged, app.FigFreqDD.Items)
-        app.FigFreqDD.Items = merged;
-        if ~any(strcmp(merged, app.FigFreqDD.Value))
-            app.FigFreqDD.Value = merged{1};
-        end
+    if ~isequal(tab_freqs, app.FigFreqDD.Items)
+        cur = app.FigFreqDD.Value;
+        app.FigFreqDD.Items = tab_freqs;
+        if any(strcmp(tab_freqs, cur)), app.FigFreqDD.Value = cur; else, app.FigFreqDD.Value = tab_freqs{1}; end
     end
+    lbl_f = findall(app.UIFigure,'Tag','fig_freq_lbl');
+    if ~isempty(lbl_f), lbl_f.Text = 'Frequency:'; end
 end
 end
 
@@ -602,10 +648,18 @@ end
 if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
     app.h_efr_param_panel.Visible = ternary(is_efr, 'on', 'off');
     ram_vis = ternary(is_efr && (app.state.subtype_idx==2), 'on', 'off');
+    dam_vis = ternary(is_efr && (app.state.subtype_idx==1), 'on', 'off');
     for tag = {'efr_ram_hdr','efr_ram_info','efr_harm_lbl','efr_win_lbl', ...
-               'efr_win_s_lbl','efr_win_e_lbl','efr_harmonics','efr_win_start','efr_win_end'}
+               'efr_win_s_lbl','efr_win_e_lbl','efr_harmonics','efr_win_start','efr_win_end', ...
+               'efr_low_lbl','efr_low_from','efr_low_dash','efr_low_to', ...
+               'efr_high_lbl','efr_high_from','efr_high_dash','efr_high_to', ...
+               'efr_sum_lbl','efr_sum_dd','efr_norm_lbl','efr_norm_btn','efr_ram_note'}
         h = findall(app.h_efr_param_panel,'Tag',tag{1});
         set(h, 'Visible', ram_vis);
+    end
+    for tag = {'efr_dam_hdr','efr_dam_info','efr_dam_lbl','efr_dam_bands','efr_dam_note'}
+        h = findall(app.h_efr_param_panel,'Tag',tag{1});
+        set(h, 'Visible', dam_vis);
     end
     for fld = {'h_efr_harmonics_field','h_efr_window_start_field','h_efr_window_end_field'}
         if ~isempty(app.(fld{1})) && isvalid(app.(fld{1}))
@@ -623,11 +677,11 @@ end
 
 
 function set_chip(app, btn, on)
-%SET_CHIP  Selected Results measure button = dark gold with white text
-%   (same style as the Setup tab's selected sub-type), otherwise neutral.
+%SET_CHIP  Selected Results measure button = the app gold (same as the
+%   Average / Individual buttons), otherwise neutral.
 if ~isvalid(btn), return; end
 if on
-    btn.BackgroundColor = app.clr_gold_dk;  btn.FontColor = [1 1 1];
+    btn.BackgroundColor = app.clr_gold;     btn.FontColor = app.clr_black;
 else
     btn.BackgroundColor = app.clr_btn;      btn.FontColor = app.clr_black;
 end

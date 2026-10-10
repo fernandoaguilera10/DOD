@@ -14,122 +14,12 @@ if isempty(idx_plot_relative)
         else
             fh_thr_avg = fh_thr_avg(1); set(0,'CurrentFigure', fh_thr_avg);
         end
-        clf; hold on;
-        % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
-        if ~isempty(ref_col)
-            ref_freqs = average.x{1, ref_col};
-        else
-            ref_freqs = [0 500 1000 2000 4000 8000];
-        end
-        num_freqs = length(ref_freqs);
-        freq_labels = cell(1, num_freqs);
-        for fi = 1:num_freqs
-            if ref_freqs(fi) == 0
-                freq_labels{fi} = 'Click';
-            else
-                freq_labels{fi} = [num2str(ref_freqs(fi)/1000), ' kHz'];
-            end
-        end
-        [num_subjects, num_timepoints] = size(average.all_y);
-        thresholds = [];
-        frequencies = [];
-        timepoints = [];
-        for subj = 1:num_subjects
-            for tpt = 1:num_timepoints
-                data = average.all_y{subj, tpt};
-                if isempty(data)
-                    data = NaN(1, num_freqs);     % handle empty entries
-                end
-                thresholds = [thresholds, data];                  % concat thresholds
-                frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
-                timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
-            end
-        end
-        thresholds = thresholds(:);
-        frequencies = frequencies(:);
-        timepoints = timepoints(:);
-        boxplot(thresholds, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
-        % Thickens vertical separator line
-        all_lines = findobj(gca, 'Type', 'Line');
-        for i = 1:length(all_lines)
-            xdata = get(all_lines(i), 'XData');
-            ydata = get(all_lines(i), 'YData');
-            if length(xdata) >= 2 && length(ydata) >= 2
-                if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
-                    set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
-                end
-            end
-        end
-        % Flip handles to match left-to-right plotting order
-        boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
-        medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
-        upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
-        lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
-        capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
-        capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
-        allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
-        unique_timepoints = unique(timepoints);
-        num_timepoints = length(unique_timepoints);
-        % Color everything by timepoint
-        for i = 1:length(boxHandles)
-            timepoint_idx = mod(i-1, num_timepoints) + 1;
-            thisColor = colors(timepoint_idx, :);
-            x = get(boxHandles(i), 'XData');
-            y = get(boxHandles(i), 'YData');
-            patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
-                'FaceAlpha', 0.5, 'EdgeColor', 'none');
-            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
-            set(gca, 'XTick', []);
-            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
-        end
+        if ~isempty(ref_col), ref_freqs = average.x{1, ref_col}; else, ref_freqs = [0 500 1000 2000 4000 8000]; end
+        cond_names = cellfun(@(c) regexprep(c,'^.*[\\/]',''), all_Conds2Run, 'UniformOutput', false);
+        plot_thr_average(fh_thr_avg, average.all_y, ref_freqs, cond_names, colors, shapes, ...
+            y_units, ylimits_threshold, false, Chins2Run);
         idx_temp = idx;
-        hold on;
-        if size(idx,1) > 1
-            for z = 1:size(idx,1)
-                conds_counts(z) = sum(idx(z,:));
-            end
-        else
-            conds_counts = sum(idx(1,:));
-        end
-        legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-        conds_counts_idx =  find(any(idx, 1));
-        for i = 1:length(conds_counts_idx)
-            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i), :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
-        end
-        for cols = 1:length(average.y)
-            if ~isempty(average.y{1,cols})
-                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols)),mat2str(sum(idx(:,cols))));
-                legend_idx = find(~cellfun(@isempty,temp));
-                legend_string = temp(legend_idx);
-            end
-        end
-        valid_idx = isgraphics(legend_handles);
-        legend_handles = legend_handles(valid_idx);
-        legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-        ylabel(y_units, 'FontWeight', 'bold');
-        title(sprintf('ABR Thresholds'),'FontWeight','bold');
-        set(gca,'FontSize',25);
-        legend boxoff; hold off; box off;
-        group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
-        set(gca, 'XTick', group_ticks);
-        set(gca, 'XTickLabel', freq_labels);
-        set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
-        if ~isempty(ylimits_threshold)
-            ylim(ylimits_threshold);
-        else
-            valid_thr = thresholds(isfinite(thresholds));
-            if ~isempty(valid_thr)
-                lo = min(valid_thr); hi = max(valid_thr);
-                pad = max(0.15 * (hi - lo), 5);
-                ylim([lo - pad, hi + pad]);
-            end
-        end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
         average.analysis_log = idx;
@@ -189,16 +79,20 @@ if isempty(idx_plot_relative)
             wsf  = all_wave_std{wnum};
             wn   = all_wave_names{wnum};
             ax = nexttile(tl);
+            ax.Tag = 'abr_wave_tile';
             wave_axes(wi_idx) = ax;
             if isempty(ax1), ax1 = ax; end
             hold(ax,'on');
             for cols = cols_idx
+                add_subj_points(ax, average, cols, wnum, colors(cols,:), shapes(wnum,:), peak_analysis, Chins2Run);
+            end
+            for cols = cols_idx
                 errorbar(ax, round(average.x{1,cols}), average.(wf){1,cols}, average.(wsf){1,cols}, ...
                     'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,'Color',colors(cols,:),...
-                    'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
+                    'MarkerSize',16,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
                     'HandleVisibility','off');
-                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
-                plot(ax, round(average.x{1,cols}), fit_y, 'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,...
+                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols})),'EndValues','none'); fit_y = flip(fit_y);  % bridge interior gaps only, never extrapolate
+                plot(ax, round(average.x{1,cols}), fit_y, 'Marker','none','LineStyle','-','LineWidth',2,...
                     'Color',colors(cols,:),'MarkerSize',12,'MarkerFaceColor',colors(cols,:),'MarkerEdgeColor',colors(cols,:),...
                     'HandleVisibility','off');
             end
@@ -213,6 +107,9 @@ if isempty(idx_plot_relative)
             % Per-tile axis labels: ylabel on left column, xlabel on every tile
             if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',14, 'FontWeight','bold'); end
             xlabel(ax, x_units, 'FontSize',14, 'FontWeight','bold');
+            for cc = find(~cellfun(@isempty, average.(wf)(1,:)))   % n labels drawn last → on top
+                add_n_labels(ax, average, cc, wnum, wf);
+            end
             hold(ax,'off');
         end
         % Link wave y-axes so amplitudes/latencies are directly comparable
@@ -279,125 +176,12 @@ if ~isempty(idx_plot_relative)
         else
             fh_thr_avg = fh_thr_avg(1); set(0,'CurrentFigure', fh_thr_avg);
         end
-        hold on;
-        % Box Plot — derive freq labels dynamically from data
         ref_col = find(~cellfun(@isempty, average.x), 1);
-        if ~isempty(ref_col)
-            ref_freqs = average.x{1, ref_col};
-        else
-            ref_freqs = [0 500 1000 2000 4000 8000];
-        end
-        num_freqs = length(ref_freqs);
-        freq_labels = cell(1, num_freqs);
-        for fi = 1:num_freqs
-            if ref_freqs(fi) == 0
-                freq_labels{fi} = 'Click';
-            else
-                freq_labels{fi} = [num2str(ref_freqs(fi)/1000), ' kHz'];
-            end
-        end
-        [num_subjects, num_timepoints] = size(average.all_y);
-        thresholds = [];
-        frequencies = [];
-        timepoints = [];
-        for subj = 1:num_subjects
-            for tpt = 1:num_timepoints
-                data = average.all_y{subj, tpt};
-                if isempty(data)
-                    data = NaN(1, num_freqs);     % handle empty entries
-                end
-                thresholds = [thresholds, data];                  % concat thresholds
-                frequencies = [frequencies, freq_labels(1:num_freqs)];         % frequency indices
-                timepoints = [timepoints, repmat(tpt, 1, num_freqs)];  % group/timepoint indices
-            end
-        end
-        thresholds = thresholds(:);
-        frequencies = frequencies(:);
-        timepoints = timepoints(:);
-        %daviolinplot(thresholds, 'color', colors, 'violin', 'full', 'scatter', 2,'groups',timepoints);
-        boxplot(thresholds, {frequencies, timepoints},'factorseparator',1,'labelverbosity', 'minor','ColorGroup',timepoints,'Symbol','*');
-        yline(0, 'k--', 'LineWidth', 3);
-        % Thickens vertical separator line
-        all_lines = findobj(gca, 'Type', 'Line');
-        for i = 1:length(all_lines)
-            xdata = get(all_lines(i), 'XData');
-            ydata = get(all_lines(i), 'YData');
-            if length(xdata) >= 2 && length(ydata) >= 2
-                if abs(xdata(2) - xdata(1)) < 0.01 && (ydata(2) - ydata(1)) > range(ylim)*0.9
-                    set(all_lines(i), 'LineWidth', 2, 'LineStyle','-','Color','k');  % Thicken factor separator line
-                end
-            end
-        end
-        % Flip handles to match left-to-right plotting order
-        boxHandles = flipud(findobj(gca, 'Tag', 'Box'));
-        medianHandles = flipud(findobj(gca, 'Tag', 'Median'));
-        upperWhiskerHandles = flipud(findobj(gca, 'Tag', 'Upper Whisker'));
-        lowerWhiskerHandles = flipud(findobj(gca, 'Tag', 'Lower Whisker'));
-        capHandles = flipud(findobj(gca, 'Tag', 'Upper Adjacent Value')); % for caps
-        capHandles2 = flipud(findobj(gca, 'Tag', 'Lower Adjacent Value')); % for lower caps
-        allOutliers = flipud(findobj(gca, 'Tag', 'Outliers'));
-        unique_timepoints = unique(timepoints);
-        num_timepoints = length(unique_timepoints);
-        % Color everything by timepoint
-        for i = 1:length(boxHandles)
-            timepoint_idx = mod(i-1, num_timepoints) + 1;
-            thisColor = colors(timepoint_idx+1, :);
-            x = get(boxHandles(i), 'XData');
-            y = get(boxHandles(i), 'YData');
-            patch(x([1 2 3 4 1]), y([1 2 3 4 1]), thisColor, ...
-                'FaceAlpha', 0.5, 'EdgeColor', 'none');
-            set(boxHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(medianHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(upperWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(lowerWhiskerHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(capHandles(i), 'Color', thisColor, 'LineWidth', 3);
-            set(capHandles2(i), 'Color', thisColor, 'LineWidth', 3);
-            set(gca, 'XTick', []);
-            set(allOutliers(i), 'MarkerEdgeColor', thisColor, 'LineWidth', 3);
-        end
+        if ~isempty(ref_col), ref_freqs = average.x{1, ref_col}; else, ref_freqs = [0 500 1000 2000 4000 8000]; end
+        cond_names = cellfun(@(c) regexprep(c,'^.*[\\/]',''), all_Conds2Run(2:end), 'UniformOutput', false);
+        plot_thr_average(fh_thr_avg, average.all_y, ref_freqs, cond_names, colors(2:end,:), shapes(2:end,:), ...
+            y_units, ylimits_threshold, true, Chins2Run);
         idx_temp = idx;
-        idx = idx(:,2:end);
-        hold on;
-        if size(idx,1) > 1
-            for z = 1:size(idx,1)-1
-                conds_counts(z) = sum(idx(z+1,:));
-            end
-        else
-            conds_counts = sum(idx(1,:));
-        end
-        legend_handles = gobjects(conds_counts(find(max(conds_counts))), 1);
-        conds_counts_idx =  find(any(idx, 1));
-        for i = 1:length(conds_counts_idx)
-            legend_handles(i) = plot(NaN, NaN, 's', 'MarkerFaceColor', colors(conds_counts_idx(i)+1, :), 'MarkerEdgeColor', 'k', 'MarkerSize', 15);
-        end
-        for cols = 1:length(average.y)
-            if ~isempty(average.y{1,cols})
-                temp{1,cols} = sprintf('%s (n = %s)',cell2mat(all_Conds2Run(cols+1)),mat2str(sum(idx(:,cols))));
-                legend_idx = find(~cellfun(@isempty,temp));
-                legend_string = temp(legend_idx);
-            end
-        end
-        valid_idx = isgraphics(legend_handles);
-        legend_handles = legend_handles(valid_idx);
-        legend(legend_handles,legend_string,'Location','southoutside','Orientation','horizontal');
-        ylabel(y_units, 'FontWeight', 'bold');
-        title(sprintf('ABR Thresholds'),'FontWeight','bold');
-        set(gca,'FontSize',25);
-        legend boxoff; hold off; box off;
-        group_ticks = (1:num_freqs) * num_timepoints - (num_timepoints-1)/2;
-        set(gca, 'XTick', group_ticks);
-        set(gca, 'XTickLabel', freq_labels);
-        set(fh_thr_avg, 'Units', 'normalized', 'Position', [0.2 0.2 0.5 0.6]);
-        if ~isempty(ylimits_threshold)
-            ylim(ylimits_threshold);
-        else
-            valid_thr = thresholds(isfinite(thresholds));
-            if ~isempty(valid_thr)
-                lo = min(valid_thr); hi = max(valid_thr);
-                pad = max(0.15 * (hi - lo), 5);
-                ylim([lo - pad, hi + pad]);
-            end
-        end
         average.subjects = Chins2Run;
         average.conditions = Conds2Run;
         average.analysis_log = idx;
@@ -441,17 +225,19 @@ if ~isempty(idx_plot_relative)
             wsf  = all_wave_std{wnum};
             wn   = all_wave_names{wnum};
             ax = nexttile(tl);
+            ax.Tag = 'abr_wave_tile';
             if isempty(ax1), ax1 = ax; end
             hold(ax,'on');
             for cols = 1:n_rel_cols
                 if isempty(average.(wf){1,cols}), continue; end
                 c_idx = cols + 1;  % colors shifted by 1 for relative plots
+                add_subj_points(ax, average, cols, wnum, colors(c_idx,:), shapes(wnum,:), peak_analysis, Chins2Run);
                 errorbar(ax, round(average.x{1,cols}), average.(wf){1,cols}, average.(wsf){1,cols}, ...
                     'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,'Color',colors(c_idx,:),...
-                    'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
+                    'MarkerSize',16,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
                     'HandleVisibility','off');
-                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols}))); fit_y = flip(fit_y);
-                plot(ax, round(average.x{1,cols}), fit_y,'Marker',shapes(wnum,:),'LineStyle','-','LineWidth',2,...
+                fit_y = fillmissing(flip(average.(wf){1,cols}),'linear','SamplePoints',flip(round(average.x{1,cols})),'EndValues','none'); fit_y = flip(fit_y);  % bridge interior gaps only, never extrapolate
+                plot(ax, round(average.x{1,cols}), fit_y,'Marker','none','LineStyle','-','LineWidth',2,...
                     'Color',colors(c_idx,:),'MarkerSize',12,'MarkerFaceColor',colors(c_idx,:),'MarkerEdgeColor',colors(c_idx,:),...
                     'HandleVisibility','off');
                 plot(ax, round(average.x{1,cols}), zeros(size(average.x{1,cols})),'LineStyle','--','LineWidth',2,'Color','k','HandleVisibility','off');
@@ -463,6 +249,9 @@ if ~isempty(idx_plot_relative)
             % Per-tile axis labels: ylabel on left column, xlabel on every tile
             if mod(wi_idx-1, t_cols) == 0, ylabel(ax, y_units, 'FontSize',14, 'FontWeight','bold'); end
             xlabel(ax, x_units, 'FontSize',14, 'FontWeight','bold');
+            for cc = find(~cellfun(@isempty, average.(wf)(1,:)))   % n labels drawn last → on top
+                add_n_labels(ax, average, cc, wnum, wf);
+            end
             hold(ax,'off');
             wave_axes(wi_idx) = ax;
         end
@@ -522,3 +311,44 @@ end
 cd(cwd)
 end
 
+
+function add_n_labels(ax, average, col, wnum, wf)
+%ADD_N_LABELS  Sample size (subjects contributing) written inside each data
+%   point. Nothing is drawn where n = 0 (no data). Tagged 'abr_n_lbl' so the
+%   app can show/hide them.
+if ~isfield(average,'n') || numel(average.n) < col || isempty(average.n{1,col}), return; end
+cnt = average.n{1,col};
+if size(cnt,2) < wnum, return; end
+xs = round(average.x{1,col});
+ys = average.(wf){1,col};
+for li = 1:min(numel(xs), size(cnt,1))
+    if cnt(li,wnum) < 1 || ~isfinite(ys(li)), continue; end
+    text(ax, xs(li), ys(li), sprintf('%d', cnt(li,wnum)), 'Color',[1 1 1], ...
+        'FontSize',9, 'FontWeight','bold', 'HorizontalAlignment','center', ...
+        'VerticalAlignment','middle', 'Tag','abr_n_lbl', 'Clipping','on');
+end
+end
+
+
+function add_subj_points(ax, average, col, wnum, clr, shp, peak_analysis, subj_names)
+%ADD_SUBJ_POINTS  Individual subjects behind the mean (same marker/colour,
+%   transparent). Tagged 'abr_subj_pts' and hidden by default; the app's
+%   "Subjects" toggle shows them. Exported figures are unchanged.
+fx = 'all_x_subj';  fw = sprintf('all_w%d', wnum);
+if ~isfield(average, fw) || ~isfield(average, fx), return; end
+X = average.(fx);  Y = average.(fw);
+if size(Y,2) < col, return; end
+shp = strtrim(char(shp));  if isempty(shp), shp = 'o'; end
+for r = 1:size(Y,1)
+    y = Y{r,col};  if isempty(y) || size(X,1) < r || isempty(X{r,col}), continue; end
+    x = round(X{r,col}(:));  y = y(:);
+    m = min(numel(x), numel(y));  x = x(1:m);  y = y(1:m);
+    ok = isfinite(x) & isfinite(y);
+    if ~any(ok), continue; end
+    jit = ((mod(r*7,11)/10) - 0.5) * 1.2;          % small, fixed x-jitter (dB)
+    if nargin >= 8 && numel(subj_names) >= r, sn = char(subj_names{r}); else, sn = sprintf('Subject %d', r); end
+    scatter(ax, x(ok) + jit, y(ok), 60, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, ...
+        'MarkerEdgeColor','none', 'HandleVisibility','off', 'Tag','abr_subj_pts', 'Visible','off', ...
+        'DisplayName',sn);
+end
+end

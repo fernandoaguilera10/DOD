@@ -87,7 +87,7 @@ for lev = 1:n_levels
     end
 end
 if isempty(all_ranges), return; end
-vert_spacing = 1.4 * median(all_ranges);
+vert_spacing = 1.8 * median(all_ranges);   % roomy enough that wave markers don't collide
 
 %% Create figure
 fh = figure(fig_num); clf;
@@ -95,6 +95,10 @@ set(fh,'Visible','off');
 set(fh, 'Name', ['Waveforms|' freq_label], ...
     'Units','Normalized','OuterPosition',[0.05 0.05 0.50 0.90]);
 ax = axes(fh); hold(ax, 'on');
+ax.Tag = 'abr_waterfall';                  % lets the app change its time limits
+
+% Subjects averaged per condition (shown in the legend)
+n_subj_cond = sum(~cellfun(@isempty, waveforms.y), 1);
 
 y_ticks      = zeros(1, n_levels);
 y_tick_labels = cell(1, n_levels);
@@ -119,17 +123,17 @@ for lev = 1:n_levels
             y_lower = wave_mean{lev,c} - wave_ci{lev,c} + offset;
             fill(ax, [t_ref, fliplr(t_ref)], [y_upper, fliplr(y_lower)], ...
                 colors(c,:), 'FaceAlpha', 0.2, 'EdgeColor', 'none', ...
-                'HandleVisibility', 'off');
+                'HandleVisibility', 'off', 'UserData', lev);
         end
         if ~cond_in_legend(c)
             plot(ax, t_ref, wave_mean{lev,c} + offset, ...
                 'Color', colors(c,:), 'LineWidth', 2.5, ...
-                'DisplayName', lbl);
+                'DisplayName', sprintf('%s (n = %d)', lbl, n_subj_cond(c)), 'UserData', lev);
             cond_in_legend(c) = true;
         else
             plot(ax, t_ref, wave_mean{lev,c} + offset, ...
                 'Color', colors(c,:), 'LineWidth', 2.5, ...
-                'HandleVisibility','off');
+                'HandleVisibility','off', 'UserData', lev);
         end
     end
 
@@ -153,8 +157,8 @@ for lev = 1:n_levels
             pk_amp = ref_wf(t_idx) + offset;
             plot(ax, lat_ms, pk_amp, shapes(w), ...
                 'Color', colors(c,:), 'MarkerFaceColor', colors(c,:), ...
-                'MarkerSize', 9, 'LineWidth', 1.5, ...
-                'HandleVisibility', 'off');
+                'MarkerSize', 7, 'LineWidth', 1.25, ...
+                'HandleVisibility', 'off', 'UserData', lev);
         end
     end
 
@@ -177,8 +181,44 @@ for lev = 1:n_levels
                 tr_amp = ref_wf(t_idx) + offset;
                 plot(ax, lat_ms, tr_amp, shapes(w), ...
                     'Color', colors(c,:), 'MarkerFaceColor', 'none', ...
-                    'MarkerSize', 10, 'LineWidth', 2, ...
-                    'HandleVisibility', 'off');
+                    'MarkerSize', 8, 'LineWidth', 1.5, ...
+                    'HandleVisibility', 'off', 'UserData', lev);
+            end
+        end
+    end
+
+    % --- Individual subjects' peaks/troughs (hidden; app "Subjects" toggle) ---
+    % Each subject's own waveform value at its own latency, same marker
+    % shape/colour, transparent. Peaks filled, troughs hollow.
+    if isfield(waveforms,'peak_lat')
+        for c = conds_idx(:)'
+            for r = 1:n_subj
+                if size(waveforms.peak_lat,1) < r || size(waveforms.peak_lat,2) < c, continue; end
+                PL = waveforms.peak_lat{r,c};  ys = waveforms.y{r,c};  xs = waveforms.x{r,c};
+                Ls = waveforms.levels{r,c};
+                sn = sprintf('Subject %d', r);
+                if numel(Chins2Run) >= r, sn = char(Chins2Run{r}); end
+                if isempty(PL) || isempty(ys) || isempty(xs) || isempty(Ls), continue; end
+                k = find(round(Ls) == round(level_db), 1);
+                if isempty(k) || k > size(PL,1) || k > size(ys,1), continue; end
+                for w = 1:5
+                    if ~wave_sel(w) || size(PL,2) < 2*w, continue; end
+                    for pt = 0:1                          % 0 = peak, 1 = trough
+                        lat_s = PL(k, 2*w-1+pt);
+                        if ~isfinite(lat_s) || lat_s <= 0, continue; end
+                        amp_s = interp1(xs, ys(k,:), lat_s, 'linear', nan);
+                        if ~isfinite(amp_s), continue; end
+                        if pt == 0
+                            scatter(ax, lat_s, amp_s + offset, 40, colors(c,:), shapes(w), 'filled', ...
+                                'MarkerFaceAlpha',0.3, 'MarkerEdgeColor','none', ...
+                                'HandleVisibility','off', 'UserData',lev, 'Tag','abr_subj_pts', 'Visible','off', 'DisplayName',sn);
+                        else
+                            scatter(ax, lat_s, amp_s + offset, 40, colors(c,:), shapes(w), ...
+                                'MarkerEdgeAlpha',0.3, 'LineWidth',1.2, ...
+                                'HandleVisibility','off', 'UserData',lev, 'Tag','abr_subj_pts', 'Visible','off', 'DisplayName',sn);
+                        end
+                    end
+                end
             end
         end
     end
@@ -187,6 +227,9 @@ hold(ax,'off');
 
 %% Formatting
 xlim(ax, [0 20]);
+% Layout info for the app's level selector (objects carry their level index
+% in UserData; 'cur' = current offset of each level after re-stacking)
+ax.UserData = struct('levels',levels(:)', 'offsets',y_ticks, 'cur',y_ticks, 'vsp',vert_spacing);
 yticks(ax, flip(y_ticks));
 yticklabels(ax, flip(y_tick_labels));
 xlabel(ax, 'Time (ms)',     'FontWeight','bold','FontSize',16);
@@ -199,8 +242,8 @@ set(ax,'FontSize',14);
 x_sb   = 19.75;                  % ms, 0.25 ms before right edge
 y_sb_b = min(y_ticks);           % center of bottom (highest-level) waveform
 hold(ax,'on');
-plot(ax, [x_sb x_sb], [y_sb_b, y_sb_b+1], 'k-', 'LineWidth', 3, 'HandleVisibility','off');
-text(ax, x_sb-0.3, y_sb_b+0.5, '1 \muV', 'FontSize', 12, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right');
+plot(ax, [x_sb x_sb], [y_sb_b, y_sb_b+1], 'k-', 'LineWidth', 3, 'HandleVisibility','off', 'Tag','abr_wf_sb');
+text(ax, x_sb-0.3, y_sb_b+0.5, '1 \muV', 'FontSize', 12, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right', 'Tag','abr_wf_sbT');
 hold(ax,'off');
 
 % Legend sentinels — three groups separated by blank spacer entries:

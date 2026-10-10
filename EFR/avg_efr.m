@@ -31,8 +31,7 @@ all_peaks{1,conds}      = [];
 all_plv_sum{1,conds}    = [];
 all_low_high_peaks{1,conds} = [];
 peaks_std{1,conds}      = [];
-idx_harm    = 1:4;    % low harmonics
-idx_plv_sum = 1:16;   % PLV sum range
+o = efr_opts();   % low/high harmonic ranges, measure, normalisation (Setup tab)
 
 if isempty(idx_plot_relative)
     for cols = 1:length(all_Conds2Run)
@@ -46,10 +45,10 @@ if isempty(idx_plot_relative)
             else
                 avg_peaks_locs{1,cols} = nanmean([avg_peaks_locs{1,cols}; peaks_locs{rows,cols}], 1);
                 avg_peaks{1,cols}      = nanmean([avg_peaks{1,cols}; p], 1);
-                plv_sum = nansum(p(idx_plv_sum));
-                all_low_high_peaks{rows,cols} = [nansum(p(idx_harm)), nansum(p(idx_harm(end)+1:end))];
+                mt = efr_ram_metrics(p, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o);
+                all_low_high_peaks{rows,cols} = [mt.low, mt.high];   % chosen measure
                 all_peaks{rows,cols}   = p;
-                all_plv_sum{rows,cols} = plv_sum;
+                all_plv_sum{rows,cols} = mt.total;                   % PLV, all harmonics
             end
             peaks_std{1,cols}   = safe_std(all_peaks(:,cols));
             avg_plv_env{1,cols} = nanmean_rows([avg_plv_env{1,cols}; plv_env{rows,cols}]);
@@ -71,13 +70,12 @@ else
                     diff_p = pc - pr;
                     avg_peaks_locs{1,c_idx} = nanmean([avg_peaks_locs{1,c_idx}; peaks_locs{rows,cols}], 1);
                     avg_peaks{1,c_idx}      = nanmean([avg_peaks{1,c_idx}; diff_p], 1);
-                    plv_sum1   = nansum(pc(idx_plv_sum));
-                    plv_sum2   = nansum(pr(idx_plv_sum));
-                    low_harm   = nansum(pc(idx_harm))           - nansum(pr(idx_harm));
-                    high_harm  = nansum(pc(idx_harm(end)+1:end)) - nansum(pr(idx_harm(end)+1:end));
-                    all_low_high_peaks{rows,c_idx} = [low_harm, high_harm];
+                    mc = efr_ram_metrics(pc, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o);
+                    mr = efr_ram_metrics(pr, peaks_locs{rows,idx_plot_relative}, f{rows,idx_plot_relative}, ...
+                        plv_env{rows,idx_plot_relative}, o);
+                    all_low_high_peaks{rows,c_idx} = [mc.low - mr.low, mc.high - mr.high];
                     all_peaks{rows,c_idx}   = diff_p;
-                    all_plv_sum{rows,c_idx} = plv_sum1 - plv_sum2;
+                    all_plv_sum{rows,c_idx} = mc.total - mr.total;
                     avg_plv_env{1,c_idx}    = nanmean_rows([avg_plv_env{1,c_idx}; plv_env{rows,cols}-plv_env{rows,idx_plot_relative}]);
                     avg_f{1,c_idx}          = nanmean_rows([avg_f{1,c_idx}; f{rows,cols}]);
                 end

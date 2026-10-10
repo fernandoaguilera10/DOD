@@ -128,6 +128,18 @@ if strcmp(EXPname,'EFR') && strcmp(EXPname2,'RAM')
     end
 end
 
+% EFR harmonic sums (RAM) and dAM bands — read from the Setup panel by Tag
+efr_ram_opts = struct('low',[1 4],'high',[5 16],'measure','amplitude','normalize',false);
+efr_dam_bands = 16;
+if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
+    gv = @(tag, def) efr_val(app.h_efr_param_panel, tag, def);
+    efr_ram_opts.low       = sort([gv('efr_low_from',1),  gv('efr_low_to',4)]);
+    efr_ram_opts.high      = sort([gv('efr_high_from',5), gv('efr_high_to',16)]);
+    efr_ram_opts.measure   = gv('efr_sum_dd','amplitude');
+    efr_ram_opts.normalize = logical(gv('efr_norm_btn',false));
+    efr_dam_bands          = gv('efr_dam_bands',16);
+end
+
 % ── Build cfg and run ─────────────────────────────────────────────────
 clc;
 cfg                   = struct();
@@ -141,7 +153,10 @@ cfg.abr_levels        = abr_levels_sel;
 cfg.abr_wave_sel      = abr_wave_sel;
 cfg.efr_harmonics     = efr_harmonics;
 cfg.efr_window        = efr_window;
+cfg.efr_ram_opts      = efr_ram_opts;
+cfg.efr_dam_bands     = efr_dam_bands;
 cfg.blind             = logical(app.BlindCheck.Value);
+cfg.cond_colors       = struct('paths',{app.state.conds_all}, 'rgb',app.state.cond_colors);
 if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks') && ...
         ~isempty(app.PeakEditPanel) && isvalid(app.PeakEditPanel)
     cfg.peak_ui = struct( ...
@@ -159,7 +174,12 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks') && ...
         'pt_toggle',  app.PeakEditPtToggle, ...
         'absent_btn', app.PeakEditAbsentBtn, ...
         'thresh_btn', app.PeakEditThreshBtn, ...
+        'nel_dd',     app.PeakEditNelDD, ...
+        'sex_dd',     app.PeakEditSexDD, ...
         'fig',        app.UIFigure);
+    % Subject sex from the chinroster's "Sex" column (prefills the editor)
+    [cfg.peak_ui.sex_ids, cfg.peak_ui.sex_vals] = roster_sex( ...
+        fullfile(ROOTdir,'Analysis',chinroster_filename), sheet);
 else
     cfg.peak_ui = [];
 end
@@ -170,6 +190,7 @@ if ~isempty(cfg.peak_ui)
     fig_ = cfg.peak_ui.fig;
     setappdata(fig_, 'peak_last_sck', '');
     setappdata(fig_, 'peak_last_subj','');
+    setappdata(fig_, 'peak_subj_sex', []);   % sex carried across conditions within a run
     % Clear waterfall UserData so the first subject always triggers a fresh clear.
     if ~isempty(app.PeakEditWfAx) && isvalid(app.PeakEditWfAx)
         app.PeakEditWfAx.UserData = [];
@@ -243,4 +264,34 @@ if isvalid(app)
     app.StopButton.Visible = 'off';
     stop_spinner_anim(app, ~analysis_errored && ~app.abort_requested);
 end
+end
+
+
+function [ids, sexes] = roster_sex(filepath, sheet)
+%ROSTER_SEX  Subject IDs and sex ('M'/'F') from the chinroster sheet's
+%   "Sex" column (header row found by the cell text "Sex").
+ids = {};  sexes = {};
+try
+    rc = readcell(filepath, 'Sheet', sheet);
+catch
+    return
+end
+rc(cellfun(@(v) any(isa(v,'missing')), rc)) = {NaN};
+[r, c] = find(cellfun(@(v) ischar(v) && strcmpi(strtrim(v),'Sex'), rc), 1);
+if isempty(r), return; end
+for i = r+1:size(rc,1)
+    id = rc{i,1};  sx = rc{i,c};
+    if ischar(id) && ~isempty(strtrim(id)) && ischar(sx) && ~isempty(strtrim(sx))
+        ids{end+1}   = strtrim(id);                  %#ok<AGROW>
+        sexes{end+1} = upper(strtrim(sx(1)));        %#ok<AGROW>
+    end
+end
+end
+
+
+function v = efr_val(panel, tag, def)
+%EFR_VAL  Value of a Setup EFR control found by Tag (default if missing).
+h = findall(panel, 'Tag', tag);
+v = def;
+if ~isempty(h) && isprop(h(1),'Value'), v = h(1).Value; end
 end

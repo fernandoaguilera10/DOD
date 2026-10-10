@@ -177,13 +177,18 @@ for z = 1:length(freq)
                 abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
                 abr_t = (1:length(abr_data))/fs;
 
-                % MetaData
+                % MetaData (NEL / sex from the acquisition file, if recorded)
                 if isfield(x,'MetaData') && ~isempty(x.MetaData)
-                    abrs.nel     = str2double(x.MetaData.NEL(end));
-                    abrs.subject = x.MetaData.ChinID;
-                    abrs.sex     = x.MetaData.Sex;
-                else
-                    abrs.nel = []; abrs.subject = []; abrs.sex = [];
+                    md = x.MetaData;
+                    if isfield(md,'NEL') && ~isempty(md.NEL) && isempty(abrs.nel)
+                        abrs.nel = str2double(md.NEL(end));
+                    end
+                    if isfield(md,'Sex') && ~isempty(md.Sex) && isempty(abrs.sex)
+                        abrs.sex = upper(char(md.Sex(1)));
+                    end
+                    if isfield(md,'ChinID') && ~isempty(md.ChinID)
+                        abrs.subject_metadata = md.ChinID;
+                    end
                 end
 
                 % Shift template to better match ABR waveform
@@ -231,6 +236,7 @@ for z = 1:length(freq)
         PL = nan(n_lev, numel(all_point_names));     % peak latencies
         use_session = isstruct(peak_ui) && isfield(peak_ui,'fig') && isvalid(peak_ui.fig);
         vis_thr = NaN;  vis_src = '';                  % visual threshold (app mode)
+        save_mode = 'overwrite';                       % or 'new' (keep the existing file)
         if use_session
             % App mode: full waterfall on the left; levels are proposed high →
             % low, but clicking any level in the waterfall jumps to it.
@@ -254,6 +260,62 @@ for z = 1:length(freq)
                 inds_store{jj} = inds;
                 PKs{jj} = pk;  LATs{jj} = lat;
             end
+            % ── Re-analysis: preload the existing peaks file for this freq ──
+            prev = [];
+            prev_file = fullfile(outpath, [cell2mat([Chins2Run(ChinIND),'_',condition{2}, ...
+                                 '_ABRpeaks_dtw_',freq_str]) '.mat']);
+            if exist(prev_file, 'file')
+                try
+                    tmp_prev = load(prev_file, 'abrs');  prev = tmp_prev.abrs;
+                catch
+                    prev = [];
+                end
+            end
+            if isstruct(prev) && isfield(prev,'peak_latency') && isfield(prev,'levels')
+                for jj = find(has_data)
+                    k = find(round(prev.levels(:)) == round(levels(jj)), 1);
+                    if isempty(k) || size(prev.peak_latency,1) < k, continue; end
+                    lat_ms = prev.peak_latency(k,:);
+                    if all(abs(lat_ms(isfinite(lat_ms))) < 0.1), lat_ms = lat_ms*1e3; end  % old files in s
+                    idx = round(lat_ms * 8);                        % t = (1:n)/8 kHz → ms
+                    idx(idx < 1 | idx > numel(L(jj).data)) = NaN;
+                    init = nan(1, numel(inds_store{jj}));
+                    m = min(numel(init), numel(idx));
+                    init(1:m) = idx(1:m);
+                    inds_store{jj} = init;
+                    s_uv = L(jj).data * 1e2;  pk = nan(size(init));
+                    pk(~isnan(init)) = s_uv(init(~isnan(init)));
+                    PKs{jj} = pk;  LATs{jj} = init / 8;
+                end
+                if isfield(prev,'threshold_visual') && isfinite(prev.threshold_visual)
+                    src = 'manual';
+                    if isfield(prev,'threshold_visual_source') && ~isempty(prev.threshold_visual_source)
+                        src = prev.threshold_visual_source;
+                    end
+                    S = wf_relayout(S, prev.threshold_visual, src, colors, shapes, wave_sel);
+                end
+                peak_ui_msg(peak_ui, 'Loaded existing peaks for re-analysis');
+            end
+
+            % ── NEL / sex prefill. NEL: existing file → acquisition metadata.
+            %    Sex: chinroster → existing file → metadata → earlier condition
+            %    of the same subject in this run. The user can change both.
+            nel0 = abrs.nel;  sex0 = abrs.sex;
+            if isstruct(prev)
+                if isfield(prev,'nel') && ~isempty(prev.nel) && isfinite(prev.nel), nel0 = prev.nel; end
+                if isfield(prev,'sex') && ~isempty(prev.sex), sex0 = prev.sex; end
+            end
+            % Sex from the chinroster "Sex" column takes priority
+            if isfield(peak_ui,'sex_ids') && ~isempty(peak_ui.sex_ids)
+                ks = find(strcmp(peak_ui.sex_ids, Chins2Run{ChinIND}), 1);
+                if ~isempty(ks) && ~isempty(peak_ui.sex_vals{ks}), sex0 = peak_ui.sex_vals{ks}; end
+            end
+            subj_sex = getappdata(peak_ui.fig, 'peak_subj_sex');
+            if isempty(sex0) && isstruct(subj_sex) && isfield(subj_sex,'id') && strcmp(subj_sex.id, Chins2Run{ChinIND})
+                sex0 = subj_sex.sex;
+            end
+            meta_init(peak_ui, nel0, sex0);
+
             % Edit loop: start at the highest level; the user moves between
             % levels by clicking the waterfall (or ↑/↓), can set the visual
             % threshold, and presses "Done" once the waterfall is finished.
@@ -286,7 +348,9 @@ for z = 1:length(freq)
                 elseif strcmp(nav.type,'goto')
                     % clicked an unrecorded level: stay on this level
                 else
-                    j = [];                                     % "Done": waterfall finished
+                    % "Done": confirm NEL / sex, and overwrite vs. new file
+                    [ok_done, save_mode] = confirm_done(peak_ui, isstruct(prev));
+                    if ok_done, j = []; end                    % else keep editing this level
                 end
             end
             % Finalise every level from its latest picks (and log them once).
@@ -306,6 +370,11 @@ for z = 1:length(freq)
                 wf_set_current(S, [], true(1, n_lev));
             end
             vis_thr = S.thr;  vis_src = S.thr_src;
+            [abrs.nel, abrs.sex] = meta_read(peak_ui);
+            abrs.nel_sex_confirmed = ~isnan(abrs.nel) && ~isempty(abrs.sex);
+            if ~isempty(abrs.sex)
+                setappdata(peak_ui.fig, 'peak_subj_sex', struct('id',Chins2Run{ChinIND}, 'sex',abrs.sex));
+            end
             peak_ui_inter_busy(peak_ui, n_lev, n_lev, ci, numel(CondINDs), z, length(freq));
         else
             % Classic (standalone) mode: one level at a time, high → low
@@ -321,6 +390,7 @@ for z = 1:length(freq)
         end
 
         % ── 3) Assemble output (unrecorded levels stay NaN) ─────────────────
+        abrs.subject        = Chins2Run{ChinIND};   % roster ID (always saved)
         abrs.levels         = levels';
         abrs.threshold_visual        = vis_thr;   % dB SPL; levels below have no peaks (NaN)
         abrs.threshold_visual_source = vis_src;   % 'auto' (estimate accepted) or 'manual'
@@ -341,6 +411,12 @@ for z = 1:length(freq)
         %% Export per (condition, freq)
         cd(outpath);
         filename = cell2mat([Chins2Run(ChinIND),'_',condition{2},'_ABRpeaks_dtw_',freq_str]);
+        if strcmp(save_mode, 'new')
+            % Keep the existing file; save this analysis as the next version
+            v = 2;
+            while exist(fullfile(outpath, sprintf('%s_v%d.mat', filename, v)), 'file'), v = v + 1; end
+            filename = sprintf('%s_v%d', filename, v);
+        end
         % Save waterfall figure
         wf_name = sprintf('Peaks Waterfall|%s|%s', condition{end}, freq_str);
         fh = findobj('Type','figure','Name',wf_name);
@@ -659,4 +735,65 @@ end
 if isempty(k), return; end
 setappdata(fig, 'peak_action', struct('type','goto','x',k));
 uiresume(fig);
+end
+
+
+% ══════════════════════════════════════════════════════════════════════════
+%  NEL / sex confirmation and "Done" checks (app mode)
+% ══════════════════════════════════════════════════════════════════════════
+
+function meta_init(peak_ui, nel0, sex0)
+%META_INIT  Prefill the NEL / Sex dropdowns; '?' = not confirmed (amber).
+if ~isfield(peak_ui,'nel_dd') || ~isvalid(peak_ui.nel_dd), return; end
+v = '?';
+if ~isempty(nel0) && isnumeric(nel0) && isfinite(nel0) && ismember(nel0,[1 2]), v = num2str(nel0); end
+peak_ui.nel_dd.Value = v;
+v = '?';
+if ~isempty(sex0)
+    c = upper(char(sex0));  c = c(1);
+    if ismember(c, {'M','F'}), v = c; end
+end
+peak_ui.sex_dd.Value = v;
+cb = @(dd,~) meta_style(dd);
+peak_ui.nel_dd.ValueChangedFcn = cb;   peak_ui.sex_dd.ValueChangedFcn = cb;
+meta_style(peak_ui.nel_dd);  meta_style(peak_ui.sex_dd);
+peak_ui.nel_dd.Visible = 'on';  peak_ui.sex_dd.Visible = 'on';
+set(findall(peak_ui.fig,'Tag','peak_meta_lbl'), 'Visible','on');
+end
+
+
+function meta_style(dd)
+%META_STYLE  Amber while unconfirmed ('?'), green once set.
+if strcmp(dd.Value, '?')
+    dd.BackgroundColor = [1.00 0.86 0.60];
+else
+    dd.BackgroundColor = [0.75 0.90 0.75];
+end
+end
+
+
+function [nel, sex] = meta_read(peak_ui)
+nel = NaN;  sex = '';
+if ~isfield(peak_ui,'nel_dd') || ~isvalid(peak_ui.nel_dd), return; end
+if ~strcmp(peak_ui.nel_dd.Value,'?'), nel = str2double(peak_ui.nel_dd.Value); end
+if ~strcmp(peak_ui.sex_dd.Value,'?'), sex = peak_ui.sex_dd.Value; end
+end
+
+
+function [ok, save_mode] = confirm_done(peak_ui, has_prev)
+%CONFIRM_DONE  Before finishing a waterfall (re-analysis only): ask whether
+%   to overwrite the existing peaks file or save a new version next to it.
+ok = true;  save_mode = 'overwrite';
+fig = peak_ui.fig;
+if has_prev
+    sel = uiconfirm(fig, ['A peaks file already exists for this recording and frequency. ' ...
+        'Overwrite it, or keep it and save this analysis as a new version?'], ...
+        'Existing peaks file', 'Options',{'Overwrite','Save as new','Keep editing'}, ...
+        'DefaultOption',1, 'CancelOption',3, 'Icon','question');
+    switch sel
+        case 'Overwrite',   save_mode = 'overwrite';
+        case 'Save as new', save_mode = 'new';
+        otherwise,          ok = false;
+    end
+end
 end
