@@ -5,7 +5,7 @@ elseif ~isempty(idx_plot_relative)
     conds = length(all_Conds2Run)-1;
 end
 if conds < 1
-    uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
+    try, apat_run_error('error', 'Must have at least 2 conditions to do a comparison (relative mode) — no group average.', 'average'); catch, end
     return
 end
 if strcmp(analysis_type,'Thresholds')
@@ -23,8 +23,8 @@ if strcmp(analysis_type,'Thresholds')
     if isempty(idx_plot_relative)   % plot all timepoints, including baseline
         for cols = 1:length(all_Conds2Run)
             for rows = 1:length(Chins2Run)
-                avg_x{1,cols} = mean([avg_x{1,cols}; x{rows, cols}],1);
-                avg_y{1,cols} = mean([avg_y{1,cols}; y{rows, cols}],1);
+                avg_x{1,cols} = [avg_x{1,cols}; x{rows, cols}];
+                avg_y{1,cols} = [avg_y{1,cols}; y{rows, cols}];
                 all_y{rows,cols} = y{rows, cols};
                 ne_mask = ~cellfun(@isempty, all_y(:,cols));
                 if sum(ne_mask) > 1
@@ -58,8 +58,8 @@ if strcmp(analysis_type,'Thresholds')
         for cols = 1:length(all_Conds2Run)
             for rows = 1:length(Chins2Run)
                 if cols ~= idx_plot_relative && idx(rows,cols) == 1
-                    avg_x{1,cols-1} = mean([avg_x{1,cols-1}; x{rows, cols}],1);
-                    avg_y{1,cols-1} = mean([avg_y{1,cols-1}; y{rows, cols}-y{rows, idx_plot_relative}],1);
+                    avg_x{1,cols-1} = [avg_x{1,cols-1}; x{rows, cols}];
+                    avg_y{1,cols-1} = [avg_y{1,cols-1}; y{rows, cols}-y{rows, idx_plot_relative}];
                     all_y{rows,cols-1} = y{rows, cols}-y{rows, idx_plot_relative};
                     ne_mask = ~cellfun(@isempty, all_y(:,cols-1));
                     if sum(ne_mask) > 1
@@ -91,6 +91,8 @@ if strcmp(analysis_type,'Thresholds')
             end
         end
     end
+    avg_x = stack_mean(avg_x, false);
+    avg_y = stack_mean(avg_y, false);
     average.x = avg_x;
     average.y = avg_y;
     average.y_std = y_std;
@@ -273,12 +275,23 @@ for k = 1:m
     end
 end
 avg_x      = all_lvls;
-avg_w1     = nanmean(M1,2);  s1     = nanstd(M1,0,2);
-avg_w2     = nanmean(M2,2);  s2     = nanstd(M2,0,2);
-avg_w3     = nanmean(M3,2);  s3     = nanstd(M3,0,2);
-avg_w4     = nanmean(M4,2);  s4     = nanstd(M4,0,2);
-avg_w5     = nanmean(M5,2);  s5     = nanstd(M5,0,2);
-avg_w1and5 = nanmean(M15,2); s1and5 = nanstd(M15,0,2);
+avg_w1     = mean(M1,2,'omitmissing');  s1     = std(M1,0,2,'omitmissing');
+avg_w2     = mean(M2,2,'omitmissing');  s2     = std(M2,0,2,'omitmissing');
+avg_w3     = mean(M3,2,'omitmissing');  s3     = std(M3,0,2,'omitmissing');
+avg_w4     = mean(M4,2,'omitmissing');  s4     = std(M4,0,2,'omitmissing');
+avg_w5     = mean(M5,2,'omitmissing');  s5     = std(M5,0,2,'omitmissing');
+avg_w1and5 = mean(M15,2,'omitmissing'); s1and5 = std(M15,0,2,'omitmissing');
 cnt = [sum(~isnan(M1),2), sum(~isnan(M2),2), sum(~isnan(M3),2), ...
        sum(~isnan(M4),2), sum(~isnan(M5),2)];
+end
+
+function c = stack_mean(c, omit_nan)
+% Equal-weight group mean. Each cell holds one row per subject (stacked in
+% the loop above); average them in one step so every subject counts 1/N.
+% (Replaces the old running mean([avg; new]), which weighted later subjects
+% more: a/4 + b/4 + c/2 for three subjects.)
+for k = 1:numel(c)
+    if isempty(c{k}), continue; end
+    if omit_nan, c{k} = mean(c{k}, 1, 'omitnan'); else, c{k} = mean(c{k}, 1); end
+end
 end

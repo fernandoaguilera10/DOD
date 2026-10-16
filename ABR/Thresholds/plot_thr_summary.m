@@ -29,41 +29,47 @@ nF   = numel(allf);  nC = numel(S.conds);
 flab = arrayfun(@(f) ternary_s(f==0,'Click',sprintf('%g',f/1000)), allf, 'UniformOutput',false);
 
 % ── threshold vs frequency ───────────────────────────────────────────
-ax = axes(fh,'Position',[0.08 0.13 0.55 0.70]); hold(ax,'on');
+set(fh, 'Units','normalized', 'Position',[0.15 0.2 0.6 0.6]);   % final size first (marker sizing)
+ax = axes(fh,'Position',[0.08 0.20 0.55 0.70]); hold(ax,'on');
+xlim(ax, [0.5 nF+0.5]);
 if any(allf==0) && nF > 1
     plot(ax, [1.5 1.5], [-100 200], '-', 'Color',[0.88 0.88 0.88], 'LineWidth',1, 'HandleVisibility','off');
 end
 plot(ax, [0.5 nF+0.5], [80 80], ':', 'Color',[0.6 0.6 0.6], 'LineWidth',1, 'HandleVisibility','off');
+offs = apat_dodge(nC);                     % same spacing / marker size as the averages
+ms = apat_ms(ax, 0.7);   % points at true x: size from the x spacing
+LC = struct('clr',{},'shp',{},'label',{});
 for c = 1:nC
     C  = S.conds(c);
     [tf, loc] = ismember(C.freqs, allf);
     x  = loc(tf);  y = C.thr(tf);  isc = C.freqs(tf) == 0;
-    dx = (c - (nC+1)/2) * 0.05;
-    mk = {'Marker',C.shp,'MarkerSize',13,'MarkerFaceColor',C.clr,'MarkerEdgeColor',C.clr,'LineWidth',3,'Color',C.clr};
-    hv = 'on';
+    dx = offs(c);
+    mk = {'Marker',C.shp,'MarkerSize',ms,'MarkerFaceColor',C.clr,'MarkerEdgeColor',C.clr,'LineWidth',2,'Color',C.clr};
     if any(~isc)
-        plot(ax, x(~isc)+dx, y(~isc), '-', mk{:}, 'DisplayName',C.name);
-        hv = 'off';
+        plot(ax, x(~isc)+dx, y(~isc), '-', mk{:}, 'HandleVisibility','off');
     end
     if any(isc)
-        plot(ax, x(isc)+dx, y(isc), 'LineStyle','none', mk{:}, 'DisplayName',C.name, 'HandleVisibility',hv);
+        plot(ax, x(isc)+dx, y(isc), 'LineStyle','none', mk{:}, 'HandleVisibility','off');
     end
+    LC(end+1) = struct('clr',C.clr, 'shp',C.shp, 'label',C.name); %#ok<AGROW>
 end
-xlim(ax, [0.5 nF+0.5]);
 if ~isempty(ylims), ylim(ax, ylims); else, ylim(ax, [-5 90]); yticks(ax, 0:10:80); end
 set(ax, 'XTick',1:nF, 'XTickLabel',flab, 'FontSize',14, 'Box','off', 'XColor',INK, 'YColor',INK);
 grid(ax,'on');
+apat_xgroups(ax, 1:nF);                    % one column per frequency
 xlabel(ax, 'Frequency (kHz)', 'FontWeight','bold');
 ylabel(ax, 'Threshold (dB SPL)', 'FontWeight','bold');
 title(ax, sprintf('%s ABR Thresholds', fig_name), 'FontSize',16, 'FontWeight','bold', 'Interpreter','none');
-lg = legend(ax, 'Location','northoutside', 'Orientation','horizontal', 'FontSize',14);
-legend(ax,'boxoff');  lg.ItemTokenSize = [18 10];
+apat_legend(fh, ax, LC, [], ax.Position(1), ax.Position(3));    % conditions, bottom
 
 % ── values table (block centred vertically) ──────────────────────────
-axT = axes(fh,'Position',[0.68 0.13 0.30 0.74]); hold(axT,'on');
+axT = axes(fh,'Position',[0.68 0.13 0.30 0.74], 'Tag','abr_thr_table'); hold(axT,'on');
 axis(axT,'off');  xlim(axT,[0 1]);  ylim(axT,[0 1]);
 fs  = 14;  if nC > 3, fs = 12; end
-x0  = 0.26;  cw = (1 - x0) / max(nC,1);
+rlab = cell(1, nF);                        % row labels ('Click', '0.5 kHz' …)
+for r = 1:nF, rlab{r} = flab{r};  if allf(r) ~= 0, rlab{r} = [rlab{r} ' kHz']; end, end
+x0  = apat_table_x0(axT, [rlab {'Freq'}], fs, {'00.0*'}, fs, nC, 0.02, 0.26, 8);   % labels + 8 px before values
+cw = (1 - x0) / max(nC,1);
 rh  = min(0.075, 0.70/(nF+3));
 any_lim = any(arrayfun(@(C) any(C.thr >= 80), S.conds));
 
@@ -80,11 +86,10 @@ end
 plot(axT, [0 1], [y_hdr-rh/2 y_hdr-rh/2], '-', 'Color',GOLD, 'LineWidth',1.2);
 for r = 1:nF
     y = y_hdr - r*rh;
-    if mod(r,2) == 0
-        patch(axT, [0 1 1 0], [y-rh/2 y-rh/2 y+rh/2 y+rh/2], [0.97 0.97 0.97], 'EdgeColor','none');
-    end
-    lbl = flab{r};  if allf(r) ~= 0, lbl = [lbl ' kHz']; end
-    text(axT, 0.02, y, lbl, 'FontSize',fs, 'Color',INK, 'VerticalAlignment','middle');
+    g = 0.08*rh;                          % every row shaded like its frequency's column in the plot
+    patch(axT, [0 1 1 0], [y-rh/2+g y-rh/2+g y+rh/2-g y+rh/2-g], apat_shade_eff(), ...
+        'EdgeColor','none', 'Tag','apat_xgroup');
+    text(axT, 0.02, y, rlab{r}, 'FontSize',fs, 'Color',INK, 'VerticalAlignment','middle');
     for c = 1:nC
         C = S.conds(c);  j = find(C.freqs == allf(r), 1);
         if isempty(j) || isnan(C.thr(j)), v = '—';
@@ -96,10 +101,9 @@ for r = 1:nF
     end
 end
 if any_lim
-    text(axT, 0.5, y_hdr - (nF+1)*rh, '* at upper limit (dotted line) — possible no response', ...
+    text(axT, 0.5, y_hdr - (nF+1)*rh, '* At Upper Limit (Dotted Line) — Possible No Response', ...
         'FontSize',11, 'Color',MUTE, 'HorizontalAlignment','center', 'VerticalAlignment','middle');
 end
-set(fh, 'Units','normalized', 'Position',[0.15 0.2 0.6 0.6]);
 end
 
 

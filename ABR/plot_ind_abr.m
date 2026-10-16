@@ -1,4 +1,5 @@
 function plot_ind_abr(data,plot_type,colors,shapes,Conds2Run,Chins2Run,all_Conds2Run,ChinIND,CondIND,outpath,ylimits_threshold,ylimits_peaks,ylimits_lat,all_freq,wave_sel)
+WSH = 'vsd^o';   % fixed Wave I-V markers (condition markers are user-set; keep waves stable)
 global legend_string
 legend_string= Conds2Run;
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
@@ -42,12 +43,22 @@ elseif strcmp(plot_type,'Peaks')
     else
         fh = fh(1);  set(fh,'Visible','off');  clf(fh);
     end
+    set(fh, 'Units','normalized', 'Position',[0.01 0.1 0.7 0.9]);   % final size first (marker sizing)
+    % Waves side by side at each level (same spacing as the averages)
+    n_wave_slots = floor(width(data.peak_amplitude) / 2);
+    shown_k = find(arrayfun(@(k) ~(k <= numel(wave_sel) && ~wave_sel(k)), 1:n_wave_slots));
+    level_ticks = unique(round(data.levels));
+    dl = 10;  if numel(level_ticks) > 1, dl = min(diff(level_ticks)); end
+    w_off = zeros(1, n_wave_slots);  w_off(shown_k) = apat_dodge(numel(shown_k)) * dl;
+    x_pad = dl;  if numel(level_ticks) > 1, x_pad = max((level_ticks(end)-level_ticks(1))*0.06, max(abs(w_off)) + 0.35*dl); end
+    height = 0.33;
     
     % Peak-to-peak amplitude plot — only waves that are (a) selected by
     % wave_sel and (b) have at least one non-NaN data point (i.e. present
     % in the template used for this analysis).
-    ax_amp = subplot('Position', [0.08,height+0.15, left_width, height]);
-    n_wave_slots = floor(width(data.peak_amplitude) / 2);
+    ax_amp = subplot('Position', [0.08, 0.56, left_width, height]);
+    if numel(level_ticks) > 1, xlim(ax_amp, [level_ticks(1)-x_pad, level_ticks(end)+x_pad]); end
+    ms_w = apat_ms(ax_amp, 0.7*dl);   % waves at true x: size from the level spacing
     amp_handles = gobjects(0);
     amp_names   = {};
     for k = 1:n_wave_slots
@@ -55,17 +66,15 @@ elseif strcmp(plot_type,'Peaks')
         if k <= numel(wave_sel) && ~wave_sel(k), continue; end  % checkbox off
         amp_vals = data.peak_amplitude(:,i) - data.peak_amplitude(:,i+1);
         wn = wave_names{min(k, numel(wave_names))};
-        h = plot(data.levels, amp_vals, 'Marker', shapes(k,:), 'LineStyle', '-', ...
-            'LineWidth', 3, 'MarkerSize', 9, 'Color', colors(k+4,:), ...
+        h = plot(data.levels + w_off(k), amp_vals, 'Marker', WSH(k), 'LineStyle', '-', ...
+            'LineWidth', 2, 'MarkerSize', ms_w, 'Color', colors(k+4,:), ...
             'MarkerFaceColor', colors(k+4,:), 'MarkerEdgeColor', colors(k+4,:), ...
             'DisplayName', wn);
         amp_handles(end+1) = h;
         amp_names{end+1}   = wn;
         hold on;
     end
-    level_ticks = unique(round(data.levels));
     if numel(level_ticks) > 1
-        x_pad = (level_ticks(end) - level_ticks(1)) * 0.06;
         xlim([level_ticks(1)-x_pad, level_ticks(end)+x_pad]);
     end
     hold off;
@@ -80,19 +89,19 @@ elseif strcmp(plot_type,'Peaks')
         ylim([max(0, yl(1) - 0.2*rng_amp), yl(2) + 0.2*rng_amp]);
     end
     sgtitle(sprintf('ABR Peaks  |  %s  |  %s  |  %s', cell2mat(Chins2Run(ChinIND)), condition{end}, fig_freq_label), 'FontSize', 16, 'FontWeight', 'bold'); grid on;
+    apat_xgroups(gca, level_ticks);              % one column per level
     xticklabels({}); set(gca,'FontSize',14); box off;
-    % Shared wave legend — pinned at a fixed figure-normalised position above
-    % the amplitude subplot so neither subplot is resized.
+    % Shared wave legend — bottom of the figure (same style as every measure)
     if ~isempty(amp_handles)
-        lg = legend(ax_amp, amp_handles, amp_names, ...
-            'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
-        lg.Units = 'normalized';
-        % Place legend in the band between the amplitude subplot top and sgtitle
-        lg.Position = [0.08, height+0.15+height+0.01, left_width, 0.04];
+        LC = struct('clr',{},'shp',{},'label',{});
+        for hh = 1:numel(amp_handles)
+            LC(end+1) = struct('clr',amp_handles(hh).Color, 'shp',amp_handles(hh).Marker, 'label',amp_names{hh}); %#ok<AGROW>
+        end
+        apat_legend(fh, ax_amp, LC, [], 0.08, 0.88);
     end
 
     % Latency plot — same wave_sel and NaN filter as amplitude
-    subplot('Position', [0.08, 0.12, left_width, height]);
+    subplot('Position', [0.08, 0.17, left_width, height]);
     lat_handles = gobjects(0);
     lat_names   = {};
     for k = 1:n_wave_slots
@@ -100,8 +109,8 @@ elseif strcmp(plot_type,'Peaks')
         if k <= numel(wave_sel) && ~wave_sel(k), continue; end
         lat_vals = data.peak_latency(:,i);
         wn = wave_names{min(k, numel(wave_names))};
-        h = plot(data.levels, lat_vals, 'Marker', shapes(k,:), 'LineStyle', '-', ...
-            'LineWidth', 3, 'MarkerSize', 9, 'Color', colors(k+4,:), ...
+        h = plot(data.levels + w_off(k), lat_vals, 'Marker', WSH(k), 'LineStyle', '-', ...
+            'LineWidth', 2, 'MarkerSize', ms_w, 'Color', colors(k+4,:), ...
             'MarkerFaceColor', colors(k+4,:), 'MarkerEdgeColor', colors(k+4,:), ...
             'DisplayName', wn);
         lat_handles(end+1) = h;
@@ -109,7 +118,6 @@ elseif strcmp(plot_type,'Peaks')
         hold on;
     end
     if numel(level_ticks) > 1
-        x_pad = (level_ticks(end) - level_ticks(1)) * 0.06;
         xlim([level_ticks(1)-x_pad, level_ticks(end)+x_pad]);
     end
     hold off;
@@ -117,6 +125,7 @@ elseif strcmp(plot_type,'Peaks')
     xlabel(x_units, 'FontWeight', 'bold')
     xticks(level_ticks);
     xticklabels(level_ticks); grid on;
+    apat_xgroups(gca, level_ticks);              % one column per level
     % Y-limits: use global limits if provided, else data-driven with 20% padding
     if ~isempty(ylimits_lat)
         ylim(ylimits_lat);
@@ -128,7 +137,7 @@ elseif strcmp(plot_type,'Peaks')
     set(gca,'FontSize',14); box off;
 
     % Waveform plots
-    subplot('Position', [right_width+0.16, 0.12, right_width, 0.80]);
+    subplot('Position', [right_width+0.16, 0.17, right_width, 0.72]);
     buff = 1.25*max(max(data.waveforms'))*(1:size(data.waveforms',2));
     wform_plot = data.waveforms'-buff;
     plot(data.waveforms_time,wform_plot,'k','linewidth',3);
@@ -138,7 +147,7 @@ elseif strcmp(plot_type,'Peaks')
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
         % Peak = filled marker
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(wave_k,:),'LineStyle','none', 'MarkerSize', 9, 'Color', colors(wave_k+4,:),'MarkerFaceColor', colors(wave_k+4,:), 'MarkerEdgeColor', colors(wave_k+4,:),'LineWidth', 1.5)
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',WSH(wave_k),'LineStyle','none', 'MarkerSize', 9, 'Color', colors(wave_k+4,:),'MarkerFaceColor', colors(wave_k+4,:), 'MarkerEdgeColor', colors(wave_k+4,:),'LineWidth', 1.5)
     end
     for i=2:2:width(data.peak_latency)
         wave_k = i/2;
@@ -146,7 +155,7 @@ elseif strcmp(plot_type,'Peaks')
         hold on;
         peaks_plot = data.peak_amplitude(:,i)-buff';
         % Trough = hollow marker (waveform stays visible)
-        plot(data.peak_latency(:,i),peaks_plot,'Marker',shapes(wave_k,:),'LineStyle','none', 'MarkerSize', 10, 'Color', colors(wave_k+4,:),'MarkerFaceColor', 'none', 'MarkerEdgeColor', colors(wave_k+4,:),'LineWidth', 2)
+        plot(data.peak_latency(:,i),peaks_plot,'Marker',WSH(wave_k),'LineStyle','none', 'MarkerSize', 10, 'Color', colors(wave_k+4,:),'MarkerFaceColor', 'none', 'MarkerEdgeColor', colors(wave_k+4,:),'LineWidth', 2)
     end
     ylabel(x_units, 'FontWeight', 'bold')
     xlabel(y_units_lat, 'FontWeight', 'bold')
@@ -163,16 +172,20 @@ elseif strcmp(plot_type,'Peaks')
     plot([x_sb x_sb], [y_sb_b, y_sb_b+1], 'k-', 'LineWidth', 3);
     text(x_sb-0.3, y_sb_b+0.5, '1 \muV', 'FontSize', 12, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right');
     hold off;
-    set(gcf, 'Units', 'normalized', 'Position', [0.01 0.1 0.7 0.9]);
 end
 %% Export
-cd(outpath);
+% Thresholds: the subject summary (all conditions so far, redrawn each
+% call) → <Subj>/<Subj>_ABRthresholds_figure.png (the last
+% call leaves the full overlay). Peaks: one figure per recording and
+% frequency, next to its .mat (<Subj>_<Cond>_ABRpeaks_dtw_<freq>_figure.png).
+drawnow;
 if strcmp(plot_type,'Thresholds')
-    drawnow;
-    exportgraphics(fh_t,[filename,'_figure.png'],'Resolution',300);
+    subj = cell2mat(Chins2Run(ChinIND));
+    try, apat_save_fig(fh_t, apat_out_dir('all_file', outpath, [subj '_ABRthresholds_figure']), 'abr_thr_ind'); catch, end
 else
-    drawnow;
-    exportgraphics(fh,[filename,'_figure.png'],'Resolution',300);
+    if data.freq == 0, fstr = 'click'; else, fstr = [num2str(data.freq) 'Hz']; end
+    stem = sprintf('%s_%s_ABRpeaks_dtw_%s', cell2mat(Chins2Run(ChinIND)), condition{end}, fstr);
+    try, apat_save_fig(fh, fullfile(outpath, [stem '_figure']), 'abr_peaks_ind'); catch, end
 end
 end
 

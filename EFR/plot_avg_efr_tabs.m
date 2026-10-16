@@ -20,80 +20,129 @@ rel = ~isempty(idx_plot_relative);
 for k = 1:numel(valid_li)
     li = valid_li(k);  A = averages{li};
     fh = new_fig(sprintf('Level|%d dB SPL', round(all_levels(li))));
-    axP = axes(fh, 'Position',[0.06 0.22 0.42 0.64], 'Tag','efr_spec_tile');  hold(axP,'on');
-    axS = axes(fh, 'Position',[0.56 0.22 0.26 0.64], 'Tag','efr_tile');       hold(axS,'on');
+    axP = axes(fh, 'Position',[0.07 0.24 0.471 0.62], 'Tag','efr_spec_tile');  hold(axP,'on');   % full width (Oct 15)
+    axS = axes(fh, 'Position',[0.628 0.24 0.322 0.62], 'Tag','efr_tile'); hold(axS,'on');
     draw_spec(axP, A, colors, shapes, col_offset, rel, Chins2Run);
     draw_sums(axS, A, colors, shapes, col_offset, rel, Chins2Run);
-    add_title(fh, sprintf('EFR RAM 223 Hz — %d dB SPL', round(all_levels(li))));
-    add_legend(axP, colors, cidx_list, cnames);
+    oF = efr_opts();
+    add_title(fh, sprintf('EFR RAM %g Hz — %d dB SPL', oF.ram_f0, round(all_levels(li))));
+    add_legend(fh, axP, colors, shapes, cidx_list, cnames);
 end
 end
 
 
 function draw_spec(ax, A, colors, shapes, col_offset, rel, Chins2Run)
+    % True harmonic axis: means at k × F0 (F0 = RAM modulation frequency),
+    % fixed ticks k × F0 — identical in every session, whatever FFT bin the
+    % peak fell in. Conditions side by side (apat_dodge) at each harmonic.
+    oF = efr_opts();  F0 = oF.ram_f0;
     if rel, plot(ax, [0 1e5], [0 0], 'k--', 'LineWidth',1.5, 'HandleVisibility','off'); end
-    for c = 1:numel(A.peaks)
-        if isempty(A.peaks_locs{1,c}) || isempty(A.peaks{1,c}), continue; end
+    has = find(arrayfun(@(c) ~isempty(A.peaks_locs{1,c}) && ~isempty(A.peaks{1,c}), 1:numel(A.peaks)));
+    nH  = max([1, cellfun(@numel, A.peaks(1,has))]);
+    xlim(ax, [0.4*F0, (nH + 0.6)*F0]);
+    offs = apat_dodge(numel(has)) * F0;
+    [ms, sa] = apat_ms(ax, 0.7*F0);   % points at true x: size from the x spacing
+    for j = 1:numel(has)
+        c = has(j);
         [clr, shp] = cs(colors, shapes, c + col_offset);
         if ~isempty(A.plv_env{1,c}) && ~isempty(A.f{1,c})
             plot(ax, A.f{1,c}, A.plv_env{1,c}, '-', 'LineWidth',1.5, 'Color',[clr 0.30], 'HandleVisibility','off');
         end
-        locs = A.peaks_locs{1,c};
-        subj_pts(ax, A.all_peaks(:,c), locs, clr, shp, Chins2Run, 'off', 0.012*max(locs));
-        errorbar(ax, locs, A.peaks{1,c}, A.peaks_std{1,c}, 'Marker',shp, 'LineStyle','-', ...
-            'LineWidth',2, 'MarkerSize',10, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, ...
+        xh = (1:numel(A.peaks{1,c})) * F0 + offs(j);
+        subj_pts(ax, A.all_peaks(:,c), xh, clr, shp, Chins2Run, 'off', 0.06*F0, sa);
+        errorbar(ax, xh, A.peaks{1,c}, A.peaks_std{1,c}, 'Marker',shp, 'LineStyle','-', ...
+            'LineWidth',2, 'MarkerSize',ms, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, ...
             'HandleVisibility','off');
     end
-    last_ne = find(~cellfun(@isempty, A.peaks_locs(1,:)), 1, 'last');
-    if ~isempty(last_ne)
-        lr = A.peaks_locs{1,last_ne};  vl = lr(isfinite(lr));
-        if ~isempty(vl), xlim(ax, [0, round(max(vl),-3) + 200]); xticks(ax, round(vl(1:2:end))); end
-    end
+    hk = (1:nH) * F0;                                 % one tick per harmonic
+    set(ax, 'XTick',hk, 'XTickLabel',arrayfun(@(v) sprintf('%d', round(v)), hk, 'UniformOutput',false));
     xtickangle(ax, 45);
+    ax.XAxis.FontSize = 11;
     finish_tile(ax, 1, 0, 'Frequency (Hz)', ternary_s(rel,'PLV Shift (re. Baseline)','PLV'));
-    title(ax, 'PLV spectrum', 'FontSize',14, 'FontWeight','bold');
+    apat_xgroups(ax, hk, harm_tint(nH));              % one band per harmonic, Low / High range tinted
+    title(ax, 'PLV Spectrum', 'FontSize',14, 'FontWeight','bold');
 end
 
 
 function draw_sums(ax, A, colors, shapes, col_offset, rel, Chins2Run)
 o  = efr_opts();  LB = efr_ram_labels(o);
-same_units = strcmp(o.measure,'amplitude') && ~o.normalize;
+% one y-axis when Low / High / All share units: PLV sums, or normalised
+% fractions (All = 1); otherwise "All" (PLV) gets its own right axis
+same_units = strcmp(o.measure,'amplitude') || o.normalize;
     nH = max(cellfun(@numel, A.peaks_locs(1,:)));
+    axR = [];
+    if ~same_units
+        % "All" has other units: a second, transparent axes on top with its
+        % own y-axis on the right (not yyaxis — the app cannot copy yyaxis axes)
+        fh  = ancestor(ax, 'figure');
+        axR = axes(fh, 'Units',ax.Units, 'Position',ax.Position, 'Color','none', ...
+            'YAxisLocation','right', 'XLim',[0.5 3.5], 'XTick',[], 'Box','off', ...
+            'Tag','efr_tile_total', 'PickableParts','none', 'FontSize',14);
+        hold(axR, 'on');
+    end
     [nS, nCc] = size(A.all_low_high_peaks);
-    offs = 0;  if nCc > 1, offs = linspace(-0.25, 0.25, nCc); end
+    Ms = cell(1, nCc);  has = false(1, nCc);
     for c = 1:nCc
-        [clr, shp] = cs(colors, shapes, c + col_offset);
         M = nan(nS, 3);
         for s = 1:nS
             lh = A.all_low_high_peaks{s,c};  ps = A.all_plv_sum{s,c};
             if numel(lh) >= 2, M(s,1:2) = lh(1:2); end
             if isscalar(ps), M(s,3) = ps; end
         end
-        if all(isnan(M(:))), continue; end
+        Ms{c} = M;  has(c) = ~all(isnan(M(:)));
+    end
+    % subject points incl. data excluded from the mean (Exclusions)
+    Mp = Ms;
+    if isfield(A,'all_low_high_peaks_pts') && isequal(size(A.all_low_high_peaks_pts), [nS nCc])
+        for c = 1:nCc
+            M = nan(nS, 3);
+            for s = 1:nS
+                lh = A.all_low_high_peaks_pts{s,c};  ps = A.all_plv_sum_pts{s,c};
+                if numel(lh) >= 2, M(s,1:2) = lh(1:2); end
+                if isscalar(ps), M(s,3) = ps; end
+            end
+            Mp{c} = M;
+        end
+    end
+    has = find(has);
+    xlim(ax, [0.5 3.5]);
+    offs = apat_dodge(numel(has));                 % same spacing as ABR Thresholds
+    [ms, sa] = apat_ms(ax, 0.7);   % points at true x: size from the x spacing
+    for j = 1:numel(has)
+        c = has(j);  M = Ms{c};  P = Mp{c};
+        [clr, shp] = cs(colors, shapes, c + col_offset);
         if same_units
-            group_pts(ax, M, (1:3) + offs(c), clr, shp, Chins2Run);
+            group_pts(ax, M, (1:3) + offs(j), clr, shp, Chins2Run, ms, sa, P);
         else
-            yyaxis(ax,'left');   group_pts(ax, M(:,1:2), (1:2) + offs(c), clr, shp, Chins2Run);
-            yyaxis(ax,'right');  group_pts(ax, M(:,3),   3 + offs(c),     clr, shp, Chins2Run);
+            group_pts(ax,  M(:,1:2), (1:2) + offs(j), clr, shp, Chins2Run, ms, sa, P(:,1:2));
+            group_pts(axR, M(:,3),   3 + offs(j),     clr, shp, Chins2Run, ms, sa, P(:,3));
         end
     end
     if ~same_units
-        yyaxis(ax,'right');
-        ylabel(ax, ternary_s(rel,'Sum shift (PLV)','Sum (PLV, all harmonics)'), 'FontWeight','bold');
-        ax.YAxis(2).Color = [0.15 0.15 0.15];
-        yyaxis(ax,'left');  ax.YAxis(1).Color = [0.15 0.15 0.15];
+        ylabel(axR, ternary_s(rel,'Sum Shift (PLV)','Sum (PLV, All Harmonics)'), 'FontWeight','bold');
+        axR.YColor = [0.15 0.15 0.15];  axR.XColor = 'none';
     end
-    set(ax, 'XTick',1:3, 'XTickLabel',{LB.low, LB.high, sprintf('Sum (H1–H%d)', nH)});
+    % two-line group labels, each line centred on its tick (tick-label
+    % \newline would left-align the lines), drawn as text below the axis
+    set(ax, 'XTick',1:3, 'XTickLabel',{'','',''});
     xlim(ax, [0.5 3.5]);
-    if same_units, ylab = 'PLV sum'; else, ylab = LB.measure; end
-    if rel, ylab = [ylab ' shift']; end
+    xlabel(ax, {' ',' '}, 'FontSize',14);           % reserves room for the two-line group labels
+    glab = {LB.low, LB.high, sprintf('All (H1–H%d)', nH)};
+    for gk = 1:3
+        t2 = regexp(glab{gk}, '^(.*?)\s*(\(.*\))$', 'tokens', 'once');
+        if isempty(t2), t2 = {glab{gk}}; end
+        text(ax, (gk-0.5)/3, -0.02, t2, 'Units','normalized', 'HorizontalAlignment','center', ...
+            'VerticalAlignment','top', 'FontSize',14, 'Color',[0.15 0.15 0.15], ...
+            'Clipping','off', 'HandleVisibility','off', 'Tag','efr_xlab');
+    end
+    if same_units && ~o.normalize, ylab = 'PLV Sum'; else, ylab = LB.measure; end
+    if rel, ylab = [ylab ' Shift']; end
     if same_units
         finish_tile(ax, 1, 0, '', ylab);
     else
         set(ax, 'FontSize',14, 'Box','off');  grid(ax,'on');
-
-        yyaxis(ax,'right');  side_lim(ax, @(x) x > 2.5);
-        yyaxis(ax,'left');   side_lim(ax, @(x) x < 2.5);
+        side_lim(axR, @(x) x > 2.5);
+        side_lim(ax,  @(x) x < 2.5);
         ylabel(ax, ylab, 'FontWeight','bold');
     end
     % group divider (Sum) and zero line, drawn after the limits are set
@@ -101,7 +150,25 @@ same_units = strcmp(o.measure,'amplitude') && ~o.normalize;
     plot(ax, [2.5 2.5], yl, '-', 'Color',[0.85 0.85 0.85], 'LineWidth',1, 'HandleVisibility','off');
     if rel, plot(ax, [0.5 3.5], [0 0], 'k--', 'LineWidth',1.5, 'HandleVisibility','off'); end
     ylim(ax, yl);
-    title(ax, 'Harmonic sums', 'FontSize',14, 'FontWeight','bold');
+    if rel && ~isempty(axR)
+        plot(axR, [2.5 3.5], [0 0], 'k--', 'LineWidth',1.5, 'HandleVisibility','off');
+    end
+    title(ax, 'Harmonic Sums', 'FontSize',14, 'FontWeight','bold');
+    T = apat_region_tints();                          % Low / High sums: same tints as their harmonics
+    apat_xgroups(ax, 1:3, [T(1,:); T(3,:); NaN NaN NaN]);   % "All" unshaded: it is not one range
+    if ~isempty(axR), uistack(axR, 'top'); end
+end
+
+
+function C = harm_tint(nH)
+% Tint per harmonic: Low range (efr_opts .low) blue-grey, High range rose,
+% others grey — the same tints as the Low / High harmonic-sum columns.
+o = efr_opts();  T = apat_region_tints();
+C = repmat([0.88 0.88 0.88], nH, 1);
+for h = 1:nH
+    if h >= o.low(1)  && h <= o.low(end),  C(h,:) = T(1,:); end
+    if h >= o.high(1) && h <= o.high(end), C(h,:) = T(3,:); end
+end
 end
 
 
@@ -123,18 +190,22 @@ end
 end
 
 
-function group_pts(ax, M, xs, clr, shp, names)
+function group_pts(ax, M, xs, clr, shp, names, ms, sa, P)
 % Individual subjects (transparent, Tag efr_subj_pts) + mean ± SD per column
-for s = 1:size(M,1)
-    if all(isnan(M(s,:))), continue; end
-    jit = ((mod(s*7,11)/10) - 0.5) * 0.06;
-    scatter(ax, xs + jit, M(s,:), 60, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, ...
+%   P (optional) — subject values for the points incl. excluded ones (M: mean)
+if nargin < 7, ms = 20; end
+if nargin < 8, sa = 90; end
+if nargin < 9 || isempty(P) || size(P,2) ~= size(M,2), P = M; end
+for s = 1:size(P,1)
+    if all(isnan(P(s,:))), continue; end
+    jit = ((mod(s*7,11)/10) - 0.5) * 0.08;
+    scatter(ax, xs + jit, P(s,:), sa, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, ...
         'MarkerEdgeColor','none', 'HandleVisibility','off', 'Tag','efr_subj_pts', ...
         'DisplayName',subj_name(names, s));
 end
 mu = mean(M, 1, 'omitnan');  sd = std(M, 0, 1, 'omitnan');
 errorbar(ax, xs, mu, sd, 'Marker',shp, 'LineStyle','none', 'LineWidth',2, ...
-    'MarkerSize',14, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, 'HandleVisibility','off');
+    'MarkerSize',ms, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, 'HandleVisibility','off');
 end
 
 
@@ -147,7 +218,7 @@ fh = figure('Name',nm,'NumberTitle','off','Visible','off','Color','w','Tag','APA
 end
 
 function axs = tile_axes(fh, n)
-L = 0.07;  R = 0.82;  gap = 0.035;  w = (R - L - (n-1)*gap) / n;
+L = 0.07;  R = 0.95;  gap = 0.035;  w = (R - L - (n-1)*gap) / n;
 axs = gobjects(1, n);
 for k = 1:n
     axs(k) = axes(fh, 'Position',[L+(k-1)*(w+gap) 0.22 w 0.64], 'Tag','efr_tile');
@@ -173,32 +244,30 @@ end
 end
 
 function add_title(fh, txt)
-axH = axes(fh, 'Position',[0 0.92 0.89 0.06], 'Visible','off');
+axH = axes(fh, 'Position',[0 0.92 1 0.06], 'Visible','off');
 text(axH, 0.5, 0.5, txt, 'FontSize',16, 'FontWeight','bold', 'HorizontalAlignment','center', ...
     'Color',[0.15 0.15 0.15]);
 end
 
-function add_legend(ax1, colors, cidx_list, cnames)
-% Condition legend (squares, black edge) centred under the tiles — as ABR Peaks
+function add_legend(fh, ax1, colors, shapes, cidx_list, cnames)
+% Condition legend (line + condition marker, same as every measure),
+% centred under both plots at the bottom of the figure
 if isempty(cnames), return; end
-hold(ax1,'on');
-lh = gobjects(1, numel(cnames));
+LC = struct('clr',{},'shp',{},'label',{});
 for i = 1:numel(cnames)
-    lh(i) = plot(ax1, NaN, NaN, 's', 'MarkerFaceColor',colors(cidx_list(i),:), ...
-        'MarkerEdgeColor','k', 'MarkerSize',12, 'LineWidth',1.5);
+    [clr, shp] = cs(colors, shapes, cidx_list(i));
+    LC(end+1) = struct('clr',clr, 'shp',shp, 'label',cnames{i}); %#ok<AGROW>
 end
-lg = legend(ax1, lh, cnames, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
-lg.Units = 'normalized';
-lg.Position(1) = 0.07 + (0.75 - lg.Position(3))/2;
-lg.Position(2) = 0.03;
+apat_legend(fh, ax1, LC, [], 0.07, 0.88);
 end
 
-function subj_pts(ax, col_cells, locs, clr, shp, names, vis, jit_w)
+function subj_pts(ax, col_cells, locs, clr, shp, names, vis, jit_w, sa)
+if nargin < 9, sa = 45; end
 for s = 1:numel(col_cells)
     y = col_cells{s};  if isempty(y), continue; end
     m = min(numel(y), numel(locs));  x = locs(1:m);  y = y(1:m);
     jit = ((mod(s*7,11)/10) - 0.5) * jit_w;
-    scatter(ax, x + jit, y, 45, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, 'MarkerEdgeColor','none', ...
+    scatter(ax, x + jit, y, sa, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, 'MarkerEdgeColor','none', ...
         'HandleVisibility','off', 'Tag','efr_subj_pts', 'Visible',vis, 'DisplayName',subj_name(names, s));
 end
 end

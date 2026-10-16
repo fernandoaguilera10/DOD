@@ -51,7 +51,7 @@ if exist(datapath,'dir')
     numOfFiles = length(datafile);
     for i=1:numOfFiles
         cd(datapath)
-        load(datafile(i).name);
+        S_raw = load(datafile(i).name, 'data');  data = S_raw.data;  clear S_raw
         calibfile = dir(sprintf('p*%d_calib*.m',data.invfilterdata.CalibPICnum2use));
         calibfile = calibfile.name;
         fprintf('Calibration file: %s\n', calibfile);
@@ -141,7 +141,7 @@ if exist(datapath,'dir')
         cd(outpath);
         datafile_str = datafile(i).name;
         fname = [subject,'_EFR_dAM_',condition,'_',num2str(level_spl),'dBSPL','_',datafile_str(1:end-4)];
-        print(gcf,[fname,'_figure'],'-dpng','-r300');
+        try, apat_save_fig(gcf, fullfile(outpath, [fname '_figure']), 'efr_dam_rec'); catch, end   % this recording's analysis figure
         close(gcf);
         efr.trajectory = dam_traj_Hz;
         efr.dAMpower = dAM_pow_frac;
@@ -153,6 +153,7 @@ if exist(datapath,'dir')
         efr.t     = t_sig(:)';      % time series (see '%% Time series' above)
         efr.t_env = t_env(:)';      % envelope response, µV
         efr.t_tfs = t_tfs(:)';      % fine-structure response, µV
+        efr.sex   = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
         save(fname,'efr')
     end
     cd(cwd)

@@ -32,6 +32,8 @@ switch EXPname
                 efr_NFpower_smooth = cell(dim_size);
         end
     case 'OAE'
+        global oae_store            % {subject x condition} saved data (oae_summary)
+        oae_store = cell(dim_size);
         switch EXPname2
             case 'DPOAE'
                 global dp_f_epl dp_amp_epl dp_nf_epl dp_f2_band_epl dp_amp_band_epl dp_nf_band_epl
@@ -86,10 +88,16 @@ switch EXPname
                 te_nf_band_spl = cell(dim_size);
         end
     case 'MEMR'
-        global elicitor deltapow threshold
+        global elicitor deltapow threshold memr_freq memr_resp
         elicitor = cell(dim_size);
         deltapow = cell(dim_size);
         threshold = cell(dim_size);
+        memr_freq = cell(dim_size);     % reflex response: frequency axis (Hz)
+        memr_resp = cell(dim_size);     % reflex response: levels x freq (dB re. baseline)
+        if ~isempty(EXPname2)           % exploratory views: one mx struct per subject / condition
+            global memrx_data
+            memrx_data = cell(dim_size);
+        end
 end
 end
 

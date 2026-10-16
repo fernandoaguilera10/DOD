@@ -13,7 +13,24 @@ function navigate_results(app, action, varargin)
 %   navigate_results(app, 'filter_ind')             — apply individual freq filter
 %   navigate_results(app, 'filter_avg')             — apply average freq filter
 %   navigate_results(app, 'reset_dds')              — reset and re-populate FigFreqDD
+%   navigate_results(app, 'exp_overlay')            — Experiments overlaid changed (redraw)
+%
+% Experiment overlay (private/exp_overlay.m): removed at the start of every
+% action that redraws (before the EFR level overlay is rebuilt, so the axis
+% limits nest) and rebuilt just before the Conditions filter, so overlaid
+% objects follow the Conditions / Subjects / tracking state of the view.
 
+% Busy state for every switch that redraws the view (subject, Average /
+% Individual, measure, frequency, EFR level, OAE scale, conditions): the window is
+% dimmed with a "Loading…" box and clicks wait until it closes, so it is
+% clear when the view is ready. Closed automatically, also on errors.
+busy = []; %#ok<NASGU>
+if any(strcmp(action, {'subj','ind','avg','meas_btn','freq','efr_level','oae_toggle','cond_toggle','exp_overlay'}))
+    busy = busy_start(app); %#ok<NASGU>
+end
+if ~any(strcmp(action, {'measures','cond_toggle','oae_toggle'}))
+    try, exp_overlay(app, 'clear'); catch, end     % previous Experiment overlay off first
+end
 switch action
     case 'ind',             do_ind(app);
     case 'avg',             do_avg(app);
@@ -27,52 +44,304 @@ switch action
     case 'filter_ind',      do_filter_ind(app);
     case 'filter_avg',      do_filter_avg(app);
     case 'reset_dds',       do_reset_dds(app);
+    case 'oae_scale'        % EPL / SPL buttons — handled by do_scale below
+    case 'oae_toggle',      oae_toggle(app, varargin{1}, varargin{2}); return;
+    case 'efr_level',       efr_level_toggle(app, varargin{1});   % EFR level button — do_level below
+    case 'cond_toggle',     cond_filter(app, 'toggle', varargin{1}); return;   % Conditions buttons
+    case 'efr_level_sync'   % after the EFR strips are built — do_level below
+    case 'exp_overlay'      % Plot Settings EXPERIMENT buttons — rebuilt below
 end
 % EFR (dAM / RAM): the dropdown picks the stimulus level, in both modes
 if isfield(app.res,'meas_idx') && any(app.res.meas_idx == [3 4]) && ...
         ~any(strcmp(action, {'measures'}))
     do_level(app);
 end
+% OAE (DPOAE / SFOAE / TEOAE): EPL / SPL buttons in the plot pick the scale view
+if isfield(app.res,'meas_idx') && any(app.res.meas_idx == [5 6 7]) && ...
+        ~any(strcmp(action, {'measures'}))
+    do_scale(app);
+end
+% Other Experiments drawn into the Average view on screen (exp_overlay)
+if ~strcmp(action, 'measures'), try, exp_overlay(app, 'build'); catch, end, end
+% Conditions switched off (Conditions buttons) stay hidden in every view
+if ~strcmp(action, 'measures'), cond_filter(app, 'apply'); end
+% Plot Settings: a new view starts with its controls hidden
+if any(strcmp(action, {'subj','ind','avg','meas_btn','freq','after_ind_embed','after_avg_embed'}))
+    try, plot_settings(app, 'hide'); catch, end
+end
+% Exclude button: count / "Excluded" for the subject on screen
+if ~strcmp(action, 'measures'), try, exclusions(app, 'sync'); catch, end, end
+% Results theme: selected view / measure buttons, gold underline, group
+% captions, and the status strip under the plots (private/res_style.m)
+if ~strcmp(action, 'measures')
+    try, res_style('bar_sync', app); catch, end
+    try, res_style('status', app); catch, end
+end
+% Margins for any view laid out for the first time (fit_layout skips done panels)
+if any(strcmp(action, {'subj','ind','avg','meas_btn','freq','efr_level','oae_toggle','cond_tab'}))
+    try, fit_layout(cur_root(app)); catch, end
+end
 end
 
 
-function do_level(app)
-%DO_LEVEL  EFR: show one level panel at a time; the Results-bar dropdown
-%   (label "Level:") lists the levels of the current subject / average.
+function root = cur_root(app)
+%CUR_ROOT  The Results panel on screen (current subject's panel or the
+%   measure's Average panel).
+root = [];
+m = app.res.meas_idx;
+if app.res.mode == 1
+    data = app.res.subj_data{m};
+    si = shown_subject(app, data);
+    if ~isempty(si) && isvalid(data.panels{si}), root = data.panels{si}; end
+elseif isvalid(app.res.panels{2,m})
+    root = app.res.panels{2,m};
+end
+end
+
+function do_scale(app)
+%DO_SCALE  OAE: show the scale view chosen with the EPL / SPL buttons in the
+%   plot's control strip (built by embed_results>build_oae_ctrl, Tags
+%   'oae_scale_epl' / 'oae_scale_spl'). Both on → the 'EPL + SPL' panel; one
+%   on → that scale's panel; at least one stays on; an unavailable scale is
+%   disabled (TEOAE). The choice is kept across subjects / measures
+%   (app.res.oae_on). The Results-bar dropdown is not used for OAE.
 m = app.res.meas_idx;
 cont = [];
 if app.res.mode == 1
     data = app.res.subj_data{m};
-    si = find(strcmp(data.names, app.FigSubjDropdown.Value), 1);
+    si = shown_subject(app, data);
     if ~isempty(si) && isvalid(data.panels{si}), cont = data.panels{si}; end
 else
     if isvalid(app.res.panels{2,m}), cont = app.res.panels{2,m}; end
 end
+app.FigFreqDD.Visible = 'off';
 lbl_f = findall(app.UIFigure,'Tag','fig_freq_lbl');
-lp = [];
-if ~isempty(cont)
-    lp = findobj(cont.Children, 'flat', 'Type','uipanel', '-regexp', 'Tag', 'dB SPL$');
+if ~isempty(lbl_f), lbl_f.Visible = 'off'; end
+if isempty(cont), return; end
+order = {'EPL','SPL','EPL + SPL'};
+lp = findobj(cont.Children, 'flat', 'Type','uipanel');
+lp = lp(arrayfun(@(p) any(strcmp(p.Tag, order)), lp));
+if isempty(lp), return; end
+tags = arrayfun(@(p) p.Tag, lp, 'UniformOutput', false);
+avail = [any(strcmp(tags,'EPL')), any(strcmp(tags,'SPL'))];
+if ~isfield(app.res,'oae_on') || numel(app.res.oae_on) ~= 2, app.res.oae_on = [true true]; end
+on = app.res.oae_on & avail;
+if ~any(on), on = avail; end
+if all(on), want = 'EPL + SPL'; elseif on(1), want = 'EPL'; else, want = 'SPL'; end
+if ~any(strcmp(tags, want)), want = tags{1}; end
+for k = 1:numel(lp), lp(k).Visible = ternary(strcmp(tags{k}, want), 'on', 'off'); end
+% sync the EPL / SPL buttons in every view's control strip
+btag = {'oae_scale_epl','oae_scale_spl'};
+for k = 1:2
+    for b = findall(cont, 'Tag', btag{k})'
+        b.Enable = ternary(avail(k), 'on', 'off');
+        b.Value  = on(k);
+        res_style('seg', b, on(k));                  % subtle yellow = shown
+    end
 end
-if isempty(lp)
-    app.FigFreqDD.Visible = 'off';
-    if ~isempty(lbl_f), lbl_f.Visible = 'off'; end
-    return;
 end
+
+
+function oae_toggle(app, k, src)
+%OAE_TOGGLE  EPL (k = 1) / SPL (k = 2) button in an OAE control strip.
+if ~isfield(app.res,'oae_on') || numel(app.res.oae_on) ~= 2, app.res.oae_on = [true true]; end
+on = app.res.oae_on;  on(k) = logical(src.Value);
+if ~any(on), on(k) = true; end                       % keep at least one scale
+app.res.oae_on = on;
+navigate_results(app, 'oae_scale');
+end
+
+
+function do_level(app)
+%DO_LEVEL  EFR: show the level(s) chosen with the level buttons in each
+%   plot's control strip (Tag 'efr_lev_btn', embed_results>add_level_chips).
+%   Several levels can be selected: they are overlaid on the same plots
+%   (efr_overlay). The choice (app.res.efr_level, cell of level tags) is kept
+%   across subjects / modes; default = highest level. The Results-bar
+%   dropdown is not used.
+m = app.res.meas_idx;
+cont = [];
+if app.res.mode == 1
+    data = app.res.subj_data{m};
+    si = shown_subject(app, data);
+    if ~isempty(si) && isvalid(data.panels{si}), cont = data.panels{si}; end
+else
+    if isvalid(app.res.panels{2,m}), cont = app.res.panels{2,m}; end
+end
+app.FigFreqDD.Visible = 'off';
+lbl_f = findall(app.UIFigure,'Tag','fig_freq_lbl');
+if ~isempty(lbl_f), lbl_f.Visible = 'off'; end
+if isempty(cont), return; end
+lp = findobj(cont.Children, 'flat', 'Type','uipanel', '-regexp', 'Tag', 'dB SPL$');
+if isempty(lp), return; end
 tags = arrayfun(@(p) p.Tag, lp, 'UniformOutput', false);
 v = inf(1, numel(tags));
 for k = 1:numel(tags), x = sscanf(tags{k}, '%f'); if ~isempty(x), v(k) = x(1); end, end
 [~, o] = sort(v);  lp = lp(o);  tags = tags(o);
-cur = app.FigFreqDD.Value;
-if ~any(strcmp(tags, cur))
-    vis = find(arrayfun(@(p) strcmp(p.Visible,'on'), lp), 1);   % keep what is showing
-    if isempty(vis), vis = numel(tags); end              % default: highest level
-    cur = tags{vis};
+sel = {};
+if isfield(app.res,'efr_level')
+    sel = app.res.efr_level;
+    if ischar(sel), sel = {sel}; end
+    if ~iscell(sel), sel = {}; end
 end
-if ~isequal(app.FigFreqDD.Items(:)', tags(:)'), app.FigFreqDD.Items = tags(:)'; end
-app.FigFreqDD.Value = cur;
-for k = 1:numel(lp), lp(k).Visible = ternary(strcmp(tags{k}, cur), 'on', 'off'); end
-app.FigFreqDD.Visible = 'on';
-if ~isempty(lbl_f), lbl_f.Text = 'Level:';  lbl_f.Visible = 'on'; end
+on = ismember(tags, sel);
+if ~any(on)
+    vis = find(arrayfun(@(p) strcmp(p.Visible,'on'), lp), 1, 'last');   % keep what is showing
+    if isempty(vis), vis = numel(tags); end                    % default: highest level
+    on(vis) = true;
+end
+app.res.efr_level = unique([sel(:)' tags(on)'], 'stable');   % remember what is shown
+% show the highest selected level; overlay the other selected levels on it
+efr_overlay(app, lp, tags, on);
+for b = findall(cont, 'Tag','efr_lev_btn')'
+    bon = any(strcmp(tags(on), b.UserData));
+    b.Value = bon;
+    res_style('seg', b, bon);
+end
+end
+
+
+function efr_overlay(app, lp, tags, on)
+%EFR_OVERLAY  Show the highest selected level's panel and draw the other
+%   selected levels into its plots (same axes, matched by Tag): lower levels
+%   get dashed / dotted / dash-dot lines and open markers, and are shifted a
+%   little on the categorical Harmonic-sums axis. A level key goes top left
+%   and the title lists the levels. Everything added is removed again
+%   (Tag 'efr_ovl_grp' / 'efr_lvl_key') before each redraw. Tables are not
+%   overlaid (the individual table already lists every level).
+for k = 1:numel(lp)                               % undo the previous overlay
+    delete(findall(lp(k), 'Tag','efr_ovl_grp'));
+    delete(findall(lp(k), 'Tag','efr_lvl_key'));
+    for A = findall(lp(k), 'Type','axes')'
+        if isappdata(A, 'efr_ylim0'), A.YLim = getappdata(A, 'efr_ylim0'); rmappdata(A, 'efr_ylim0'); end
+    end
+    for t = findall(lp(k), 'Type','text')'
+        if isappdata(t, 'efr_title0'), t.String = getappdata(t, 'efr_title0'); rmappdata(t, 'efr_title0'); end
+    end
+    for g = findall(lp(k), 'Type','legend')'          % legends back to their row
+        if isappdata(g, 'efr_lg_y0'), g.Position(2) = getappdata(g, 'efr_lg_y0'); rmappdata(g, 'efr_lg_y0'); end
+    end
+    set(lp(k), 'Units','normalized', 'Position',[0 0 1 1]);
+end
+sel = find(on);                                   % ascending level order
+prim = sel(end);
+for k = 1:numel(lp), lp(k).Visible = ternary(k == prim, 'on', 'off'); end
+others = fliplr(sel(1:end-1));                    % next-highest first
+if isempty(others), return; end
+P = lp(prim);
+set(findall(P, 'Type','legend'), 'AutoUpdate','off');
+styles = {'--', ':', '-.'};
+skip_tags = {'efr_table','efr_lvl_key','legend'};
+for oi = 1:numel(others)
+    Q  = lp(others(oi));
+    ls = styles{mod(oi-1, numel(styles)) + 1};
+    for A = findall(P, 'Type','axes')'
+        if isempty(A.Tag) || any(strcmp(A.Tag, skip_tags)) || strcmp(A.Visible,'off'), continue; end
+        B = findall(Q, 'Type','axes', 'Tag',A.Tag);
+        if isempty(B), continue; end
+        kids = allchild(B(1));
+        keep = false(size(kids));
+        for j = 1:numel(kids)
+            h = kids(j);
+            if isa(h,'matlab.graphics.primitive.Text') || any(strcmp(h.Tag,{'efr_xlab','apat_xgroup'})), continue; end
+            if isprop(h,'YData')
+                yd = double(h.YData);  if isempty(yd) || all(~isfinite(yd(:))), continue; end
+            end
+            keep(j) = true;
+        end
+        if ~any(keep), continue; end
+        hg = hggroup(A, 'Tag','efr_ovl_grp', 'HandleVisibility','off', 'UserData',tags{others(oi)});
+        nh = copyobj(kids(keep), hg);
+        for h = nh(:)'
+            if isprop(h,'LineStyle') && ~strcmp(h.LineStyle,'none'), h.LineStyle = ls; end
+            if isprop(h,'MarkerFaceColor') && ~(ischar(h.MarkerFaceColor) && strcmp(h.MarkerFaceColor,'none'))
+                h.MarkerFaceColor = 'w';
+            end
+            if any(strcmp(A.Tag,{'efr_tile','efr_tile_total'})) && isprop(h,'XData')   % categorical groups: shift a bit
+                h.XData = h.XData + 0.10*oi;
+            end
+        end
+        % make room for the overlaid data
+        yy = [];
+        for h = nh(:)'
+            if ~isprop(h,'YData'), continue; end
+            v = double(h.YData(:)');
+            if isprop(h,'YNegativeDelta') && ~isempty(h.YNegativeDelta)
+                v = [v, double(h.YData(:)' - h.YNegativeDelta(:)'), double(h.YData(:)' + h.YPositiveDelta(:)')]; %#ok<AGROW>
+            end
+            yy = [yy, v(isfinite(v))]; %#ok<AGROW>
+        end
+        if ~isempty(yy)
+            if ~isappdata(A, 'efr_ylim0'), setappdata(A, 'efr_ylim0', A.YLim); end
+            yl = A.YLim;  lo = min(yy);  hi = max(yy);
+            if lo < yl(1) || hi > yl(2)
+                r = max(hi, yl(2)) - min(lo, yl(1));
+                A.YLim = [min(lo - 0.05*r, yl(1)), max(hi + 0.05*r, yl(2))];
+            end
+        end
+    end
+end
+% title: list the levels shown
+lev_txt = cellfun(@(t) strtrim(strrep(t, 'dB SPL', '')), tags(sel), 'UniformOutput', false);
+for t = findall(P, 'Type','text')'
+    str = t.String;
+    if ischar(str) && ~isempty(regexp(str, '\d+(\.\d+)? dB SPL', 'once'))
+        setappdata(t, 'efr_title0', str);
+        t.String = regexprep(str, '\d+(\.\d+)? dB SPL', [strjoin(lev_txt, ' + ') ' dB SPL']);
+    end
+end
+% level key (line style per level): bottom row, under the condition legend
+% (the legends already there move up one row while the overlay is shown)
+lgs = findall(P, 'Type','legend');
+cx = 0.5;
+if ~isempty(lgs)
+    set(lgs, 'Units','normalized');
+    cx = mean(arrayfun(@(g) g.Position(1) + g.Position(3)/2, lgs));
+    for g = lgs(:)'
+        if ~isappdata(g, 'efr_lg_y0'), setappdata(g, 'efr_lg_y0', g.Position(2)); end
+        g.Position(2) = getappdata(g, 'efr_lg_y0') + 0.046;
+    end
+end
+axK = axes(P, 'Units','normalized', 'Position',[0.06 0.005 0.6 0.01], 'Visible','off', ...
+    'Tag','efr_lvl_key', 'HitTest','off');
+hold(axK, 'on');
+order = [prim, others];  stl = [{'-'}, styles];
+hK = gobjects(1, numel(order));  L = cell(1, numel(order));
+for k = 1:numel(order)
+    hK(k) = plot(axK, NaN, NaN, 'Color',[0.15 0.15 0.15], 'LineWidth',2, ...
+        'LineStyle',stl{mod(k-1, numel(stl)) + 1}, 'Marker','o', ...
+        'MarkerFaceColor',ternary(k == 1, [0.15 0.15 0.15], [1 1 1]));
+    L{k} = strrep(tags{order(k)}, ' SPL', '');
+end
+lg = legend(axK, hK, L, 'Orientation','horizontal', 'Box','off', 'FontSize',12, 'Location','none');
+lg.Units = 'normalized';  lg.Position(1:2) = [cx - lg.Position(3)/2, 0.012];
+try, subject_pick(app, 'wire'); catch, end         % overlaid subject points clickable
+end
+
+
+function efr_level_toggle(app, tag)
+%EFR_LEVEL_TOGGLE  Add / remove one level from the EFR selection (at least
+%   one level stays selected).
+sel = {};
+if isfield(app.res,'efr_level')
+    sel = app.res.efr_level;
+    if ischar(sel), sel = {sel}; end
+    if ~iscell(sel), sel = {}; end
+end
+% only levels that exist in the current view count towards "at least one"
+cur = {};
+try
+    btns = findall(app.ResultsTab, 'Tag','efr_lev_btn');
+    cur = unique(arrayfun(@(b) b.UserData, btns, 'UniformOutput', false));
+catch
+end
+if any(strcmp(sel, tag))
+    rest = setdiff(sel, {tag});
+    if isempty(cur) || any(ismember(rest, cur)), sel = rest; end
+else
+    sel = [sel(:)' {tag}];
+end
+app.res.efr_level = sel;
 end
 
 
@@ -82,8 +351,7 @@ end
 
 function do_ind(app)
 app.FigIndBtn.Value = true;   app.FigAvgBtn.Value = false;
-app.FigIndBtn.BackgroundColor = app.clr_gold;
-app.FigAvgBtn.BackgroundColor = app.clr_btn;
+res_style('bar', app, app.FigIndBtn, true);  res_style('bar', app, app.FigAvgBtn, false);
 app.FigSubjDropdown.Visible   = 'on';
 if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'on'; end
 switch_panel(app, 1, app.res.meas_idx);
@@ -97,8 +365,7 @@ end
 
 function do_avg(app)
 app.FigAvgBtn.Value = true;   app.FigIndBtn.Value = false;
-app.FigAvgBtn.BackgroundColor = app.clr_gold;
-app.FigIndBtn.BackgroundColor = app.clr_btn;
+res_style('bar', app, app.FigAvgBtn, true);  res_style('bar', app, app.FigIndBtn, false);
 app.FigSubjDropdown.Visible   = 'off';
 if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'off'; end
 switch_panel(app, 2, app.res.meas_idx);
@@ -118,6 +385,7 @@ for k = 1:numel(app.res.btns)
         set_chip(app, app.res.btns(k), k==idx);
     end
 end
+memr_sync(app, idx);
 switch_panel(app, app.res.mode, idx);
 set_freq_visible(app, idx);
 refresh_subj_dd(app, idx);
@@ -172,25 +440,55 @@ if isempty(app.h_meas_btns) || ~any(isvalid(app.h_meas_btns)), return; end
 m      = app.state.measure_idx;
 k      = app.state.subtype_idx;
 
-% Highlight selected measure; show/hide subtype buttons
+% Measure buttons: green (white bold text) when any of its types is selected
+% for the run, otherwise greyed out. The measure on screen is marked by the
+% dark-gold bar on the divider (app.h_meas_marker).
+% Type buttons (of the measure on screen): selected for the run = green with
+% white text; not selected = greyed out. Several can be selected.
+if ~isfield(app.state,'run_sel') || numel(app.state.run_sel) ~= app.n_meas
+    app.state.run_sel = arrayfun(@(M) false(1, max(1, numel(M.subtypes))), app.MEASURES, 'UniformOutput', false);
+end
+CLR_ON   = [0.30 0.62 0.36];
+CLR_OFFT = [0.45 0.45 0.45];
 for mi = 1:app.n_meas
     if ~isvalid(app.h_meas_btns(mi)), continue; end
-    app.h_meas_btns(mi).BackgroundColor = ternary(mi==m, app.clr_gold, app.clr_btn);
-    for ki = 1:numel(app.MEASURES(mi).subtypes)
-        if ~isvalid(app.h_sub_btns{mi}(ki)), continue; end
+    sel = app.state.run_sel{mi};
+    if any(sel)
+        app.h_meas_btns(mi).BackgroundColor = CLR_ON;
+        app.h_meas_btns(mi).FontColor       = [1 1 1];
+    else
+        app.h_meas_btns(mi).BackgroundColor = app.clr_btn;
+        app.h_meas_btns(mi).FontColor       = CLR_OFFT;
+    end
+    app.h_meas_btns(mi).FontWeight = 'bold';
+    app.h_meas_btns(mi).Text = app.MEASURES(mi).name;
+    subs = app.MEASURES(mi).subtypes;  if isempty(subs), subs = {app.MEASURES(mi).name}; end
+    for ki = 1:numel(app.h_sub_btns{mi})
+        h = app.h_sub_btns{mi}(ki);
+        if ~isgraphics(h), continue; end
         if mi == m
-            app.h_sub_btns{mi}(ki).Visible = 'on';
-            if ki == k
-                app.h_sub_btns{mi}(ki).BackgroundColor = app.clr_gold;
-                app.h_sub_btns{mi}(ki).FontColor = app.clr_black;
+            h.Visible = 'on';
+            if numel(sel) >= ki && sel(ki)
+                h.BackgroundColor = CLR_ON;        h.FontColor = [1 1 1];
             else
-                app.h_sub_btns{mi}(ki).BackgroundColor = app.clr_btn;
-                app.h_sub_btns{mi}(ki).FontColor = app.clr_black;
+                h.BackgroundColor = app.clr_btn;   h.FontColor = CLR_OFFT;
             end
+            if ki <= numel(subs), h.Text = subs{ki}; end
         else
-            app.h_sub_btns{mi}(ki).Visible = 'off';
+            h.Visible = 'off';
         end
     end
+end
+
+% Marker bar level with the measure on screen
+try
+    if isgraphics(app.h_meas_marker) && isvalid(app.h_meas_btns(m))
+        bp = app.h_meas_btns(m).Position;
+        mp = app.h_meas_marker.Position;
+        app.h_meas_marker.Position = [mp(1) bp(2) mp(3) bp(4)];
+        app.h_meas_marker.Visible  = 'on';
+    end
+catch
 end
 
 % Description (About card) — fixed position, text only
@@ -202,10 +500,36 @@ else
 end
 app.DescLabel.Text = app.MEASURES(m).descriptions{k};
 
-% Show only the parameter panel for the selected measure
-is_abr  = (m==1);  is_efr = (m==2);  is_oae = (m==3);  is_memr = (m==4);
-is_peaks = is_abr && (k==2);
-update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks);
+% Parameters are shown for the type on screen when it is selected for the
+% run, or once the pointer has rested on a type button / a type was clicked
+% (app.state.param_shown, set by setup_hover / SubtypeButtonPushed; cleared
+% when a measure is opened). At start nothing is shown — just the hint.
+is_sel = (numel(app.state.run_sel{m}) >= k && app.state.run_sel{m}(k)) || ...
+         (isfield(app.state, 'param_shown') && app.state.param_shown);
+has_hint = ~isempty(app.h_param_hint) && isgraphics(app.h_param_hint) && isvalid(app.h_param_hint);
+if ~is_sel
+    update_param_panels(app, false, false, false, false, false);
+    if has_hint
+        tn = app.MEASURES(m).subtypes;
+        if isempty(tn), tn = {app.MEASURES(m).name}; end
+        if numel(tn) == 1
+            tstr = tn{1};
+        elseif numel(tn) > 4
+            tstr = sprintf('a %s type (%s …)', app.MEASURES(m).name, strjoin(tn(1:3), ', '));
+        else
+            tstr = [strjoin(tn(1:end-1), ', ') ' or ' tn{end}];
+        end
+        app.h_param_hint.Text    = sprintf('Point at %s above to see its parameters — click to add it to the run.', tstr);
+        app.h_param_hint.Visible = 'on';
+    end
+else
+    if has_hint, app.h_param_hint.Visible = 'off'; end
+    % Show only the parameter panel for the selected measure
+    is_abr  = (m==1);  is_efr = (m==2);  is_oae = (m==3);  is_memr = (m==4);
+    is_peaks = is_abr && (k==2);
+    update_param_panels(app, is_abr, is_efr, is_oae, is_memr, is_peaks);
+    if is_abr, abr_freq_sync(app, 'load'); end        % chips show this ABR type's frequencies
+end
 update_summary(app);
 end
 
@@ -221,10 +545,10 @@ for k = 1:numel(app.res.btns)
         set_chip(app, app.res.btns(k), k==meas_idx);
     end
 end
+memr_sync(app, meas_idx);
 switch_panel(app, 1, meas_idx);
 app.FigIndBtn.Value = true;  app.FigAvgBtn.Value = false;
-app.FigIndBtn.BackgroundColor = app.clr_gold;
-app.FigAvgBtn.BackgroundColor = app.clr_btn;
+res_style('bar', app, app.FigIndBtn, true);  res_style('bar', app, app.FigAvgBtn, false);
 app.FigSubjDropdown.Visible   = 'on';
 if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'on'; end
 % Populate subject dropdown
@@ -253,10 +577,10 @@ for k = 1:numel(app.res.btns)
         set_chip(app, app.res.btns(k), k==meas_idx);
     end
 end
+memr_sync(app, meas_idx);
 switch_panel(app, 2, meas_idx);
 app.FigAvgBtn.Value = true;  app.FigIndBtn.Value = false;
-app.FigAvgBtn.BackgroundColor = app.clr_gold;
-app.FigIndBtn.BackgroundColor = app.clr_btn;
+res_style('bar', app, app.FigAvgBtn, true);  res_style('bar', app, app.FigIndBtn, false);
 app.FigSubjDropdown.Visible   = 'off';
 if ~isempty(app.FigSubjCaption) && isvalid(app.FigSubjCaption), app.FigSubjCaption.Visible = 'off'; end
 set_freq_visible(app, meas_idx);
@@ -548,7 +872,33 @@ if ~isempty(app.res.panels)
 end
 app.res.mode     = mode;
 app.res.meas_idx = meas_idx;
+fit_panel(app, app.res.panels{mode, meas_idx});
 app.res.panels{mode, meas_idx}.Visible = 'on';
+end
+
+function fit_panel(app, p)
+%FIT_PANEL  Make a results panel fill the Results tab under the control bar
+%   (a panel that missed a window resize could otherwise leave an empty band
+%   between the bar and the figure).
+try
+    ctrl = app.FigAvgBtn.Parent;               % Results control bar
+    cp = ctrl.Position;                        % [0 PLOT_H W CTRL_H] in the tab
+    want = [0 0 cp(3) cp(2)];
+    % white plot card between the bar and the status strip (same gaps as
+    % built in createComponents>buildResultsTab: side margin = strip x,
+    % gaps = strip y)
+    if isfield(app.res, 'status_bar') && isvalid(app.res.status_bar)
+        sp = app.res.status_bar.Position;
+        g  = sp(2);
+        y0 = sp(2) + sp(4) + g;
+        want = [sp(1) y0 sp(3) cp(2) - g - y0];
+    end
+    if isvalid(p) && strcmp(p.Units,'pixels') && any(abs(p.Position - want) > 1) && want(4) > 50
+        p.Position = want;
+        if isappdata(p, 'apat_p0'), rmappdata(p, 'apat_p0'); end   % re-read at the next window resize
+    end
+catch
+end
 end
 
 function set_freq_visible(app, meas_idx)
@@ -669,20 +1019,53 @@ if ~isempty(app.h_efr_param_panel) && isvalid(app.h_efr_param_panel)
 end
 if ~isempty(app.h_oae_param_panel) && isvalid(app.h_oae_param_panel)
     app.h_oae_param_panel.Visible = ternary(is_oae, 'on', 'off');
+    % analysis block of the selected subtype only (Tag or UserData = group)
+    grp = {'oae_dp','oae_sf','oae_te'};
+    for gi = 1:3
+        vis = ternary(is_oae && app.state.subtype_idx == gi, 'on', 'off');
+        for h = findall(app.h_oae_param_panel)'
+            if h == app.h_oae_param_panel, continue; end
+            ud = '';  try, ud = h.UserData; catch, end
+            if strcmp(h.Tag, grp{gi}) || (ischar(ud) && strcmp(ud, grp{gi}))
+                h.Visible = vis;
+            end
+        end
+    end
 end
 if ~isempty(app.h_memr_param_panel) && isvalid(app.h_memr_param_panel)
     app.h_memr_param_panel.Visible = ternary(is_memr, 'on', 'off');
+    is_art = is_memr && app.state.subtype_idx == 1;           % ART text / exploratory text
+    set(findall(app.h_memr_param_panel, 'Tag','memr_art'), 'Visible', ternary(is_art, 'on', 'off'));
+    set(findall(app.h_memr_param_panel, 'Tag','memr_mx'),  'Visible', ternary(is_memr && ~is_art, 'on', 'off'));
+end
+end
+
+
+function memr_sync(app, idx)
+%MEMR_SYNC  Results bar MEMR group: one visible button + a dropdown. When a
+%   MEMR analysis (label 8 = ART, 9-15 = exploratory) is on screen, the
+%   button shows its name, opens it, and is highlighted; the dropdown shows
+%   the same analysis. Other measures leave the last MEMR choice in place.
+try
+    if ~isfield(app.res, 'memr_dd') || ~isvalid(app.res.memr_dd), return; end
+    b = app.res.btns(8);
+    if ~isvalid(b), return; end
+    if idx >= 8 && idx <= numel(app.res.btns)
+        L = APAT_app.measure_tab_labels();
+        nm = strrep(L{idx}, 'MEMR ', '');  if strcmp(nm, 'MEMR'), nm = 'ART'; end
+        b.Text = nm;  b.UserData = idx;
+        res_style('icon', b, idx);
+        set_chip(app, b, true);
+        if ~isequal(app.res.memr_dd.Value, idx), app.res.memr_dd.Value = idx; end
+    end
+catch
 end
 end
 
 
 function set_chip(app, btn, on)
-%SET_CHIP  Selected Results measure button = the app gold (same as the
-%   Average / Individual buttons), otherwise neutral.
+%SET_CHIP  Selected Results measure button = subtle yellow (same as the
+%   Average / Individual buttons), otherwise neutral (private/res_style.m).
 if ~isvalid(btn), return; end
-if on
-    btn.BackgroundColor = app.clr_gold;     btn.FontColor = app.clr_black;
-else
-    btn.BackgroundColor = app.clr_btn;      btn.FontColor = app.clr_black;
-end
+res_style('bar', app, btn, on);                 % subtle yellow, dark bold text
 end

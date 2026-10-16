@@ -21,6 +21,12 @@ classdef APAT_app < matlab.apps.AppBase
 %     profile_ops.m       — load/save user profiles
 %     settings_ops.m      — load/save last-run settings
 %     read_chinroster_sheet.m — static: parse subjects+conditions from xlsx
+%     private/output_opts.m   — Setup Output choices (export format, images, plot defaults)
+%     private/setup_style.m   — Setup selection look (subtle yellow, ON/OFF pills)
+%     private/chin_sign.m     — header chinchilla's sign (messages: chin_messages.txt)
+%     private/mono_font.m     — monospaced font for the pixel-style captions
+%     icons/make_sprites.py   — measure icons + chinchilla sprites (icons/chin_*.png)
+%     private/save_view.m     — Results "Save Image" / "Save As New"
 %     private/ternary.m       — inline conditional helper
 %     private/sort_tab_labels.m — sort condition/frequency tab labels
 
@@ -48,7 +54,7 @@ properties (Access = public)
     RootDirField           matlab.ui.control.EditField
     BrowseBtn              matlab.ui.control.Button
     RosterDropdown         matlab.ui.control.DropDown
-    SheetDropdown          matlab.ui.control.DropDown
+    SheetPanel             matlab.ui.container.Panel   % Experiment buttons (private/sheet_sel.m)
     SubjectsPanel          matlab.ui.container.Panel
     SelectAllBtn           matlab.ui.control.Button
     ClearSubjBtn           matlab.ui.control.Button
@@ -85,9 +91,12 @@ properties (Access = private)
     profile_file          % path to user_profiles.mat
     % Dynamic arrays (rebuilt when chinroster changes)
     h_subj_checks         % toggle-chip array – subjects
+    h_sheet_btns          % Experiment toggle buttons (one per roster sheet, sheet_sel)
     subj_ids              % cell array of subject ID strings
     h_cond_checks         % toggle-chip array – conditions
     h_cond_swatches       % colour swatch buttons – conditions (plot colour)
+    h_cond_markers        % marker buttons – conditions (plot marker, app.state.cond_markers)
+    h_cond_style          % condition colour / marker picker popup (chinroster_ops 'style_open')
     h_meas_btns           % uibutton array – setup-tab measure selector
     h_sub_btns            % cell of uibutton arrays – subtypes
     % Results tab state (created in createComponents, managed by navigate_results)
@@ -113,7 +122,14 @@ properties (Access = private)
     h_summary
     h_summary_proj
     h_row2_badges         % selection-count labels (Subjects, Conditions)
+    h_output              % Setup Output card + panel handles (private/output_opts.m)
     layout_row2_in
+    % Run status card (header): struct of handles, see private/run_status.m
+    h_run
+    % Setup: marker of the measure on screen, hint shown instead of empty parameters
+    h_meas_marker
+    h_param_hint
+    RosterBuildBtn
     % Progress and spinner
     h_progress_label
     h_spinner_label
@@ -122,6 +138,9 @@ properties (Access = private)
     abort_requested
     % Color palette
     clr_black; clr_gold; clr_gold_dk; clr_bg; clr_panel; clr_btn
+    clr_sel; clr_sel2; clr_txt2; clr_on; clr_off   % Setup selection / ON-OFF look (setup_style)
+    % Header chinchilla + sign (private/chin_sign.m)
+    h_sign
     % Peak editor overlay
     PeakEditPanel
     PeakEditInfoLabel
@@ -139,6 +158,8 @@ properties (Access = private)
     PeakEditWaveBtn    % 1×5 array of wave selector buttons (I–V)
     PeakEditPtToggle   % peak / trough toggle button
     PeakEditAbsentBtn  % mark selected wave absent (NaN)
+    PeakEditRefDD      % Earl (1983) latency reference: Off / Earl / Earl re I
+    PeakEditHelpBtn    % help window: chinchilla Waves I–V
 end
 
 
@@ -164,10 +185,14 @@ methods (Access = private)
     function startupFcn(app)
         % mfilename returns path inside @APAT_app/ — go up one level to Code Archive/
         app.code_dir     = fileparts(fileparts(mfilename('fullpath')));
-        app.profile_file = fullfile(app.code_dir,'private','user_profiles.mat');
-        % Ensure Code Archive/ is on the MATLAB path so that class methods can
-        % access Code Archive/private/ (analysis_run, etc.) via private inheritance.
-        addpath(app.code_dir);
+        app.profile_file = fullfile(app.code_dir,'@APAT_app','private','user_profiles.mat');
+        old_profiles = fullfile(app.code_dir,'private','user_profiles.mat');   % before Oct 2026
+        if ~exist(app.profile_file,'file') && exist(old_profiles,'file')
+            try, copyfile(old_profiles, app.profile_file); catch, app.profile_file = old_profiles; end
+        end
+        % Code Archive/ (class folder parent) and Code Archive/shared/ (helpers used
+        % by the app and every measure) — also when APAT_app is run directly.
+        addpath(app.code_dir, fullfile(app.code_dir,'shared'));
         app.state.measure_idx = 1;
         app.state.subtype_idx = 1;
         app.state.sheet       = '';
@@ -177,8 +202,17 @@ methods (Access = private)
         app.subj_ids      = {};
         app.h_cond_checks = gobjects(0);
         app.h_cond_swatches = gobjects(0);
+        app.h_cond_markers  = gobjects(0);
         app.state.cond_colors = zeros(0,3);
+        app.state.cond_markers = {};                  % MATLAB marker codes per condition
         initMeasures(app);
+        % Analyses selected for the next run: run_sel{m}(k) (one per type).
+        % Several can be selected across measures; they run one after another.
+        app.state.run_sel = arrayfun(@(M) false(1, max(1, numel(M.subtypes))), app.MEASURES, ...
+            'UniformOutput', false);
+        app.state.abr_freq = {true(1,6), true(1,6)};   % ABR frequencies: Thresholds, Peaks
+        app.state.excl = struct();                     % Exclusions per analysis (private/exclusions.m)
+        app.state.plot_defaults = apat_plot_defaults('defaults');   % Output: image saving + plot defaults of the last run
         navigate_results(app, 'measures');   % highlight first measure button
         [app.profiles, app.last_user] = APAT_app.load_profiles(app.profile_file);
         all_pnames = fieldnames(app.profiles);
@@ -191,6 +225,7 @@ methods (Access = private)
             end
             profile_ops(app, 'load_to_gui', app.ProfileDropdown.Value);
         end
+        try, chin_sign(app, 'pick'); catch, end      % header chinchilla's sign (user name known now)
     end
 
     function initMeasures(app)
@@ -221,26 +256,55 @@ methods (Access = private)
                'Implements FPL calibration for accurate in-ear stimulus levels.'], ...
               ['Estimates TEOAE amplitude using a click stimulus. ' ...
                'Implements FPL calibration for accurate in-ear stimulus levels.']}});
+        % MEMR: ART (original analysis, unchanged) + exploratory analyses that
+        % all read one shared file per recording (MEMR/Explore/mx_analysis)
         app.MEASURES(4) = struct('name','MEMR','label','Middle Ear Muscle Reflex', ...
-            'subtypes',{{}}, ...
+            'subtypes',{{'ART','Vector','Growth','Kinetics','Spectral','Absorbance','Probe','Quality'}}, ...
             'descriptions',{{ ...
-              ['Measures wideband acoustic reflex by tracking changes in absorbed sound ' ...
-               'power (dB) across frequencies in response to a broadband elicitor at ' ...
-               'multiple levels. Characterizes growth functions and reflex thresholds.']}});
+              ['Measures the wideband acoustic reflex: the change in the ear-canal click ' ...
+               'response (dB, re. the click with no elicitor) across frequencies while a ' ...
+               'broadband elicitor plays at multiple levels. Characterizes growth functions ' ...
+               '(reflex magnitude, 0.5–2 kHz) and acoustic reflex thresholds (ART).'], ...
+              ['Vector change: compares the click spectra during the elicitor with the first ' ...
+               'click (no elicitor) as complex numbers, so magnitude and phase changes both ' ...
+               'count. A noise floor from the trial-to-trial variability gives a detection ' ...
+               'threshold (SNR ≥ 3); also a vector ART and the corrected band power change.'], ...
+              ['Suprathreshold growth: a sigmoid fitted to the vector growth function gives the ' ...
+               'maximum response, midpoint, slope at the midpoint, 10–90 % dynamic range, area ' ...
+               'above the noise floor and the slope above threshold.'], ...
+              ['Click-by-click kinetics: the reflex at each of clicks 2–7 (one per elicitor ' ...
+               'burst, ~167 ms apart). A build-up index shows whether the reflex grows or ' ...
+               'adapts across the train; an exponential fit gives its time constant.'], ...
+              ['Spectral pattern: the level change of the clicks during the elicitor across ' ...
+               '0.2–8 kHz (1/6-octave), the change in octave bands at the top level and the ' ...
+               'frequency of the largest change.'], ...
+              ['Absorbance change: uses the session''s FPL calibration (probe source and ear-canal ' ...
+               'impedance) to turn the click change into a change in wideband absorbance — the ' ...
+               'standard WAI reflex measure (stiffening lowers absorbance below ~1 kHz).'], ...
+              ['Elicitor as probe (exploratory): the elicitor noise is the same in the 7 sweeps of ' ...
+               'a trial, so its recording in the ear canal is compared between the first burst ' ...
+               'and later bursts, showing the reflex during the elicitor, with its own threshold.'], ...
+              ['Recording quality: good clicks, trial-to-trial variability and drift of the ' ...
+               'no-elicitor click, and the signal-to-noise ratio of the click and probe measures ' ...
+               'at every elicitor level.']}});
     end
 
     % ── Setup-tab callbacks ───────────────────────────────────────────────
 
     function StopButtonPushed(app)
         app.abort_requested = true;
-        app.StopButton.Text   = 'Stopping…';
-        app.StopButton.Enable = 'off';
+        run_status(app, 'stopping');
+        % Peak editor waiting for a click → wake it up; it saves and exits
+        setappdata(app.UIFigure, 'peak_abort', true);
+        setappdata(app.UIFigure, 'peak_action', struct('type','abort','x',[]));
+        uiresume(app.UIFigure);
         drawnow;
     end
 
     function ProfileDropdownChanged(app)
         pname = get_profile_name(app);
         if ~isempty(pname), profile_ops(app, 'load_to_gui', pname); end
+        try, chin_sign(app, 'pick'); catch, end      % greet the new user
     end
 
     function NewUserButtonPushed(app)
@@ -284,17 +348,6 @@ methods (Access = private)
         chinroster_ops(app, 'load');
     end
 
-    function SheetDropdownChanged(app)
-        new_sheet = app.SheetDropdown.Value;
-        if new_sheet(1) == '(', return; end
-        app.state.sheet = new_sheet;
-        ROOTdir  = strtrim(app.RootDirField.Value);
-        chinfile = app.RosterDropdown.Value;
-        if isempty(ROOTdir) || chinfile(1) == '(', return; end
-        filepath = fullfile(ROOTdir,'Analysis',chinfile);
-        if exist(filepath,'file'), chinroster_ops(app, 'refresh_from', filepath); end
-    end
-
     function SelectAllButtonPushed(app)
         for ii = 1:numel(app.h_subj_checks)
             if isvalid(app.h_subj_checks(ii)), app.h_subj_checks(ii).Value = true; end
@@ -314,15 +367,34 @@ methods (Access = private)
     end
 
     function MeasureButtonPushed(app, src)
-        app.state.measure_idx = src.UserData;
-        app.state.subtype_idx = 1;
+        % Show this measure's types and parameters; the run selection is
+        % not changed (types are added / removed with their own buttons).
+        m = src.UserData;
+        app.state.measure_idx = m;
+        app.state.param_shown = false;              % parameters: selected type, or a type pointed at
+        k = find(app.state.run_sel{m}, 1);
+        if isempty(k), k = 1; end
+        app.state.subtype_idx = k;
         navigate_results(app, 'measures');
     end
 
     function SubtypeButtonPushed(app, src)
-        ud = src.UserData;
-        app.state.measure_idx = ud(1);
-        app.state.subtype_idx = ud(2);
+        % Type button = add to / remove from the run. Clicking a type that is
+        % not selected selects it and shows its parameters; clicking the
+        % selected type on screen removes it from the run. Clicking a
+        % selected type that is not on screen just shows its parameters.
+        ud = src.UserData;  m = ud(1);  k = ud(2);
+        on_screen = app.state.measure_idx == m && app.state.subtype_idx == k;
+        if ~app.state.run_sel{m}(k)
+            app.state.run_sel{m}(k) = true;
+        elseif on_screen
+            app.state.run_sel{m}(k) = false;
+            k2 = find(app.state.run_sel{m}, 1);    % another type of this measure still selected → show it
+            if ~isempty(k2), k = k2; end
+        end
+        app.state.measure_idx = m;
+        app.state.subtype_idx = k;
+        app.state.param_shown = true;               % a clicked type shows its parameters
         navigate_results(app, 'measures');
     end
 
@@ -355,8 +427,7 @@ methods (Access = private)
 
     function update_progress(app, n, total, msg)
         if ~isvalid(app) || total <= 0, return; end
-        app.h_progress_label.Visible = 'on';
-        app.h_progress_label.Text = ternary(n >= total, '✓  Complete', msg);
+        run_status(app, 'progress', n, total, msg);
         drawnow('limitrate');
         if app.abort_requested
             error('APAT:UserAbort','Analysis stopped by user.');
@@ -364,42 +435,28 @@ methods (Access = private)
     end
 
     function start_spinner_anim(app)
-        app.spinner_frame = 1;
-        sc = spinner_chars(app);
-        app.h_spinner_label.Text    = sc{1};
-        app.h_spinner_label.Visible = 'on';
-        drawnow;
+        % chinchilla animation step + elapsed time (run_status 'tick', 0.25 s)
         if ~isempty(app.h_spinner_timer) && isvalid(app.h_spinner_timer)
             stop(app.h_spinner_timer);  delete(app.h_spinner_timer);
         end
-        app.h_spinner_timer = timer('Name','APAT_spinner','Period',0.12, ...
+        app.h_spinner_timer = timer('Name','APAT_spinner','Period',0.25, ...
             'ExecutionMode','fixedRate','BusyMode','drop', ...
             'TimerFcn',@(~,~) spinner_tick(app));
         start(app.h_spinner_timer);
     end
 
     function spinner_tick(app)
-        if ~isvalid(app) || ~isvalid(app.h_spinner_label), return; end
-        chars = spinner_chars(app);
-        app.spinner_frame = mod(app.spinner_frame, numel(chars)) + 1;
-        app.h_spinner_label.Text = chars{app.spinner_frame};
-        drawnow('limitrate');
+        if ~isvalid(app), return; end
+        app.spinner_frame = mod(app.spinner_frame, 2) + 1;
+        run_status(app, 'tick', app.spinner_frame);
     end
 
-    function stop_spinner_anim(app, completed)
+    function stop_spinner_anim(app, ~)
         if ~isvalid(app), return; end
         if ~isempty(app.h_spinner_timer) && isvalid(app.h_spinner_timer)
             stop(app.h_spinner_timer);  delete(app.h_spinner_timer);
             app.h_spinner_timer = [];
         end
-        if completed
-            app.h_spinner_label.Text    = '✓';
-            app.h_spinner_label.Visible = 'on';
-            drawnow;  pause(1.2);
-        end
-        app.h_spinner_label.Visible  = 'off';
-        app.h_progress_label.Visible = 'off';
-        drawnow;
     end
 
     function chars = spinner_chars(~)
@@ -420,8 +477,12 @@ methods (Static, Access = private)
     [subjects, cond_paths, cond_labels] = read_chinroster_sheet(filepath, sheet)
 
     function labels = measure_tab_labels()
+        % 'MEMR' = MEMR ART (key kept so saved exclusions still apply);
+        % the exploratory MEMR analyses come after it (indices 9-15)
         labels = {'ABR Thresholds','ABR Peaks','EFR dAM','EFR RAM', ...
-                  'DPOAE','SFOAE','TEOAE','MEMR'};
+                  'DPOAE','SFOAE','TEOAE','MEMR', ...
+                  'MEMR Vector','MEMR Growth','MEMR Kinetics','MEMR Spectral', ...
+                  'MEMR Absorbance','MEMR Probe','MEMR Quality'};
     end
 
     function [profiles, last_user] = load_profiles(profile_file)
@@ -455,7 +516,8 @@ methods (Access = public)
 
         % Clean up orphaned spinner timers from a previous instance
         try
-            t = timerfindall('Name','APAT_spinner');
+            t = [timerfindall('Name','APAT_spinner'), timerfindall('Name','APAT_relayout'), ...
+                 timerfindall('Name','APAT_runcard'), timerfindall('Name','APAT_chinhop')];
             if ~isempty(t), stop(t); delete(t); end
         catch; end
 
@@ -473,7 +535,15 @@ methods (Access = public)
             stop(app.h_spinner_timer);
             delete(app.h_spinner_timer);
         end
-        if isvalid(app.UIFigure), delete(app.UIFigure); end
+        if isvalid(app.UIFigure)
+            try                                   % macOS: leave full screen before deleting
+                if ismac && strcmp(app.UIFigure.WindowState,'fullscreen')
+                    app.UIFigure.WindowState = 'normal';  drawnow;  pause(1.5);
+                end
+            catch
+            end
+            if isvalid(app.UIFigure), delete(app.UIFigure); end
+        end
     end
 
 end % public methods

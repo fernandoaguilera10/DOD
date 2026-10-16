@@ -1,0 +1,29 @@
+# APAT header chinchilla: messages on its sign (private/chin_sign.m).
+# One message per line, "<section>: <text>". {name} = the user profile name.
+# Sections: greet (about half of the time), morning (5-12 h), afternoon
+# (12-17 h), evening (17-22 h), late (22-5 h), monday, friday, weekend, lab.
+# Lines starting with # and empty lines are ignored. Edit freely.
+
+greet: Hello, {name}!
+greet: Welcome back, {name}!
+greet: Oh hi {name}. I was just pacing.
+greet: Ready when you are, {name}.
+greet: Long time no see(d) data, {name}!
+
+morning: Good morning! Coffee first, ABRs second.
+afternoon: Afternoon slump? I brought snacks.
+evening: Evening shift? Respect.
+late: Late night again? Same.
+
+monday: Happy Monday… ish.
+friday: Friday! Run it, then run.
+weekend: Weekend lab day? Hero status.
+
+lab: Wave I says hi.
+lab: Low SNR, high spirits.
+lab: Did you calibrate today? Just asking.
+lab: No noise exposure in here, promise.
+lab: Thresholds won't pick themselves… oh wait.
+lab: Remember: hydrate and hit Save.
+lab: I'm all ears. Literally.
+lab: Popcorn hop after this run?

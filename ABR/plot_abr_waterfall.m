@@ -1,5 +1,6 @@
 function plot_abr_waterfall(waveforms, latencies, trough_latencies, colors, shapes, ...
         Chins2Run, Conds2Run, all_Conds2Run, conds_idx, freq, outpath, fig_num, wave_sel)
+shapes = 'vsd^o';   % fixed Wave I-V markers: condition markers are user-set in Setup, waves stay stable
 %PLOT_ABR_WATERFALL  Waterfall plot of ABR waveforms across sound levels.
 %
 %   One figure per frequency.  Waveforms are averaged across subjects for
@@ -64,10 +65,10 @@ for lev = 1:n_levels
             stack = [stack; y_row]; %#ok<AGROW>
         end
         if ~isempty(stack)
-            wave_mean{lev,c} = nanmean(stack, 1);
+            wave_mean{lev,c} = mean(stack, 1, 'omitmissing');
             n_valid = sum(~isnan(stack(:,1)));
             if n_valid > 1
-                wave_ci{lev,c} = 1.96 * nanstd(stack, 0, 1) / sqrt(n_valid);
+                wave_ci{lev,c} = 1.96 * std(stack, 0, 1, 'omitmissing') / sqrt(n_valid);
             end
         end
     end
@@ -93,8 +94,8 @@ vert_spacing = 1.8 * median(all_ranges);   % roomy enough that wave markers don'
 fh = figure(fig_num); clf;
 set(fh,'Visible','off');
 set(fh, 'Name', ['Waveforms|' freq_label], ...
-    'Units','Normalized','OuterPosition',[0.05 0.05 0.50 0.90]);
-ax = axes(fh); hold(ax, 'on');
+    'Units','Normalized','OuterPosition',[0.05 0.05 0.85 0.90]);
+ax = axes(fh, 'Position',[0.08 0.17 0.87 0.75]); hold(ax, 'on');   % full width (no strip on the right, Oct 15)
 ax.Tag = 'abr_waterfall';                  % lets the app change its time limits
 
 % Subjects averaged per condition (shown in the legend)
@@ -106,6 +107,7 @@ wave_labels  = {'W I','W II','W III','W IV','W V'};
 
 % Track which conditions already have a legend entry (one entry per condition total)
 cond_in_legend = false(1, size(waveforms.y, 2) + 1);
+leg_conds = struct('clr',{},'shp',{},'label',{});
 
 for lev = 1:n_levels
     offset = -(lev - 1) * vert_spacing;
@@ -126,15 +128,13 @@ for lev = 1:n_levels
                 'HandleVisibility', 'off', 'UserData', lev);
         end
         if ~cond_in_legend(c)
-            plot(ax, t_ref, wave_mean{lev,c} + offset, ...
-                'Color', colors(c,:), 'LineWidth', 2.5, ...
-                'DisplayName', sprintf('%s (n = %d)', lbl, n_subj_cond(c)), 'UserData', lev);
+            leg_conds(end+1) = struct('clr',colors(c,1:3), 'shp','', ...
+                'label',sprintf('%s (n = %d)', lbl, n_subj_cond(c))); %#ok<AGROW>
             cond_in_legend(c) = true;
-        else
-            plot(ax, t_ref, wave_mean{lev,c} + offset, ...
-                'Color', colors(c,:), 'LineWidth', 2.5, ...
-                'HandleVisibility','off', 'UserData', lev);
         end
+        plot(ax, t_ref, wave_mean{lev,c} + offset, ...
+            'Color', colors(c,:), 'LineWidth', 2.5, ...
+            'HandleVisibility','off', 'UserData', lev);
     end
 
     % --- Peak markers — shape by wave, color by condition, filled ---
@@ -195,6 +195,9 @@ for lev = 1:n_levels
             for r = 1:n_subj
                 if size(waveforms.peak_lat,1) < r || size(waveforms.peak_lat,2) < c, continue; end
                 PL = waveforms.peak_lat{r,c};  ys = waveforms.y{r,c};  xs = waveforms.x{r,c};
+                if isfield(waveforms,'y_subj') && size(waveforms.y_subj,1) >= r && size(waveforms.y_subj,2) >= c
+                    ys = waveforms.y_subj{r,c};  xs = waveforms.x_subj{r,c};   % incl. subjects excluded from the mean
+                end
                 Ls = waveforms.levels{r,c};
                 sn = sprintf('Subject %d', r);
                 if numel(Chins2Run) >= r, sn = char(Chins2Run{r}); end
@@ -246,36 +249,22 @@ plot(ax, [x_sb x_sb], [y_sb_b, y_sb_b+1], 'k-', 'LineWidth', 3, 'HandleVisibilit
 text(ax, x_sb-0.3, y_sb_b+0.5, '1 \muV', 'FontSize', 12, 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right', 'Tag','abr_wf_sbT');
 hold(ax,'off');
 
-% Legend sentinels — three groups separated by blank spacer entries:
-%   Group 1: wave shapes (W I–V)
-%   Group 2: peak / trough example
-% (Condition color lines were added during the waveform loop above.)
-hold(ax,'on');
-% Spacer between conditions and waves
-plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
-% Wave markers (black, filled = peak style) — only for selected waves
+% Legends at the bottom (same style as every measure):
+%   upper row — conditions (trace colour; markers here encode the wave)
+%   lower row — wave shapes (W I–V) and peak / trough
+keys = struct('args',{},'label',{});
 for w = 1:5
     if ~wave_sel(w), continue; end
-    plot(ax, nan, nan, shapes(w), ...
-        'Color', 'k', 'MarkerFaceColor', 'k', ...
-        'MarkerSize', 9, 'LineWidth', 1.5, 'DisplayName', wave_labels{w});
+    keys(end+1) = struct('args',{{'LineStyle','none','Marker',char(shapes(w)),'Color','k', ...
+        'MarkerFaceColor','k','MarkerSize',9,'LineWidth',1.5}}, 'label',wave_labels{w}); %#ok<AGROW>
 end
-% Spacer between waves and peak/trough example
-plot(ax, nan, nan, 'Color','none', 'LineStyle','none', 'DisplayName',' ');
-% Peak / trough example using shapes(1)
-plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','k', ...
-    'MarkerSize',9, 'LineWidth',1.5, 'DisplayName','Peak');
-plot(ax, nan, nan, shapes(1), 'Color','k', 'MarkerFaceColor','none', ...
-    'MarkerSize',10, 'LineWidth',2, 'DisplayName','Trough');
-hold(ax,'off');
-legend(ax,'Location','northeastoutside','FontSize',13,'Box','off');
-
-set(fh,'Units','Normalized','OuterPosition',[0.05 0.05 0.50 0.90]);
+keys(end+1) = struct('args',{{'LineStyle','none','Marker',char(shapes(1)),'Color','k', ...
+    'MarkerFaceColor','k','MarkerSize',9,'LineWidth',1.5}}, 'label','Peak');
+keys(end+1) = struct('args',{{'LineStyle','none','Marker',char(shapes(1)),'Color','k', ...
+    'MarkerFaceColor','none','MarkerSize',10,'LineWidth',2}}, 'label','Trough');
+apat_legend(fh, ax, leg_conds, keys, ax.Position(1), ax.Position(3));
 
 %% Export PNG
-cwd = pwd;
-cd(outpath);
 fn_out = ['ABR_WaterfallWaveforms_' freq_str];
-print(fh, fn_out, '-dpng', '-r300');
-cd(cwd);
+try, apat_save_fig(fh, fullfile(outpath, fn_out), 'abr_waterfall'); catch, end
 end

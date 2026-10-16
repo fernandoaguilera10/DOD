@@ -37,7 +37,7 @@ switch plot_type
             if ~any(arrayfun(@(C) ~isempty(C.data{li}), S.conds)), continue; end
             fh = get_fig(sprintf('Level|%d dB SPL', round(all_levels(li))));
             clf(fh);  set(fh,'Color','w');
-            draw_ram_level(fh, S, all_levels(li), li);
+            draw_ram_level(fh, S, all_levels(li), li, all_levels);
         end
     case 'dAM'      % one tab per level: time + frequency
         for li = 1:numel(all_levels)
@@ -53,17 +53,32 @@ end
 % ═════════════════════════════════════════════════════════════════════════
 function draw_dam_level(fh, S, lev, li)
 INK = [0.15 0.15 0.15];  MUTE = [0.45 0.45 0.45];
-axH = axes(fh,'Position',[0 0.93 0.86 0.06],'Visible','off');
+axH = axes(fh,'Position',[0 0.93 1 0.06],'Visible','off');
 text(axH, 0.5, 0.5, sprintf('%s EFR dAM — %d dB SPL', S.subj, round(lev)), 'FontSize',16, ...
     'FontWeight','bold', 'HorizontalAlignment','center', 'Interpreter','none', 'Color',INK);
 % Time series (left)
-axT = axes(fh,'Position',[0.06 0.13 0.40 0.70],'Tag','efr_time_tile');  hold(axT,'on');
+% Same layout as EFR RAM individual: narrow time plot, wide frequency plot
+axT = axes(fh,'Position',[0.05 0.30 0.313 0.56],'Tag','efr_time_tile');  hold(axT,'on');   % room below: app's Listen bar
 % Frequency (right)
-axF = axes(fh,'Position',[0.53 0.13 0.30 0.70],'Tag','efr_freq_tile');  hold(axF,'on');
+axF = axes(fh,'Position',[0.428 0.30 0.522 0.56],'Tag','efr_freq_tile');  hold(axF,'on');   % dAM: full width (no table, Oct 15)
 missing = false;  tmax = 0;
-for c = 1:numel(S.conds)
-    C = S.conds(c);  d = C.data{li};
-    if isempty(d), continue; end
+% conditions side by side on the (log) modulation-frequency axis
+has = find(arrayfun(@(C) ~isempty(C.data{li}), S.conds));
+ff = [];
+for c = has
+    d = S.conds(c).data{li};
+    if isfield(d,'smooth') && isfield(d.smooth,'f'), ff = [ff, double(d.smooth.f(:)')]; end %#ok<AGROW>
+end
+ff = unique(ff(isfinite(ff) & ff > 0));
+set(axF, 'XScale','log');
+sp = 0.1;  if numel(ff) > 1, sp = median(diff(log10(ff))); end
+offs = apat_dodge(numel(has)) * sp;
+if numel(ff) > 1, xlim(axF, [ff(1)*10^(-0.6*sp - max([0 offs])), ff(end)*10^(0.6*sp + max([0 offs]))]); end
+ms = apat_ms(axF, 0.7*sp);   % points at true x: size from the x spacing
+LC = struct('clr',{},'shp',{},'label',{});
+for j = 1:numel(has)
+    c = has(j);  C = S.conds(c);  d = C.data{li};
+    LC(end+1) = struct('clr',C.clr, 'shp',C.shp, 'label',C.name); %#ok<AGROW>
     if isfield(d,'t') && isfield(d,'t_env') && ~isempty(d.t_env)
         plot(axT, d.t, d.t_env, '-', 'Color',C.clr, 'LineWidth',1, 'DisplayName',C.name, ...
             'Tag','efr_wave', 'UserData',round(lev));
@@ -73,8 +88,8 @@ for c = 1:numel(S.conds)
     end
     plot(axF, d.trajectory, d.dAMpower, '-', 'Color',[C.clr 0.30], 'LineWidth',1, 'HandleVisibility','off');
     if isfield(d,'smooth') && isfield(d.smooth,'f')
-        plot(axF, d.smooth.f, d.smooth.dAM, '-', 'Marker',C.shp, 'MarkerSize',9, 'MarkerFaceColor',C.clr, ...
-            'MarkerEdgeColor',C.clr, 'LineWidth',2, 'Color',C.clr, 'DisplayName',C.name);
+        plot(axF, d.smooth.f * 10^offs(j), d.smooth.dAM, '-', 'Marker',C.shp, 'MarkerSize',ms, 'MarkerFaceColor',C.clr, ...
+            'MarkerEdgeColor',C.clr, 'LineWidth',2, 'Color',C.clr, 'HandleVisibility','off');
         plot(axF, d.smooth.f, d.smooth.NF, '--', 'Color',C.clr, 'LineWidth',1.5, 'HandleVisibility','off');
     end
 end
@@ -83,36 +98,42 @@ title(axT, 'Time', 'FontSize',14, 'FontWeight','bold');
 if tmax > 0, xlim(axT, [0 tmax]); end
 pad_ylim(axT);
 if missing
-    text(axT, 0.02, 0.04, 'No saved time waveform for some conditions — re-run the dAM analysis.', ...
+    text(axT, 0.02, 0.04, 'No Saved Time Waveform For Some Conditions — Re-Run The dAM Analysis', ...
         'Units','normalized', 'FontSize',11, 'Color',MUTE, 'VerticalAlignment','bottom');
 end
 style_ax(axF, 'Modulation Frequency (Hz)', 'Power (dB)');
 title(axF, 'Frequency', 'FontSize',14, 'FontWeight','bold');
-set(axF, 'XScale','log');
 pad_ylim(axF);
-text(axF, 1, -0.17, 'dashed = noise floor', 'Units','normalized', 'FontSize',11, ...
-    'Color',MUTE, 'HorizontalAlignment','right', 'VerticalAlignment','top');
-if ~isempty(findall(axF,'Type','line','HandleVisibility','on'))
-    lg = legend(axF, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
-    lg.Units = 'normalized';
-    lg.Position(1) = 0.06 + (0.77 - lg.Position(3))/2;
-    lg.Position(2) = 0.865;
-end
+apat_xgroups(axF, ff);                            % one column per modulation band
+% legends at the bottom (conditions + noise-floor key), under both plots
+keys = struct('args',{{'--','Color',[0.5 0.5 0.5],'LineWidth',1.5}}, 'label','Noise Floor');
+apat_legend(fh, axF, LC, keys, 0.05, 0.90);
 end
 
 
 % ═════════════════════════════════════════════════════════════════════════
-function draw_ram_level(fh, S, lev, li)
+function draw_ram_level(fh, S, lev, li, all_levels)
 INK = [0.15 0.15 0.15];  MUTE = [0.45 0.45 0.45];  GOLD = [0.81 0.73 0.57];
 axH = axes(fh,'Position',[0 0.93 1 0.06],'Visible','off');
 text(axH, 0.5, 0.5, sprintf('%s EFR RAM — %d dB SPL', S.subj, round(lev)), 'FontSize',16, ...
     'FontWeight','bold', 'HorizontalAlignment','center', 'Interpreter','none', 'Color',INK);
-axT = axes(fh,'Position',[0.05 0.13 0.30 0.70],'Tag','efr_time_tile');  hold(axT,'on');
-axF = axes(fh,'Position',[0.40 0.13 0.26 0.70],'Tag','efr_freq_tile');  hold(axF,'on');
-nC = numel(S.conds);  missing = false;  tmax = 0;  fmax = 0;  pmax = 0.1;
-for c = 1:nC
-    C = S.conds(c);  d = C.data{li};
-    if isempty(d), continue; end
+% Frequency plot wider (16 harmonics need room), time plot and table narrower
+axT = axes(fh,'Position',[0.05 0.30 0.24 0.56],'Tag','efr_time_tile');  hold(axT,'on');   % room below: app's Listen bar
+axF = axes(fh,'Position',[0.34 0.30 0.40 0.56],'Tag','efr_freq_tile');  hold(axF,'on');
+nC = numel(S.conds);  missing = false;  tmax = 0;  pmax = 0.1;
+% True harmonic axis: markers at k × F0 (F0 = RAM modulation frequency),
+% fixed ticks k × F0 — the same in every session; conditions side by side.
+oF  = efr_opts();  F0 = oF.ram_f0;
+has = find(arrayfun(@(C) ~isempty(C.data{li}), S.conds));
+nH  = 1;
+for c = has, nH = max(nH, numel(S.conds(c).data{li}.peaks)); end
+xlim(axF, [0.4*F0, (nH + 0.6)*F0]);
+offs = apat_dodge(numel(has)) * F0;
+ms = apat_ms(axF, 0.7*F0);   % points at true x: size from the x spacing
+LC = struct('clr',{},'shp',{},'label',{});
+for j = 1:numel(has)
+    c = has(j);  C = S.conds(c);  d = C.data{li};
+    LC(end+1) = struct('clr',C.clr, 'shp',C.shp, 'label',C.name); %#ok<AGROW>
     if isfield(d,'t') && isfield(d,'t_env') && ~isempty(d.t_env)
         plot(axT, d.t, d.t_env, '-', 'Color',C.clr, 'LineWidth',1.5, 'DisplayName',C.name, ...
             'Tag','efr_wave', 'UserData',round(lev));
@@ -121,9 +142,9 @@ for c = 1:nC
         missing = true;
     end
     plot(axF, d.f, d.plv_env, '-', 'Color',[C.clr 0.45], 'LineWidth',1, 'HandleVisibility','off');
-    plot(axF, d.peaks_locs, d.peaks, 'LineStyle','none', 'Marker',C.shp, 'MarkerSize',9, ...
-        'MarkerFaceColor',C.clr, 'MarkerEdgeColor',C.clr, 'LineWidth',2, 'DisplayName',C.name);
-    pl = d.peaks_locs(isfinite(d.peaks_locs));  if ~isempty(pl), fmax = max(fmax, max(pl)); end
+    xh = (1:numel(d.peaks)) * F0 + offs(j);
+    plot(axF, xh, d.peaks, 'LineStyle','none', 'Marker',C.shp, 'MarkerSize',ms, ...
+        'MarkerFaceColor',C.clr, 'MarkerEdgeColor',C.clr, 'LineWidth',2, 'HandleVisibility','off');
     pmax = max([pmax; d.peaks(:)]);
 end
 style_ax(axT, 'Time (s)', 'Amplitude (\muV)');
@@ -131,53 +152,86 @@ title(axT, 'Time', 'FontSize',14, 'FontWeight','bold');
 if tmax >= 0.40, xlim(axT, [0.30 0.40]); elseif tmax > 0, xlim(axT, [0 tmax]); end
 pad_ylim(axT);
 if missing
-    text(axT, 0.02, 0.04, 'No saved time waveform for some conditions.', ...
+    text(axT, 0.02, 0.04, 'No Saved Time Waveform For Some Conditions', ...
         'Units','normalized', 'FontSize',11, 'Color',MUTE, 'VerticalAlignment','bottom');
 end
 style_ax(axF, 'Frequency (Hz)', 'PLV');
 title(axF, 'Frequency', 'FontSize',14, 'FontWeight','bold');
-if fmax > 0, xlim(axF, [0 fmax + 200]); end
+hk = (1:nH) * F0;                                 % one tick per harmonic (k × F0)
+set(axF, 'XTick',hk, 'XTickLabel',arrayfun(@(v) sprintf('%d', round(v)), hk, 'UniformOutput',false));
+xtickangle(axF, 45);  axF.XAxis.FontSize = 11;
 ylim(axF, [0 1.15*pmax]);
-if ~isempty(findall(axF,'Type','line','HandleVisibility','on'))
-    lg = legend(axF, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
-    lg.Units = 'normalized';
-    lg.Position(1) = 0.05 + (0.61 - lg.Position(3))/2;
-    lg.Position(2) = 0.865;
-end
-% ── harmonic-sum table for this level (top right) ───────────────────────
-o  = efr_opts();  LB = efr_ram_labels(o);
-axS = axes(fh,'Position',[0.70 0.56 0.29 0.30],'Tag','efr_table');  hold(axS,'on');
+apat_xgroups(axF, hk, harm_tint(nH));             % one band per harmonic, Low / High range tinted (as the table rows)
+apat_legend(fh, axF, LC, [], 0.05, 0.69);          % conditions, bottom, under both plots
+% ── harmonic-sum table (top right): every level, as sub-columns under
+%    each condition (same table in every level's figure) ───────────────────
+o  = efr_opts();  LB = efr_ram_labels(o, nH);     % nH = harmonics analysed (Setup range)
+lv = find(arrayfun(@(j) any(arrayfun(@(C) numel(C.data) >= j && ~isempty(C.data{j}), S.conds)), ...
+    1:numel(all_levels)));
+if isempty(lv), lv = li; end
+nL = numel(lv);
+axS = axes(fh,'Position',[0.775 0.52 0.22 0.36],'Tag','efr_table');  hold(axS,'on');
 axis(axS,'off');  xlim(axS,[0 1]);  ylim(axS,[0 1]);
-fs = 13;  if nC > 3, fs = 11; end
-x0 = 0.46;  cw = (1 - x0) / max(nC,1);  rh = 0.15;
-text(axS, 0.5, 0.97, 'Harmonic sums', 'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
+fs = 12;  if nC*nL > 4, fs = 10; end
+if nC*nL > 8, fs = 9; end
+% row labels short ("All (H1–H16)"); value columns start where the widest
+% label ends + 8 px (apat_table_x0: measured, so labels never run into values)
+rowlab = {LB.low, LB.high, regexprep(LB.total, '^All Harmonics', 'All')};
+x0 = apat_table_x0(axS, rowlab, fs-1, {'00.00'}, fs, nC*nL, 0.01, 0.30, 8);
+cw = (1 - x0) / max(nC,1);  sw = cw / nL;  rh = 0.13;
+text(axS, 0.5, 0.99, 'Harmonic Sums', 'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
     'HorizontalAlignment','center', 'VerticalAlignment','top');
-text(axS, 0.5, 0.80, sprintf('Low / High: %s', LB.measure), 'FontSize',fs-2, 'Color',MUTE, ...
+text(axS, 0.5, 0.85, sprintf('Low / High: %s', LB.measure), 'FontSize',fs-2, 'Color',MUTE, ...
     'HorizontalAlignment','center', 'VerticalAlignment','middle');
-y = 0.64;
-for c = 1:nC
+y = 0.71;
+for c = 1:nC                                       % condition headers
     nm = S.conds(c).name;  if numel(nm) > 12, nm = [nm(1:11) '…']; end
     text(axS, x0 + (c-0.5)*cw, y, nm, 'FontSize',fs, 'FontWeight','bold', 'Color',S.conds(c).clr, ...
         'HorizontalAlignment','center', 'VerticalAlignment','middle', 'Interpreter','none');
 end
+if nL > 1                                          % level sub-column headers
+    y = y - 0.75*rh;
+    for c = 1:nC
+        for j = 1:nL
+            text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, sprintf('%g dB', all_levels(lv(j))), ...
+                'FontSize',fs-2, 'FontWeight','bold', 'Color',MUTE, ...
+                'HorizontalAlignment','center', 'VerticalAlignment','middle');
+        end
+    end
+end
 plot(axS, [0 1], [y-rh/2 y-rh/2], '-', 'Color',GOLD, 'LineWidth',1.2);
-rowlab = {LB.low, LB.high, LB.total};
+for c = 2:nC                                       % light dividers between conditions
+    xd = x0 + (c-1)*cw;
+    plot(axS, [xd xd], [y-rh/2-3*rh y+rh/2], '-', 'Color',[0.88 0.88 0.88], 'LineWidth',0.8);
+end
 for k = 1:3
     y = y - rh;
-    if k == 3
-        patch(axS, [0 1 1 0], [y-rh/2 y-rh/2 y+rh/2 y+rh/2], [0.97 0.97 0.97], 'EdgeColor','none');
+    % rows shaded like their harmonics in the plot: Low range (light grey),
+    % High range (dark grey), All (plain) — apat_region_tints
+    T = apat_region_tints();  g = 0.08*rh;
+    rc = {apat_shade_eff(T(1,:)), apat_shade_eff(T(3,:))};
+    if k <= 2                                     % "All" row unshaded (not one range)
+        patch(axS, [0 1 1 0], [y-rh/2+g y-rh/2+g y+rh/2-g y+rh/2-g], rc{k}, ...
+            'EdgeColor','none', 'Tag','apat_xgroup');
     end
     text(axS, 0.01, y, rowlab{k}, 'FontSize',fs-1, 'Color',INK, 'VerticalAlignment','middle');
     for c = 1:nC
-        d = S.conds(c).data{li};  v = '—';
-        if ~isempty(d)
-            mt  = efr_ram_metrics(d.peaks, d.peaks_locs, d.f, d.plv_env, o);
-            val = [mt.low, mt.high, mt.total];
-            if ~isnan(val(k)), v = sprintf('%.2f', val(k)); end
+        for j = 1:nL
+            d = [];  v = '—';
+            if numel(S.conds(c).data) >= lv(j), d = S.conds(c).data{lv(j)}; end
+            if ~isempty(d)
+                te  = [];  if isfield(d,'t_env'), te = d.t_env; end
+                mt  = efr_ram_metrics(d.peaks, d.peaks_locs, d.f, d.plv_env, o, te);
+                val = [mt.low, mt.high, mt.total];
+                if ~isnan(val(k))
+                    if k <= 2 && strcmp(o.measure,'magnitude') && ~o.normalize, v = sprintf('%.3f', val(k));
+                    else, v = sprintf('%.2f', val(k)); end
+                end
+            end
+            text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, v, 'FontSize',fs, 'Color',INK, ...
+                'FontWeight',ternary_s(k==3,'bold','normal'), ...
+                'HorizontalAlignment','center', 'VerticalAlignment','middle');
         end
-        text(axS, x0 + (c-0.5)*cw, y, v, 'FontSize',fs, 'Color',INK, ...
-            'FontWeight',ternary_s(k==3,'bold','normal'), ...
-            'HorizontalAlignment','center', 'VerticalAlignment','middle');
     end
 end
 end
@@ -193,6 +247,17 @@ if ~isempty(old), close(old); end
 fh = figure('Name',nm,'NumberTitle','off','Visible','off','Color','w');
 set(fh,'Units','normalized','OuterPosition',[0.05 0.05 0.9 0.85]);
 end
+
+function C = harm_tint(nH)
+% Tint per harmonic: Low range blue-grey, High range rose, others grey.
+o = efr_opts();  T = apat_region_tints();
+C = repmat([0.88 0.88 0.88], nH, 1);
+for h = 1:nH
+    if h >= o.low(1)  && h <= o.low(end),  C(h,:) = T(1,:); end
+    if h >= o.high(1) && h <= o.high(end), C(h,:) = T(3,:); end
+end
+end
+
 
 function style_ax(ax, xl, yl)
 set(ax, 'FontSize',14, 'Box','off');  grid(ax,'on');

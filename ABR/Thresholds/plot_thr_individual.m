@@ -21,7 +21,7 @@ for f = 1:numel(pd)
     figs(end+1) = fh; %#ok<AGROW>
     if isempty(p.wforms) || isempty(p.lev)
         ax = axes(fh,'Position',[0 0 1 1]); axis(ax,'off');
-        text(ax,0.5,0.5,'No waveform data for this frequency.', ...
+        text(ax,0.5,0.5,'No Waveform Data For This Frequency', ...
             'HorizontalAlignment','center','FontSize',14,'Color',MUTE);
         continue;
     end
@@ -76,6 +76,9 @@ for f = 1:numel(pd)
     for k = 1:nL
         if above(k), cc = INK; else, cc = GREY; end
         tl{k} = sprintf('\\color[rgb]{%.2f,%.2f,%.2f}%g', cc, round(lev(k)));
+        if sum(lev == lev(k)) > 1          % level recorded twice ('Repeated Levels: Show All')
+            tl{k} = sprintf('%s (%d)', tl{k}, sum(lev(1:k) == lev(k)));
+        end
     end
     set(axW, 'YTick',fliplr(off), 'YTickLabel',fliplr(tl), 'TickLabelInterpreter','tex', ...
         'FontSize',14, 'Box','off', 'XColor',INK, 'YColor',INK);
@@ -111,14 +114,14 @@ for f = 1:numel(pd)
             plot(axC, thr, y_t, 'd', 'MarkerSize',13, 'MarkerFaceColor',GOLD, 'MarkerEdgeColor',GOLD_DK, 'LineWidth',1.5);
         end
     else
-        text(axC, mean(x_rng), 0.5, 'Fit needs at least 5 levels', ...
+        text(axC, mean(x_rng), 0.5, 'Fit Needs At Least 5 Levels', ...
             'HorizontalAlignment','center', 'Color',MUTE, 'FontSize',11);
     end
     xlim(axC, x_rng);  ylim(axC, [y_lo y_hi]);
     set(axC, 'FontSize',14, 'Box','off');
     grid(axC,'on');
     xlabel(axC, 'Level (dB SPL)', 'FontWeight','bold');
-    ylabel(axC, 'Correlation (norm.)', 'FontWeight','bold');
+    ylabel(axC, 'Correlation (Norm.)', 'FontWeight','bold');
 
     % ── threshold value (inside the growth plot, top-left) ────────────
     if isnan(thr), vs = 'Threshold: —'; else, vs = sprintf('Threshold: %.1f dB SPL', thr); end

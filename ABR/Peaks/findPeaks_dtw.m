@@ -1,4 +1,5 @@
 function [peaks,latencies,sig_inds_out,nav] = findPeaks_dtw(t_signal,signal,template,latencies_template,subject,condition,Conds2Run,CondIND,ChinIND,levels,counter,level_counter,colors,shapes,ylim_ind,freq_str,idx_abr,idx_template,outpath,peak_ui,wave_sel,opts)
+shapes = 'vsd^o';   % fixed Wave I-V markers: condition markers are user-set in Setup, waves stay stable
 %FINDPEAKS_DTW  DTW-based ABR peak detection with manual override.
 %
 %  Classic mode (peak_ui=[]):  ginput-based editing in a standalone figure.
@@ -330,11 +331,11 @@ if ~isempty(template) && all(~isnan(template))
                         for j2 = find(changed2(:)')
                             k2 = ceil(j2/2);
                             plot(t_signal(sig_inds_manual(j2)), signal(sig_inds_manual(j2)), ...
-                                shapes(k2),'Color','g','MarkerSize',9,'LineWidth',2,'MarkerFaceColor','none','DisplayName','New selection');
+                                shapes(k2),'Color','g','MarkerSize',9,'LineWidth',2,'MarkerFaceColor','none','DisplayName','New Selection');
                         end
                     end
                     plot(t_signal(sig_inds_constrained(sel_idx_in_sig_inds)), signal(sig_inds_constrained(sel_idx_in_sig_inds)), ...
-                        shapes(wave_k),'Color','r','MarkerSize',9,'LineWidth',2,'MarkerFaceColor','none','DisplayName','Previous selection');
+                        shapes(wave_k),'Color','r','MarkerSize',9,'LineWidth',2,'MarkerFaceColor','none','DisplayName','Previous Selection');
                     if mod(sel_idx_in_sig_inds,2)==1; pt_type='Peak'; else; pt_type='Trough'; end
                     title(sprintf('%s @ %d dB SPL - Editing Wave %d (%s)',freq_str,levels(level_counter),ceil(sel_idx_in_sig_inds/2),pt_type));
                     legend('Location','northeast'); legend box off;
@@ -479,7 +480,7 @@ if ~isempty(template) && all(~isnan(template))
                     for kk = 1:num_waves
                         if wave_sel(kk)
                             peak_ui.wave_btns(kk).ButtonPushedFcn = ...
-                                @(~,~) wave_select_cb(fig, peak_ui.pt_toggle, kk, sig_inds_manual, t_signal);
+                                @(~,~) wave_select_cb(fig, peak_ui.pt_toggle, kk);
                             has_pk = ~isnan(sig_inds_manual(2*kk-1));
                             has_tr = ~isnan(sig_inds_manual(2*kk));
                             if has_pk || has_tr || absent(kk)
@@ -504,25 +505,27 @@ if ~isempty(template) && all(~isnan(template))
                 ax_e = fresh_uiaxes(ax_e, fig);
                 draw_edit(ax_e, t_signal, signal, sig_inds_constrained, sig_inds_manual, ...
                     idx_sig_inds, wave_sel, shapes, colors(5:end,:), num_waves, [], ...
-                    sprintf('%s  @  %d dB SPL — click to edit, or Done', freq_str, levels(level_counter)), ...
+                    sprintf('%s  @  %d dB SPL — Click To Edit, Or Done', freq_str, levels(level_counter)), ...
                     x_units, y_units, [0 20]);
                 if in_session
                     peak_ui.status_lbl.Text = '';     % no instruction text in the session view
                 else
                     peak_ui.status_lbl.Text = ...
-                        'Click a peak/trough  —  or use the Wave buttons to select directly  |  "Done" to advance';
+                        'Click A Peak/Trough  —  Or Use The Wave Buttons To Select Directly  |  "Done" To Advance';
                 end
                 set_confirm(peak_ui, false);
                 peak_ui_ready(peak_ui);
                 drawnow;
 
-                setappdata(fig,'peak_action',[]);
-                uiwait(fig);
+                wait_action(fig);   % uiwait unless Stop was pressed
                 if isvalid(ax_e), ax_e.ButtonDownFcn = []; end  % block stale clicks
                 peak_ui_busy(peak_ui, 'Processing…');
                 drawnow;
                 if ~isvalid(fig), break; end
                 act = getappdata(fig,'peak_action');
+                if ~isempty(act) && strcmp(act.type,'abort')   % Stop pressed
+                    nav = struct('type','abort','level',[]);  break;
+                end
                 if isempty(act) || strcmp(act.type,'done'), break; end
                 if strcmp(act.type,'thresh') && in_session   % visual threshold set on waterfall
                     nav = struct('type','thresh','level',act.x);
@@ -542,18 +545,30 @@ if ~isempty(template) && all(~isnan(template))
                     absent(k_r) = false;
                     continue;
                 end
-                if ~strcmp(act.type,'click'), continue; end
-
-                % Find nearest selectable slot to click
-                [~,idx_c] = min(abs(t_signal - act.x));
-                slots = [];
-                for kk = 1:num_waves
-                    if wave_sel(kk), slots = [slots, 2*kk-1, 2*kk]; end %#ok<AGROW>
+                if strcmp(act.type,'select')    % Wave button → exactly that slot
+                    sel = act.x;  k_s = ceil(sel/2);
+                    if sel < 1 || sel > length(sig_inds_manual) || ~wave_sel(k_s), continue; end
+                    if absent(k_s)               % absent wave → restore it
+                        pr = [2*k_s-1, 2*k_s];
+                        sig_inds_manual(pr)      = absent_stash(pr);
+                        sig_inds_constrained(pr) = absent_stashc(pr);
+                        absent(k_s) = false;
+                        continue;
+                    end
+                    if isnan(sig_inds_manual(sel)), continue; end
+                else
+                    if ~strcmp(act.type,'click'), continue; end
+                    % Find nearest selectable slot to click
+                    [~,idx_c] = min(abs(t_signal - act.x));
+                    slots = [];
+                    for kk = 1:num_waves
+                        if wave_sel(kk), slots = [slots, 2*kk-1, 2*kk]; end %#ok<AGROW>
+                    end
+                    slots = slots(~isnan(sig_inds_manual(slots)));
+                    if isempty(slots), continue; end
+                    [~,ei]  = min(abs(sig_inds_manual(slots) - idx_c));
+                    sel     = slots(ei);
                 end
-                slots = slots(~isnan(sig_inds_manual(slots)));
-                if isempty(slots), continue; end
-                [~,ei]  = min(abs(sig_inds_manual(slots) - idx_c));
-                sel     = slots(ei);
                 wave_k  = ceil(sel/2);
                 if mod(sel,2)==1; pt_type='Peak'; else; pt_type='Trough'; end
 
@@ -565,11 +580,11 @@ if ~isempty(template) && all(~isnan(template))
                     ax_e = fresh_uiaxes(ax_e, fig);
                     draw_edit(ax_e, t_signal, signal, sig_inds_constrained, sig_inds_manual, ...
                         idx_sig_inds, wave_sel, shapes, colors(5:end,:), num_waves, sel, ...
-                        sprintf('%s  @  %d dB SPL — click NEW position for Wave %s (%s)', ...
+                        sprintf('%s  @  %d dB SPL — Click New Position For Wave %s (%s)', ...
                                 freq_str, levels(level_counter), waves_legend(wave_k), pt_type), ...
                         x_units, y_units, [t_sel_cur-2, t_sel_cur+2]);
                     peak_ui.status_lbl.Text = sprintf( ...
-                        'Wave %s (%s) selected — click waveform to place new position, or "Mark Absent" if no wave is present', ...
+                        'Wave %s (%s) Selected — Click Waveform To Place New Position, Or "Mark Absent" If No Wave Is Present', ...
                         waves_legend(wave_k), pt_type);
                     set_confirm(peak_ui, false);
                     peak_ui_ready(peak_ui);
@@ -580,8 +595,7 @@ if ~isempty(template) && all(~isnan(template))
                     end
                     drawnow;
 
-                    setappdata(fig,'peak_action',[]);
-                    uiwait(fig);
+                    wait_action(fig);   % uiwait unless Stop was pressed
                     if isvalid(ax_e), ax_e.ButtonDownFcn = []; end  % block stale clicks
                     peak_ui_busy(peak_ui, 'Snapping to nearest peak…');
                     drawnow;
@@ -589,6 +603,10 @@ if ~isempty(template) && all(~isnan(template))
                     act2 = getappdata(fig,'peak_action');
                     if has_absent_btn, peak_ui.absent_btn.Visible = 'off'; end
                     if isempty(act2), continue; end
+                    if strcmp(act2.type,'abort')
+                        nav = struct('type','abort','level',[]);
+                        inner_done=true; done_editing=true; break;
+                    end
                     if strcmp(act2.type,'done'), inner_done=true; done_editing=true; break; end
                     if strcmp(act2.type,'thresh') && in_session
                         nav = struct('type','thresh','level',act2.x);
@@ -609,6 +627,15 @@ if ~isempty(template) && all(~isnan(template))
                         sig_inds_constrained(pr) = NaN;
                         absent(wave_k) = true;
                         inner_done = true;
+                        continue;
+                    end
+                    if strcmp(act2.type,'select')   % another Wave button → switch to that slot
+                        s2 = act2.x;  k2 = ceil(s2/2);
+                        if s2 >= 1 && s2 <= length(sig_inds_manual) && wave_sel(k2) && ...
+                                ~absent(k2) && ~isnan(sig_inds_manual(s2))
+                            sel = s2;  wave_k = k2;
+                            if mod(sel,2)==1; pt_type='Peak'; else; pt_type='Trough'; end
+                        end
                         continue;
                     end
                     if ~strcmp(act2.type,'click'), continue; end
@@ -632,13 +659,12 @@ if ~isempty(template) && all(~isnan(template))
                         sprintf('%s  @  %d dB SPL — Accept, Redo, or Cancel?', freq_str, levels(level_counter)), ...
                         x_units, y_units, [t_new-2, t_new+2]);
                     peak_ui.status_lbl.Text = sprintf( ...
-                        'Wave %s (%s) — Accept new position, Redo, or Cancel', waves_legend(wave_k), pt_type);
+                        'Wave %s (%s) — Accept New Position, Redo, Or Cancel', waves_legend(wave_k), pt_type);
                     set_confirm(peak_ui, true);
                     peak_ui_ready(peak_ui);
                     drawnow;
 
-                    setappdata(fig,'peak_action',[]);
-                    uiwait(fig);
+                    wait_action(fig);   % uiwait unless Stop was pressed
                     if isvalid(ax_e), ax_e.ButtonDownFcn = []; end  % block stale clicks
                     peak_ui_busy(peak_ui, 'Processing…');
                     drawnow;
@@ -660,6 +686,18 @@ if ~isempty(template) && all(~isnan(template))
                             if in_session
                                 nav = struct('type','thresh','level',act3.x);
                                 inner_done = true;  done_editing = true;
+                            end
+                        case 'abort'             % Stop: unconfirmed move discarded
+                            sig_inds_manual(sel) = old_idx;
+                            nav = struct('type','abort','level',[]);
+                            inner_done = true;  done_editing = true;
+                        case 'select'            % unconfirmed move discarded, switch slot
+                            sig_inds_manual(sel) = old_idx;
+                            s3 = act3.x;  k3 = ceil(s3/2);
+                            if s3 >= 1 && s3 <= length(sig_inds_manual) && wave_sel(k3) && ...
+                                    ~absent(k3) && ~isnan(sig_inds_manual(s3))
+                                sel = s3;  wave_k = k3;
+                                if mod(sel,2)==1; pt_type='Peak'; else; pt_type='Trough'; end
                             end
                         case 'goto'              % unconfirmed move is discarded
                             sig_inds_manual(sel) = old_idx;
@@ -840,26 +878,18 @@ if ~peak_ui.snap_toggle.Value, thr = 0; end
 end
 
 
-function wave_select_cb(fig, pt_toggle, k, sig_inds_manual, t_signal)
+function wave_select_cb(fig, pt_toggle, k)
 %WAVE_SELECT_CB  Wave-selector button callback.
-%  Resolves peak vs trough from the toggle state, then fires a synthetic
-%  click at that slot's current position so the outer editing loop
-%  selects it unambiguously regardless of spatial overlap.
+%  Sends the exact slot (wave k, peak or trough from the toggle) to the
+%  editing loop, which selects that slot directly — never the nearest
+%  marker, so overlapping waves (e.g. Wave IV peak on Wave III trough)
+%  cannot steal the selection. Absent waves are restored by the loop.
 if strcmp(pt_toggle.Text, '▲ Peak')
     slot = 2*k - 1;   % peak
 else
     slot = 2*k;        % trough
 end
-if slot > length(sig_inds_manual), return; end
-if all(isnan(sig_inds_manual([2*k-1, 2*k])))
-    % Wave was marked absent → ask the editing loop to restore it
-    setappdata(fig, 'peak_action', struct('type','restore','x',k));
-    uiresume(fig);
-    return;
-end
-if isnan(sig_inds_manual(slot)), return; end
-x = t_signal(sig_inds_manual(slot));
-setappdata(fig, 'peak_action', struct('type','click','x',x));
+setappdata(fig, 'peak_action', struct('type','select','x',slot));
 uiresume(fig);
 end
 
@@ -926,6 +956,10 @@ ylabel(ax, yu, 'FontWeight','bold','FontSize',15);
 grid(ax,'on');
 set(ax,'FontSize',13);
 plot(ax, t, sig, 'k', 'LineWidth',1.5, 'HandleVisibility','off', 'HitTest','off');
+try   % Earl (1983) reference bands (Ref dropdown); never blocks editing
+    earl_ref_draw(ax, t, inds_m, wave_sel, wave_clrs);
+catch
+end
 for k = 1:n_waves
     if ~wave_sel(k), continue; end
     for j = [2*k-1, 2*k]
@@ -1096,4 +1130,16 @@ end
 if isfield(peak_ui,'snap_toggle') && isvalid(peak_ui.snap_toggle)
     peak_ui.snap_toggle.Enable = 'on';
 end
+end
+
+
+function wait_action(fig)
+%WAIT_ACTION  Wait for the next editor action. If Stop was pressed (app
+%   sets appdata 'peak_abort'), return an 'abort' action without waiting.
+if isappdata(fig,'peak_abort') && isequal(getappdata(fig,'peak_abort'), true)
+    setappdata(fig,'peak_action',struct('type','abort','x',[]));
+    return;
+end
+setappdata(fig,'peak_action',[]);
+uiwait(fig);
 end

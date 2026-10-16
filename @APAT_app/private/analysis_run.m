@@ -13,7 +13,9 @@ function analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, chinro
 %   ── cfg struct  (all fields optional) ─────────────────────────────────────
 %   .EXPname            'ABR'|'EFR'|'OAE'|'MEMR'     (prompts if empty)
 %   .EXPname2           Subtype: 'Thresholds'|'Peaks'|'dAM'|'RAM'|
-%                                'DPOAE'|'SFOAE'|'TEOAE'
+%                                'DPOAE'|'SFOAE'|'TEOAE'|
+%                                MEMR: '' (ART) or 'Vector'|'Growth'|'Kinetics'|
+%                                'Spectral'|'Absorbance'|'Probe'|'Quality'
 %   .plot_relative      logical – plot relative to first condition    [false]
 %   .reanalyze          logical – redo analysis even if output exists [false]
 %   .show_figs          struct  – .analysis / .ind / .avg logicals
@@ -24,9 +26,40 @@ function analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, chinro
 %   .abr_wave_sel       logical 1×5 – ABR waves to show
 %   .efr_harmonics      integer – max harmonics for RAM EFR           [16]
 %   .efr_window         1×2     – RAM analysis window [start end] s
+%   .export_fmt         'mat'|'csv'|'both' – data files written (apat_export_fmt)
+%   .csv_keep           logical – keep the CSV row store of earlier analysis_run
+%                       calls (the app: every Experiment after the first of
+%                       one run) so the average files hold every Experiment
+%                       of the run  [false]
+%   Experiment = chinroster_sheet (root appdata 'APAT_experiment'): a column
+%   of every CSV row / average.individual and the field of `average` in the
+%   group .mat files (apat_avg_mat); averages of all Experiments share one
+%   file in Analysis/<Measure>/Average/ (figures: <name>_<Experiment>_figure).
 
 cwd = pwd;
 if nargin < 6 || isempty(cfg), cfg = struct(); end
+% Run-time errors never stop the run: each failing step is logged in
+% Analysis/APAT_error_log.txt with a self-closing notice (apat_run_error),
+% and prompts answer themselves after 30 s (APAT_prompt_timeout).
+own_err = false;
+try, own_err = apat_run_error('ensure', fullfile(ROOTdir, 'Analysis')); catch, end
+n_err0 = 0;  try, n_err0 = apat_run_error('count'); catch, end
+setappdata(0, 'APAT_prompt_timeout', 30);
+err_clean = onCleanup(@() run_state_clean(own_err)); %#ok<NASGU>
+% Data export format ('mat' | 'csv' | 'both', read by apat_export_fmt) and
+% the CSV row store of this run (apat_csv)
+if isfield(cfg, 'export_fmt') && ~isempty(cfg.export_fmt)
+    setappdata(0, 'APAT_export_fmt', char(cfg.export_fmt));
+end
+if ~logical(cfg_get(cfg, 'csv_keep', false))     % (several Experiments of one app run: kept)
+    try, apat_csv('reset'); catch, end
+end
+% Experiment of this run = the roster sheet (CSV column, `average` field,
+% average figure names) — see apat_csv / apat_avg_mat / apat_save_fig
+setappdata(0, 'APAT_experiment', char(chinroster_sheet));
+if isappdata(0, 'APAT_group'), rmappdata(0, 'APAT_group'); end   % (old group layout: no longer used)
+try, apat_sex('set', []); catch, end           % read again from this run's roster below
+if isappdata(0, 'APAT_abr_peak_scan'), rmappdata(0, 'APAT_abr_peak_scan'); end   % ABR Peaks y-limit cache (ABRsummary)
 
 %% ── Plotting constants ───────────────────────────────────────────────────
 shapes = ["v";"square";"diamond";"^";"o";">";"pentagram";"*";"x"];
@@ -46,6 +79,9 @@ embed_fns_in       = cfg_get(cfg, 'embed_fns', []);
 
 % In-app mode: all figures suppressed; embed callbacks route them into tabs
 use_embed = isstruct(embed_fns_in);
+% In the app the Results views are saved after embedding (embed_results >
+% save_view 'auto'); apat_save_fig then only records the path for them
+setappdata(0, 'APAT_embed_save', use_embed);
 if use_embed
     % Close hidden figures left open by an earlier, interrupted run. Plot
     % functions that look figures up by name would otherwise reuse them, and
@@ -55,6 +91,12 @@ if use_embed
     stale = stale(arrayfun(@(f) ~strcmp(f.Name, 'Auditory Physiology Analysis Toolkit (APAT)'), stale));
     if ~isempty(stale), delete(stale); end
 end
+% If the run errors or is stopped (APAT:UserAbort), drop the hidden figures
+% it made (they would never be embedded), restore the figure default and
+% the folder the run started in. Nothing is done after a normal finish.
+setappdata(0, 'APAT_run_finished', false);
+run_figs0 = findall(0, 'Type','figure');
+run_clean = onCleanup(@() cleanup_after_abort(use_embed, run_figs0, cwd)); %#ok<NASGU>
 blind     = logical(cfg_get(cfg, 'blind', false));   % blind mode: hide subject/condition
 if use_embed
     embed_fns          = embed_fns_in;
@@ -87,14 +129,19 @@ limits = plot_limits(EXPname, EXPname2, idx_plot_relative);
 switch EXPname
     case {'ABR','EFR'},  measure_lbl = [EXPname ' ' EXPname2];
     case 'OAE',          measure_lbl = EXPname2;
-    case 'MEMR',         measure_lbl = 'MEMR';
+    case 'MEMR'                                   % 'MEMR' = ART; exploratory: 'MEMR Vector' …
+        measure_lbl = 'MEMR';
+        if ~isempty(EXPname2), measure_lbl = ['MEMR ' EXPname2]; end
     otherwise,           measure_lbl = EXPname;
 end
+try, apat_run_error('context', 'analysis',measure_lbl, 'subject','', 'condition','', 'blind',blind); catch, end
 
-[DATAdir, OUTdir, CODEdir, PRIVATEdir] = get_directory(ROOTdir, EXPname, EXPname2);
-addpath(genpath(CODEdir));
-if strcmp(EXPname, 'EFR')
-    addpath(fileparts(CODEdir));  % EFR/ parent holds shared helpers like plot_ind_efr
+code_sub = EXPname2;
+if strcmp(EXPname, 'MEMR'), code_sub = ''; end   % all MEMR code lives under MEMR/ (Explore/ inside)
+[DATAdir, OUTdir, CODEdir, PRIVATEdir] = get_directory(ROOTdir, EXPname, code_sub);
+add_path_once(CODEdir, true);         % measure code (+ subfolders); only what is not on the path yet
+if any(strcmp(EXPname, {'EFR','OAE'}))
+    add_path_once(fileparts(CODEdir), false);  % EFR/ and OAE/ parents hold shared helpers (plot_ind_efr, oae_summary …)
 end
 
 %% ── File search patterns ─────────────────────────────────────────────────
@@ -106,6 +153,9 @@ if ~isempty(search_files(OUTdir, chinroster_filename).files)
     chinroster_temp = readcell(chinroster_filename, 'Sheet', chinroster_sheet);
     temp_idx = cellfun(@(x) any(isa(x,'missing')), chinroster_temp);
     chinroster_temp(temp_idx) = {NaN};
+    % Subject sex (roster "Sex" column, right after Subject) for the data
+    % files of this run: root appdata 'APAT_subject_sex' (apat_sex)
+    try, apat_sex('set', apat_sex('read', chinroster_temp)); catch, end
     [temp_rows, temp_cols] = size(chinroster_temp);
     temp = zeros(1, temp_rows);
 
@@ -144,6 +194,18 @@ if ~isempty(search_files(OUTdir, chinroster_filename).files)
             if ~isempty(k) && k <= size(cc.rgb,1), colors(i,:) = cc.rgb(k,:); end
         end
     end
+    % Condition markers chosen in the Setup tab (same matching): replace the
+    % default `shapes` entry of each condition (default markers = the old
+    % shapes order, so nothing changes until a marker is picked)
+    cm = cfg_get(cfg, 'cond_markers', []);
+    if isstruct(cm) && isfield(cm,'paths') && isfield(cm,'mk') && iscell(cm.mk)
+        for i = 1:min(length(all_Conds2Run), numel(shapes))
+            k = find(strcmp(cm.paths, all_Conds2Run{i}), 1);
+            if ~isempty(k) && k <= numel(cm.mk) && ~isempty(cm.mk{k})
+                shapes(i) = string(cm.mk{k});
+            end
+        end
+    end
     chins_idx = find(temp == 1);
     roster_conds_idx = zeros(size(all_Conds2Run));   % which all_Conds2Run entries are selected
     for i = 1:length(Conds2Run)
@@ -173,10 +235,12 @@ end
 %% ── Check data availability ──────────────────────────────────────────────
 counter      = 0;
 branch3_ran  = false;
+avg_done     = false;                % the last pair's summary (group average) ran
 filepath_idx      = zeros(length(Chins2Run), length(all_Conds2Run));
 datapath_idx      = zeros(length(Chins2Run), length(all_Conds2Run));
 subject_idx       = zeros(length(Chins2Run), length(all_Conds2Run));
-addpath(strcat(ROOTdir, filesep, 'Code Archive'))
+add_path_once(strcat(ROOTdir, filesep, 'Code Archive'), false);
+add_path_once(PRIVATEdir, false);     % Code Archive/shared (load_files, apat_* helpers) — headless callers
 
 for ChinIND = 1:length(Chins2Run)
     for CondIND = 1:length(all_Conds2Run)
@@ -215,6 +279,19 @@ filepath_dir(filepath_idx == 1) = filepath_dir_temp(filepath_idx == 1);
 datapath_dir(datapath_idx == 1) = datapath_dir_temp(datapath_idx == 1);
 define_global_vars(Chins2Run, all_Conds2Run, EXPname, EXPname2);
 
+%% ── Exclusions: subject / condition pairs left out of the group averages ─
+% (cfg.exclude, n×2 {subject, condition|'*'}; applied by each summary
+% function just before its average — apat_excl — and recorded in the
+% saved average files at the end of the run)
+run_t0   = now; %#ok<TNOW1>
+excl_ref = '';
+if ~isempty(idx_plot_relative)
+    p_ref = strsplit(all_Conds2Run{1}, filesep);  excl_ref = p_ref{end};
+end
+apat_excl('set', cfg_get(cfg, 'exclude', {}), excl_ref);
+excl_clean = onCleanup(@() apat_excl('set', {})); %#ok<NASGU>
+if isappdata(0,'APAT_efr_levels'), rmappdata(0,'APAT_efr_levels'); end   % EFR level list: new per run
+
 %% ── Main processing loop ─────────────────────────────────────────────────
 n_total = sum(sum(subject_idx));
 
@@ -246,11 +323,14 @@ for ChinIND = subj_order
             data_check    = datapath_idx(ChinIND, CondIND);
             subject_check = subject_idx(ChinIND, CondIND);
             condition     = strsplit(all_Conds2Run{CondIND}, filesep);
+            try, apat_run_error('context', 'subject',Chins2Run{ChinIND}, 'condition',condition{end}); catch, end
             drawnow limitrate;
             cd(CODEdir);
 
-            % ── Branch 2: move RAW files into subject/condition folder ─────
-            if data_check == 0 && subject_check == 1
+            % ── Branch 2: retrieve missing RAW files (data and/or calib) ───
+            %    move_files returns immediately when nothing is missing, so
+            %    this runs every time, not only on the first analysis.
+            if subject_check == 1
                 datapath = strcat(DATAdir, filesep, Chins2Run{ChinIND}, filesep, EXPname, filesep, all_Conds2Run{CondIND});
                 if ~exist(datapath, 'dir')
                     fprintf('\nCreating data directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
@@ -258,7 +338,11 @@ for ChinIND = subj_order
                 end
                 sourcepath = strcat(DATAdir, filesep, 'RAW');
                 cd(CODEdir)
-                move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                try
+                    move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                catch ME
+                    step_failed(ME, 'moving RAW files');  cd(CODEdir);
+                end
                 new_dp = search_files(datapath, datapath_searchfile);
                 if ~isempty(new_dp.files)
                     datapath_idx(ChinIND,CondIND) = 1;
@@ -292,6 +376,19 @@ for ChinIND = subj_order
                                 Chins2Run{ChinIND}, all_Conds2Run{CondIND});
                             needs_rerun = true;
                         end
+                        % Unrounded stimulus levels (saved before Oct 16 2026, e.g. 89.7
+                        % instead of 90 dB SPL) — re-analyse so the fit uses whole dB
+                        if ~needs_rerun && isfield(tmp.abr_out,'plot_data') && ~isempty(tmp.abr_out.plot_data)
+                            try
+                                lv = [tmp.abr_out.plot_data.lev];
+                                if any(abs(lv - round(lv)) > 1e-6)
+                                    fprintf('\nABR Thresholds: levels not in whole dB for %s (%s) — re-analysing.\n', ...
+                                        Chins2Run{ChinIND}, all_Conds2Run{CondIND});
+                                    needs_rerun = true;
+                                end
+                            catch
+                            end
+                        end
                         if needs_rerun
                             file_check = 0;
                         end
@@ -318,21 +415,34 @@ for ChinIND = subj_order
                 pre_figs_b1 = findall(0,'Type','figure');
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
 
-                run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
-                    Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
-                    colors, shapes, limits, mparams, ROOTdir, CODEdir);
+                b1_ok = true;
+                try
+                    run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
+                        Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
+                        colors, shapes, limits, mparams, ROOTdir, CODEdir);
+                catch ME
+                    step_failed(ME, 'analysis');  b1_ok = false;
+                end
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
                 new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
                 new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
-                if strcmp(EXPname,'ABR') && use_embed
+                if strcmp(EXPname,'ABR') || ~use_embed
+                    % ABR in the app: not embedded. Outside the app nothing
+                    % embeds them (they used to be hidden and kept open).
                     if ~isempty(new_figs_b1), close(new_figs_b1); end
                 else
                     if ~isempty(new_figs_b1), set(new_figs_b1, 'Visible', 'off'); end
                 end
-                filepath_idx(ChinIND,CondIND) = 1;
-                filepath_dir{ChinIND,CondIND} = filepath;
-                file_check = 1;
+                if b1_ok
+                    filepath_idx(ChinIND,CondIND) = 1;
+                    filepath_dir{ChinIND,CondIND} = filepath;
+                    file_check = 1;
+                elseif file_check == 0
+                    % no result for this pair: the average comes with the
+                    % last pair that does have one
+                    n_total = max(0, n_total - 1);
+                end                                   % (reanalyze: the older result is used)
             end
 
             % ── Branch 3: load output → summary / averages ────────────────
@@ -352,10 +462,16 @@ for ChinIND = subj_order
                 if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
 
-                run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
-                    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
-                    idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
-                    mparams, CODEdir, ROOTdir, subject_idx, chinroster_sheet);
+                try
+                    run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
+                        Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
+                        idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
+                        mparams, CODEdir, ROOTdir, subject_idx, chinroster_sheet);
+                    if is_last_pair, avg_done = true; end
+                catch ME
+                    step_failed(ME, ternary_s(is_last_pair, 'summary + group average', 'summary'));
+                    cd(CODEdir);
+                end
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
 
@@ -370,11 +486,15 @@ for ChinIND = subj_order
 
                     [ind_figs, avg_figs] = split_ind_avg_figs(EXPname, from_subj, new_this_call, is_last_pair);
 
-                    if ~isempty(ind_figs)
-                        embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
-                    end
-                    if is_last_pair && ~isempty(avg_figs)
-                        embed_fns.average(avg_figs, measure_lbl);
+                    try
+                        if ~isempty(ind_figs)
+                            embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                        end
+                        if is_last_pair && ~isempty(avg_figs)
+                            embed_fns.average(avg_figs, measure_lbl);
+                        end
+                    catch ME
+                        step_failed(ME, 'showing results');
                     end
                     to_close = from_subj(isvalid(from_subj));
                     if ~isempty(to_close), close(to_close); end
@@ -386,6 +506,7 @@ for ChinIND = subj_order
 
     else
         % ── ABR Peaks: freq-outer, cond-inner order ───────────────────────
+        try, apat_run_error('context', 'subject',Chins2Run{ChinIND}, 'condition',''); catch, end
         % Pass 1: Branch 2 only (move raw files per condition)
         for i = 1:length(subj_active_conds)
             CondIND       = subj_active_conds(i);
@@ -393,7 +514,7 @@ for ChinIND = subj_order
             subject_check = subject_idx(ChinIND, CondIND);
             drawnow limitrate;
             cd(CODEdir);
-            if data_check == 0 && subject_check == 1
+            if subject_check == 1   % move_files retrieves only what is missing
                 datapath = strcat(DATAdir, filesep, Chins2Run{ChinIND}, filesep, EXPname, filesep, all_Conds2Run{CondIND});
                 if ~exist(datapath, 'dir')
                     fprintf('\nCreating data directory for %s (%s)...\n', Chins2Run{ChinIND}, all_Conds2Run{CondIND});
@@ -401,7 +522,11 @@ for ChinIND = subj_order
                 end
                 sourcepath = strcat(DATAdir, filesep, 'RAW');
                 cd(CODEdir)
-                move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                try
+                    move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                catch ME
+                    step_failed(ME, 'moving RAW files');  cd(CODEdir);
+                end
                 new_dp = search_files(datapath, datapath_searchfile);
                 if ~isempty(new_dp.files)
                     datapath_idx(ChinIND,CondIND) = 1;
@@ -449,17 +574,30 @@ for ChinIND = subj_order
             end
             pre_figs_b1 = findall(0,'Type','figure');
             set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
-            ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
-                all_Conds2Run, Conds2Run, peaks_cond_INDs, colors, shapes, ...
-                limits.ind.peaks, mparams.abr_freq, mparams.abr_levels, mparams.abr_tpl_per_level, ...
-                pk_ui, mparams.abr_wave_sel);
+            b1_ok = true;
+            try
+                ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
+                    all_Conds2Run, Conds2Run, peaks_cond_INDs, colors, shapes, ...
+                    limits.ind.peaks, mparams.abr_freq, mparams.abr_levels, mparams.abr_tpl_per_level, ...
+                    pk_ui, mparams.abr_wave_sel);
+            catch ME
+                step_failed(ME, 'analysis (ABR peaks)');  b1_ok = false;  cd(CODEdir);
+            end
             if ~use_embed, set(0,'DefaultFigureVisible','on'); end
             new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
             new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
             if use_embed && ~isempty(new_figs_b1), close(new_figs_b1); end
             for k = 1:length(peaks_cond_INDs)
-                filepath_idx(ChinIND, peaks_cond_INDs(k)) = 1;
-                filepath_dir{ChinIND, peaks_cond_INDs(k)} = peaks_outpaths{k};
+                ok_k = b1_ok;                         % after an error: only conditions with a result file
+                if ~ok_k
+                    try, ok_k = ~isempty(search_files(peaks_outpaths{k}, filepath_searchfile).files); catch, end
+                end
+                if ok_k
+                    filepath_idx(ChinIND, peaks_cond_INDs(k)) = 1;
+                    filepath_dir{ChinIND, peaks_cond_INDs(k)} = peaks_outpaths{k};
+                elseif filepath_idx(ChinIND, peaks_cond_INDs(k)) == 0
+                    n_total = max(0, n_total - 1);
+                end
             end
         end
 
@@ -490,10 +628,16 @@ for ChinIND = subj_order
                 datapath = datapath_dir{ChinIND, CondIND};
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
 
-                run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
-                    Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
-                    idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
-                    mparams, CODEdir, ROOTdir, subject_idx, chinroster_sheet);
+                try
+                    run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
+                        Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
+                        idx_plot_relative, limits, colors, shapes, is_last_pair, subj_active_conds, ...
+                        mparams, CODEdir, ROOTdir, subject_idx, chinroster_sheet);
+                    if is_last_pair, avg_done = true; end
+                catch ME
+                    step_failed(ME, ternary_s(is_last_pair, 'summary + group average', 'summary'));
+                    cd(CODEdir);
+                end
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
 
@@ -516,11 +660,15 @@ for ChinIND = subj_order
 
             [ind_figs, avg_figs] = split_ind_avg_figs(EXPname, from_subj, new_this_call, last_is_last_pair);
 
-            if ~isempty(ind_figs)
-                embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);
-            end
-            if last_is_last_pair && ~isempty(avg_figs)
-                embed_fns.average(avg_figs, measure_lbl);
+            try
+                if ~isempty(ind_figs)
+                    embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);
+                end
+                if last_is_last_pair && ~isempty(avg_figs)
+                    embed_fns.average(avg_figs, measure_lbl);
+                end
+            catch ME
+                step_failed(ME, 'showing results');
             end
             to_close = from_subj(isvalid(from_subj));
             if ~isempty(to_close), close(to_close); end
@@ -530,6 +678,21 @@ end
 
 cd(cwd);
 if use_embed, set(0,'DefaultFigureVisible','on'); end
+setappdata(0, 'APAT_run_finished', true);   % normal finish: cleanup_after_abort does nothing
+
+% A failing dataset can leave the group average undrawn (it is made with
+% the last dataset's summary): say so once
+try
+    if branch3_ran && ~avg_done && apat_run_error('count') > n_err0
+        apat_run_error('error', 'Group average not drawn: the last dataset of this analysis failed.', 'group average');
+    end
+catch
+end
+
+% Record the exclusions in the average files written by this run
+if branch3_ran
+    try, apat_excl('stamp', fullfile(OUTdir, EXPname), run_t0, Chins2Run, all_Conds2Run); catch, end
+end
 
 %% ── Analysis summary ─────────────────────────────────────────────────────
 Conds2Run = all_Conds2Run;
@@ -615,8 +778,12 @@ switch EXPname
         filepath_pat = ['*' EXPname2 '*.mat'];
         datapath_pat = filepath_pat;
     case 'MEMR'
-        filepath_pat = '*MEMR*.mat';
-        datapath_pat = filepath_pat;
+        datapath_pat = '*MEMR*.mat';
+        if isempty(EXPname2)
+            filepath_pat = '*MEMR*.mat';              % ART: <subject>_MEMR_WB_<cond>_pNNNN.mat
+        else
+            filepath_pat = '*_MX_*.mat';              % exploratory: <subject>_MX_<cond>_pNNNN.mat (shared)
+        end
     otherwise
         filepath_pat = ['*' EXPname '*.mat'];
         datapath_pat = filepath_pat;
@@ -640,6 +807,14 @@ switch EXPname
         mparams.abr_tpl_per_level = cfg_get(cfg, 'abr_tpl_per_level', false);
         mparams.abr_wave_sel      = cfg_get(cfg, 'abr_wave_sel',      true(1,5));
         mparams.peak_ui           = cfg_get(cfg, 'peak_ui',           []);
+        % Repeated Levels (Setup): 'all' = every file its own level entry,
+        % 'average' = files with the same rounded level pooled (sweeps).
+        % Read by ABR_thresholds / ABR_dtw / ABRsummary (re-analysis check)
+        % from root appdata, so their call signatures stay unchanged.
+        dl = lower(char(string(cfg_get(cfg, 'abr_dup_levels', 'all'))));
+        if ~strcmp(dl, 'average'), dl = 'all'; end
+        mparams.abr_dup_levels    = dl;
+        setappdata(0, 'APAT_abr_dup_levels', dl);
     case 'EFR'
         mparams.efr_harmonics     = cfg_get(cfg, 'efr_harmonics', 16);
         mparams.efr_window        = cfg_get(cfg, 'efr_window',    [0.2, 0.9]);
@@ -649,7 +824,10 @@ switch EXPname
         eo = mparams.efr_ram_opts;  eo.dam_bands = mparams.efr_dam_bands;
         setappdata(0, 'APAT_efr_opts', eo);
     case 'OAE'
-        % No extra parameters currently
+        % Band averaging / display / analysis options (Setup → OAE Parameters).
+        % Read by oae_opts() in the OAE analysis, summary and plotting code.
+        mparams.oae_opts = cfg_get(cfg, 'oae_opts', struct());
+        setappdata(0, 'APAT_oae_opts', mparams.oae_opts);
     case 'MEMR'
         % No extra parameters currently
 end
@@ -693,7 +871,11 @@ switch EXPname
             case 'TEOAE', TEanalysis(ROOTdir, datapath, filepath, Chins2Run{ChinIND}, condition{2});
         end
     case 'MEMR'
-        WBMEMRanalysis(ROOTdir, datapath, filepath, Chins2Run{ChinIND}, condition{2});
+        if isempty(EXPname2)
+            WBMEMRanalysis(ROOTdir, datapath, filepath, Chins2Run{ChinIND}, condition{2});
+        else                                      % one file for every exploratory MEMR view
+            mx_analysis(ROOTdir, datapath, filepath, Chins2Run{ChinIND}, condition{2});
+        end
 end
 end
 
@@ -728,15 +910,26 @@ switch EXPname
             case 'dAM', lvl_pattern = '*EFR_dAM*.mat';
             case 'RAM', lvl_pattern = '*EFR_RAM*.mat';
         end
-        lvl_files = dir(fullfile(filepath, lvl_pattern));
-        lvl_files = lvl_files(~strncmp({lvl_files.name},'._',2));
+        % One level list for the whole run, so a level keeps the same index
+        % (3rd dim of the EFR globals) for every subject / condition, whatever
+        % levels each one has (e.g. 65/80 for one subject, 70 for another).
+        % Built once from all subjects × conditions of the run (ascending);
+        % a level that appears later (analysed during this run) is appended.
         all_efr_levels = [];
-        for lfi = 1:numel(lvl_files)
-            tok = regexp(lvl_files(lfi).name, '_(\d+)dBSPL', 'tokens');
-            if ~isempty(tok), all_efr_levels(end+1) = str2double(tok{1}{1}); end %#ok<AGROW>
+        if isappdata(0,'APAT_efr_levels'), all_efr_levels = getappdata(0,'APAT_efr_levels'); end
+        if isempty(all_efr_levels)
+            for ci = 1:numel(Chins2Run)
+                for ki = 1:numel(all_Conds2Run)
+                    all_efr_levels = [all_efr_levels, efr_levels_in( ...
+                        fullfile(OUTdir, EXPname, Chins2Run{ci}, all_Conds2Run{ki}), lvl_pattern)]; %#ok<AGROW>
+                end
+            end
+            all_efr_levels = sort(unique(all_efr_levels));
         end
-        all_efr_levels = sort(unique(all_efr_levels));
+        new_lev = setdiff(efr_levels_in(filepath, lvl_pattern), all_efr_levels);
+        all_efr_levels = [all_efr_levels, sort(new_lev)];
         if isempty(all_efr_levels), all_efr_levels = 80; end
+        setappdata(0, 'APAT_efr_levels', all_efr_levels);
         EFRsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
             ChinIND, CondIND, limits.avg, idx_plot_relative, all_efr_levels, shapes, colors, ...
             is_last_pair, subject_idx, subj_active_conds, EXPname2);
@@ -758,9 +951,14 @@ switch EXPname
         end
     case 'MEMR'
         cd(CODEdir);
-        WBMEMRsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
-            ChinIND, CondIND, idx_plot_relative, limits.avg, limits.threshold, shapes, colors, ...
-            is_last_pair, subj_active_conds);
+        if isempty(EXPname2)
+            WBMEMRsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
+                ChinIND, CondIND, idx_plot_relative, limits.avg, limits.threshold, shapes, colors, ...
+                is_last_pair, subj_active_conds);
+        else
+            mx_summary(EXPname2, filepath, OUTdir, Conds2Run, Chins2Run, all_Conds2Run, ...
+                ChinIND, CondIND, idx_plot_relative, colors, shapes, is_last_pair, subj_active_conds);
+        end
 end
 end
 
@@ -820,20 +1018,27 @@ elseif strcmp(EXPname, 'EFR')
         ind_figs = ind_figs(si);
     end
 elseif strcmp(EXPname, 'OAE')
-    % OAE individual figures: "Category|Label" names (Amplitudes|<cond>, Summary|<EXPname>).
-    % The combined average figure is identified by its 'oae_avg_*' Tag.
-    % avg_oae() creates intermediate numbered figures (no name, no tag) that
-    % must be excluded so the average panel receives exactly one figure.
+    % OAE figures are named 'Scale|<EPL | SPL | EPL + SPL>' (one per scale
+    % view); the group figures also carry Tag 'oae_avg_<view>'.
     fig_names = arrayfun(@(f) get(f,'Name'), from_subj,'UniformOutput',false);
     fig_tags  = arrayfun(@(f) get(f,'Tag'),  from_subj,'UniformOutput',false);
     has_pipe  = cellfun(@(nm) contains(nm,'|'), fig_names);
     is_avg    = cellfun(@(t)  strncmp(t,'oae_avg_',8), fig_tags);
-    ind_figs  = from_subj(has_pipe);
+    ind_figs  = from_subj(has_pipe & ~is_avg);
     avg_figs  = from_subj(is_avg);
     if ~isempty(ind_figs)
         [~, si] = sort(arrayfun(@(f) f.Number, ind_figs));
         ind_figs = ind_figs(si);
     end
+elseif strcmp(EXPname, 'MEMR')
+    % MEMR figures carry Tag 'memr_ind' (one per subject, all conditions)
+    % or 'memr_avg' (group figure); anything else (e.g. analysis plots) is
+    % shown with the individual results.
+    fig_tags = arrayfun(@(f) get(f,'Tag'), from_subj, 'UniformOutput', false);
+    is_avg   = strcmp(fig_tags, 'memr_avg');
+    ind_figs = from_subj(strcmp(fig_tags, 'memr_ind'));
+    if isempty(ind_figs), ind_figs = from_subj(~is_avg); end
+    avg_figs = from_subj(is_avg);
 else
     % Timing-based split: figures created before this summary call = individual
     ind_figs = setdiff(from_subj, new_this_call);
@@ -859,4 +1064,76 @@ end
 function s = onoff(tf)
 % ONOFF  Convert logical to 'on'/'off' string.
 if tf, s = 'on'; else, s = 'off'; end
+end
+
+
+function lev = efr_levels_in(folder, pattern)
+%EFR_LEVELS_IN  Stimulus levels (dB SPL) of the EFR analysis files in FOLDER,
+%   read from '..._<lev>dBSPL...' in the file names (any level, any number).
+lev = [];
+if ~exist(folder, 'dir'), return; end
+d = dir(fullfile(folder, pattern));
+d = d(~strncmp({d.name}, '._', 2));
+for k = 1:numel(d)
+    tok = regexp(d(k).name, '_(\d+(?:\.\d+)?)dBSPL', 'tokens', 'once');
+    if ~isempty(tok), lev(end+1) = str2double(tok{1}); end %#ok<AGROW>
+end
+lev = unique(lev);
+end
+
+
+function add_path_once(d, recursive)
+%ADD_PATH_ONCE  addpath only the folders not on the MATLAB path yet (a
+%   repeated addpath re-scans the path every run). APAT folders have no
+%   duplicate function names, so their order on the path does not matter.
+if recursive, p = genpath(d); else, p = d; end
+want = strsplit(p, pathsep);
+want = regexprep(want(~cellfun(@isempty, want)), '[\\/]+$', '');
+if isempty(want), return; end
+have = strsplit(path, pathsep);
+if ispc, miss = ~ismember(lower(want), lower(have)); else, miss = ~ismember(want, have); end
+if any(miss), addpath(want{miss}); end
+end
+
+
+function step_failed(ME, stage)
+%STEP_FAILED  A step of one subject / condition failed: log it (notice,
+%   Analysis/APAT_error_log.txt) and go on. Stop (APAT:UserAbort) still ends the run.
+if strcmp(ME.identifier, 'APAT:UserAbort'), rethrow(ME); end
+try, apat_run_error('error', ME, stage); catch, end
+end
+
+
+function v = ternary_s(c, a, b)
+if c, v = a; else, v = b; end
+end
+
+
+function run_state_clean(own_err)
+%RUN_STATE_CLEAN  onCleanup: prompt timeout / embed-save flags off; the
+%   error state is dropped only when this call started it (headless).
+try
+    if isappdata(0, 'APAT_prompt_timeout'), rmappdata(0, 'APAT_prompt_timeout'); end
+    if isappdata(0, 'APAT_embed_save'), rmappdata(0, 'APAT_embed_save'); end
+    if own_err, apat_run_error('end'); end
+catch
+end
+end
+
+
+function cleanup_after_abort(use_embed, figs0, cwd)
+%CLEANUP_AFTER_ABORT  onCleanup of analysis_run: only acts when the run did
+%   not reach its end (error or Stop).
+try
+    if isappdata(0, 'APAT_run_finished') && isequal(getappdata(0, 'APAT_run_finished'), true), return; end
+    if use_embed
+        f = setdiff(findall(0, 'Type','figure', 'Visible','off'), figs0);
+        f = f(isvalid(f));
+        f = f(arrayfun(@(h) ~strcmp(h.Name, 'Auditory Physiology Analysis Toolkit (APAT)'), f));
+        if ~isempty(f), delete(f); end
+        set(0, 'DefaultFigureVisible', 'on');
+    end
+    if exist(cwd, 'dir'), cd(cwd); end
+catch
+end
 end

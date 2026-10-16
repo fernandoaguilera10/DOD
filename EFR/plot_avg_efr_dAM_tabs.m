@@ -21,18 +21,28 @@ end
 
 % One figure per level ('Level|<lev> dB SPL', Tag 'APAT_efr_avg'); the app
 % shows one level at a time via the Level dropdown in the Results bar.
-n = numel(valid_li);  L = 0.07;  R = 0.82;
+n = numel(valid_li);  L = 0.07;  R = 0.95;   % full width (Oct 15)
 for k = 1:n
     li = valid_li(k);  A = averages{li};
     nm = sprintf('Level|%d dB SPL', round(all_levels(li)));
     old = findobj('Type','figure','Name',nm,'Tag','APAT_efr_avg');  if ~isempty(old), close(old); end
     fh = figure('Name',nm,'NumberTitle','off','Visible','off','Color','w','Tag','APAT_efr_avg', ...
         'Units','normalized','Position',[0.05 0.1 0.85 0.75]);
-    ax = axes(fh, 'Position',[L 0.22 R-L 0.64], 'Tag','efr_tile');  hold(ax,'on');  axs = ax;
+    ax = axes(fh, 'Position',[L 0.24 R-L 0.62], 'Tag','efr_tile');  hold(ax,'on');
     if rel, plot(ax, [1e-3 1e6], [0 0], 'k--', 'LineWidth',1.5, 'HandleVisibility','off'); end
-    for c = 1:numel(A.dAMpower)
+    % conditions with data; log x-axis and dodge (fraction of the band spacing)
+    has = find(arrayfun(@(c) ~isempty(A.trajectory{1,c}) && ~isempty(A.dAMpower{1,c}), 1:numel(A.dAMpower)));
+    trs = [];  for c = has, trs = [trs, double(A.trajectory{1,c}(:)')]; end %#ok<AGROW>
+    trs = trs(isfinite(trs) & trs > 0);
+    set(ax, 'XScale','log');
+    sp = 0.1;                                      % band spacing (log10 units)
+    if numel(unique(trs)) > 1, u = unique(trs); sp = median(diff(log10(u))); xlim(ax, [u(1)*10^(-0.6*sp), u(end)*10^(0.6*sp)]); end
+    offs = apat_dodge(numel(has)) * sp;
+    [ms, sa] = apat_ms(ax, 0.7*sp);   % points at true x: size from the x spacing
+    for j = 1:numel(has)
+        c  = has(j);
         tr = A.trajectory{1,c};  pw = A.dAMpower{1,c};
-        if isempty(tr) || isempty(pw), continue; end
+        xf = 10^offs(j);                           % multiplicative offset on the log axis
         ci  = c + col_offset;
         clr = colors(mod(ci-1, size(colors,1)) + 1, 1:3);
         shp = strtrim(char(shapes(mod(ci-1, size(shapes,1)) + 1, :)));  if isempty(shp), shp = 'o'; end
@@ -42,15 +52,16 @@ for k = 1:n
             if isempty(ys) || isempty(xs), continue; end
             m = min(numel(xs), numel(ys));
             if numel(Chins2Run) >= s, sn = char(Chins2Run{s}); else, sn = sprintf('Subject %d', s); end
-            scatter(ax, xs(1:m), ys(1:m), 40, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, ...
+            jit = 10^(((mod(s*7,11)/10) - 0.5) * 0.06 * sp);
+            scatter(ax, xs(1:m)*xf*jit, ys(1:m), sa, clr, shp, 'filled', 'MarkerFaceAlpha',0.30, ...
                 'MarkerEdgeColor','none', 'HandleVisibility','off', 'Tag','efr_subj_pts', ...
                 'Visible','off', 'DisplayName',sn);
         end
         if isfield(A,'NFpower') && numel(A.NFpower) >= c && ~isempty(A.NFpower{1,c})
             plot(ax, tr, A.NFpower{1,c}, '--', 'Color',clr, 'LineWidth',1.5, 'HandleVisibility','off');
         end
-        errorbar(ax, tr, pw, A.dAMpower_std{1,c}, 'Marker',shp, 'LineStyle','-', 'LineWidth',2, ...
-            'MarkerSize',9, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, 'HandleVisibility','off');
+        errorbar(ax, tr*xf, pw, A.dAMpower_std{1,c}, 'Marker',shp, 'LineStyle','-', 'LineWidth',2, ...
+            'MarkerSize',ms, 'Color',clr, 'MarkerFaceColor',clr, 'MarkerEdgeColor',clr, 'HandleVisibility','off');
     end
     set(ax, 'XScale','log', 'FontSize',14, 'Box','off');  grid(ax,'on');
     xlabel(ax, 'Modulation Frequency (Hz)', 'FontWeight','bold');
@@ -67,24 +78,22 @@ for k = 1:n
         lo = min(yy);  hi = max(yy);  r = max(hi - lo, 0.5);
         ylim(ax, [lo - 0.12*r, hi + 0.12*r]);
     end
-    title(ax, 'dAM power', 'FontSize',14, 'FontWeight','bold');
+    title(ax, 'dAM Power', 'FontSize',14, 'FontWeight','bold');
+    apat_xgroups(ax, trs);                         % one column per modulation band
     % figure title (axes, survives embedding)
-    axH = axes(fh, 'Position',[0 0.92 0.89 0.06], 'Visible','off');
+    axH = axes(fh, 'Position',[0 0.92 1 0.06], 'Visible','off');
     text(axH, 0.5, 0.5, sprintf('EFR dAM 4 kHz — %d dB SPL', round(all_levels(li))), 'FontSize',16, ...
         'FontWeight','bold', 'HorizontalAlignment','center', 'Color',[0.15 0.15 0.15]);
-    text(ax, 1, -0.16, 'dashed = noise floor', 'Units','normalized', 'FontSize',11, ...
-        'Color',[0.45 0.45 0.45], 'HorizontalAlignment','right', 'VerticalAlignment','top');
-    % condition legend under the plot (squares, black edge) — as ABR Peaks
+    % legends at the bottom: conditions (line + marker) and the noise-floor key
     if ~isempty(names)
-        lh = gobjects(1, numel(names));
+        LC = struct('clr',{},'shp',{},'label',{});
         for i = 1:numel(names)
-            lh(i) = plot(ax, NaN, NaN, 's', 'MarkerFaceColor',colors(cidx_list(i),:), ...
-                'MarkerEdgeColor','k', 'MarkerSize',12, 'LineWidth',1.5);
+            ci  = cidx_list(i);
+            shp = strtrim(char(shapes(mod(ci-1, size(shapes,1)) + 1, :)));  if isempty(shp), shp = 'o'; end
+            LC(end+1) = struct('clr',colors(ci,1:3), 'shp',shp, 'label',names{i}); %#ok<AGROW>
         end
-        lg = legend(ax, lh, names, 'Orientation','horizontal', 'Box','off', 'FontSize',14, 'Location','none');
-        lg.Units = 'normalized';
-        lg.Position(1) = L + (R - L - lg.Position(3))/2;
-        lg.Position(2) = 0.03;
+        keys = struct('args',{{'--','Color',[0.5 0.5 0.5],'LineWidth',1.5}}, 'label','Noise Floor');
+        apat_legend(fh, ax, LC, keys, L, R - L);
     end
 end
 end

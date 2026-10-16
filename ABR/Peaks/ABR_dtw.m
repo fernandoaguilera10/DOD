@@ -16,6 +16,11 @@ template_shift = 'none';        % xcorr / peak / none
 if ~exist('template_per_level','var') || isempty(template_per_level), template_per_level = false; end
 if ~exist('peak_ui','var'), peak_ui  = []; end
 if ~exist('wave_sel','var') || isempty(wave_sel), wave_sel = true(1,5); end
+% Repeated levels (Setup "Repeated Levels", root appdata APAT_abr_dup_levels
+% set by analysis_run>get_measure_params): 'all' = one file per level (the
+% last file of a repeated level, as before); 'average' = the sweeps of every
+% file with that rounded level are pooled into one waveform.
+dup_mode = dup_levels_mode();
 cwd = pwd;
 TEMPLATEdir = strcat(CODEdir,filesep,'templates');
 
@@ -35,8 +40,7 @@ for ci = 1:numel(CondINDs)
         for i = 1:numel(datafiles)
             if strncmp(datafiles{i}, '._', 2), continue; end   % macOS resource fork
             try
-                S = load(fullfile(datapaths{ci}, datafiles{i}), 'x');
-                levs(i) = round(S.x.Stimuli.MaxdBSPLCalib - S.x.Stimuli.atten_dB);
+                levs(i) = file_level(fullfile(datapaths{ci}, datafiles{i}));
             catch ME
                 fprintf('  [ABR_dtw] Could not read level from %s: %s\n', datafiles{i}, ME.message);
             end
@@ -123,6 +127,8 @@ for z = 1:length(freq)
         abr_points = nan(length(all_point_names),3);
         abrs = struct();
         abrs.nel = []; abrs.subject = []; abrs.sex = [];
+        pooled   = struct('level', {}, 'files', {}, 'n_sweeps', {});   % 'average': files merged per level
+        repeated = struct('level', {}, 'files', {}, 'used', {});       % 'all': repeated levels, file used
 
         % ── 1) Load every level first (template + waveform) ────────────────
         % so the whole waterfall can be shown up front and any level can be
@@ -166,15 +172,34 @@ for z = 1:length(freq)
                 else
                     datafiles = {dir(fullfile(cd,['p*',mat2str(freq(z)),'*.mat'])).name};
                 end
-                load(datafiles{idx_abr{ci}(j,z)});
-                % Resample and remove DC
                 fs = 8e3;
-                if iscell(x.AD_Data.AD_All_V{1})
-                    abr_data = mean(x.AD_Data.AD_All_V{1}{1}) - mean(mean(x.AD_Data.AD_All_V{1}{1}));
+                f_all = find(file_lev{ci,z} == levels(j));        % every file at this level
+                if strcmp(dup_mode, 'average') && numel(f_all) > 1
+                    % Pool the sweeps of all files at this level: the mean of
+                    % the pooled sweeps = trial-weighted mean of the file means
+                    % (DC removal and resampling are linear)
+                    acc = [];  n_sw = zeros(1, numel(f_all));
+                    for q = 1:numel(f_all)
+                        S_raw = load(datafiles{f_all(q)}, 'x');  x = S_raw.x;  clear S_raw
+                        [w_q, n_sw(q)] = file_wave(x, fs);
+                        if isempty(acc), acc = n_sw(q)*w_q;
+                        else, m = min(numel(acc), numel(w_q)); acc = acc(1:m) + n_sw(q)*w_q(1:m); end
+                    end
+                    abr_data = acc / sum(n_sw);
+                    pooled(end+1) = struct('level', levels(j), 'files', {datafiles(f_all)}, ...
+                        'n_sweeps', n_sw); %#ok<AGROW>
+                    fprintf('  [ABR_dtw] %s %d dB SPL: pooled %d files (%s).\n', freq_str, levels(j), ...
+                        numel(f_all), strjoin(datafiles(f_all), ', '));
                 else
-                    abr_data = mean(cell2mat(x.AD_Data.AD_All_V)) - mean(mean(cell2mat(x.AD_Data.AD_All_V)));
+                    S_raw = load(datafiles{idx_abr{ci}(j,z)}, 'x');  x = S_raw.x;  clear S_raw
+                    abr_data = file_wave(x, fs);                  % resampled, DC removed
+                    if numel(f_all) > 1
+                        repeated(end+1) = struct('level', levels(j), 'files', {datafiles(f_all)}, ...
+                            'used', datafiles(idx_abr{ci}(j,z))); %#ok<AGROW>
+                        fprintf('  [ABR_dtw] %s %d dB SPL recorded %d times — using %s (Repeated Levels: Average pools them).\n', ...
+                            freq_str, levels(j), numel(f_all), datafiles{idx_abr{ci}(j,z)});
+                    end
                 end
-                abr_data = resample(abr_data,fs,round(x.Stimuli.RPsamprate_Hz));
                 abr_t = (1:length(abr_data))/fs;
 
                 % MetaData (NEL / sex from the acquisition file, if recorded)
@@ -237,6 +262,7 @@ for z = 1:length(freq)
         use_session = isstruct(peak_ui) && isfield(peak_ui,'fig') && isvalid(peak_ui.fig);
         vis_thr = NaN;  vis_src = '';                  % visual threshold (app mode)
         save_mode = 'overwrite';                       % or 'new' (keep the existing file)
+        stopped   = false;                             % Stop pressed during this session
         if use_session
             % App mode: full waterfall on the left; levels are proposed high →
             % low, but clicking any level in the waterfall jumps to it.
@@ -329,6 +355,8 @@ for z = 1:length(freq)
                 S = wf_set_current(S, j, visited);
                 S = wf_update_level(S, j, PKs{j}, LATs{j}, colors, shapes, wave_sel);  % show this level's picks
                 opts = struct('session',true, 'init_inds',inds_store{j}, 'do_log',false);
+                setappdata(peak_ui.fig, 'peak_ref_level', ...          % for the Earl reference bands
+                    struct('lev',levels(j), 'thr',S.thr, 'freq',freq(z)));
                 [pk, lat, inds, nav] = findPeaks_dtw(L(j).t, L(j).data, L(j).tpl, L(j).pts, ...
                     Chins2Run(ChinIND), condition{2}, Conds2Run, CondIND, ChinIND, levels, fig_num, j, ...
                     colors, shapes, ylimits_ind, freq_str, idx_abr{ci}(j,z), idx_template(j,z), ...
@@ -338,7 +366,13 @@ for z = 1:length(freq)
                 PKs{j} = pk;  LATs{j} = lat;
                 visited(j)    = true;
                 S = wf_update_level(S, j, pk, lat, colors, shapes, wave_sel);
-                if strcmp(nav.type,'thresh') && ~isempty(nav.level)
+                if strcmp(nav.type,'abort')
+                    % Stop pressed: save what has been picked so far and leave
+                    % peak picking. An existing file is kept (saved as _vN).
+                    stopped = true;
+                    if isstruct(prev), save_mode = 'new'; end
+                    j = [];
+                elseif strcmp(nav.type,'thresh') && ~isempty(nav.level)
                     % Visual threshold set on the waterfall → re-space levels
                     S = wf_relayout(S, levels(nav.level), 'manual', colors, shapes, wave_sel);
                     peak_ui_msg(peak_ui, sprintf('Threshold set to %d dB SPL', levels(nav.level)));
@@ -396,6 +430,11 @@ for z = 1:length(freq)
         abrs.threshold_visual_source = vis_src;   % 'auto' (estimate accepted) or 'manual'
         abrs.peak_amplitude = PA;
         abrs.peak_latency   = PL;
+        if exist('visited','var'), abrs.levels_reviewed = visited(:); end   % opened in the editor
+        abrs.stopped_early  = stopped;     % true → Stop pressed; unreviewed levels keep auto picks
+        abrs.dup_levels     = dup_mode;    % Repeated Levels setting: 'all' | 'average'
+        abrs.pooled         = pooled;      % 'average': level, files pooled, sweeps per file
+        abrs.repeated       = repeated;    % 'all': repeated levels and the file used
         avail = find(has_data);
         if ~isempty(avail)
             ns = max(arrayfun(@(k) numel(L(k).data), avail));
@@ -417,19 +456,24 @@ for z = 1:length(freq)
             while exist(fullfile(outpath, sprintf('%s_v%d.mat', filename, v)), 'file'), v = v + 1; end
             filename = sprintf('%s_v%d', filename, v);
         end
-        % Save waterfall figure
-        wf_name = sprintf('Peaks Waterfall|%s|%s', condition{end}, freq_str);
-        fh = findobj('Type','figure','Name',wf_name);
-        if ~isempty(fh) && isvalid(fh(1))
-            print(fh(1),[filename,'_figure'],'-dpng','-r300');
-        end
+        % (The classic-mode waterfall is no longer saved as a PNG: the summary
+        % saves <stem>_figure.png — same waveforms and picks, plus the
+        % amplitude / latency growth — next to this .mat; plot_ind_abr.)
         % Close classic interactive edit figure (standalone mode only)
         if isempty(peak_ui)
             fedit = findobj('Type','figure','Name','ABR Peak Selection');
             if ~isempty(fedit), close(fedit); end
         end
+        if ~isfield(abrs,'sex') || isempty(abrs.sex)        % not confirmed / recorded: chinroster Sex
+            abrs.sex = apat_sex('get', Chins2Run{ChinIND});
+        end
         save(filename,'abrs')
         cd(cwd)
+        if stopped
+            % End the run: the app's catch treats this as a user stop
+            % (no error dialog) and closes the peak editor.
+            error('APAT:UserAbort','Analysis stopped by user (peaks saved).');
+        end
     end
 end
 end
@@ -510,7 +554,7 @@ hold(ax,'on');  grid(ax,'on');
 xlabel(ax, 'Time (ms)', 'FontWeight','bold', 'FontSize',15);
 set(ax, 'YColor','none', 'FontSize',13);
 xlim(ax, [0 20]);
-title(ax, 'Click any level to edit it', 'FontSize',12, 'FontWeight','normal', ...
+title(ax, 'Click Any Level To Edit It', 'FontSize',12, 'FontWeight','normal', ...
     'Color',[0.45 0.45 0.45]);
 S.ax = ax;
 
@@ -795,5 +839,59 @@ if has_prev
         case 'Save as new', save_mode = 'new';
         otherwise,          ok = false;
     end
+end
+end
+
+
+function lev = file_level(fp)
+%FILE_LEVEL  Stimulus level (dB SPL) of one raw ABR file. Reading it needs
+%   the whole raw struct x, so the value is cached for the session in root
+%   appdata 'APAT_abr_lev_cache', keyed by path + file date + size (a
+%   rewritten file is read again). Errors are thrown to the caller (as the
+%   inline code did); failed reads are not cached.
+C = [];
+if isappdata(0, 'APAT_abr_lev_cache'), C = getappdata(0, 'APAT_abr_lev_cache'); end
+if ~isa(C, 'containers.Map'), C = containers.Map('KeyType','char','ValueType','any'); end
+d = dir(fp);
+sig = [];
+if numel(d) == 1, sig = [d.datenum, d.bytes]; end
+if ~isempty(sig) && isKey(C, fp) && isequal(C(fp).sig, sig)
+    lev = C(fp).lev;
+    return
+end
+S = load(fp, 'x');
+lev = round(S.x.Stimuli.MaxdBSPLCalib - S.x.Stimuli.atten_dB);
+if ~isempty(sig)
+    C(fp) = struct('sig', sig, 'lev', lev);
+    setappdata(0, 'APAT_abr_lev_cache', C);
+end
+end
+
+
+function [w, n] = file_wave(x, fs)
+%FILE_WAVE  Averaged ABR waveform of one raw file (mean of its sweeps, DC
+%   removed, resampled to fs) and its number of sweeps n. Same computation
+%   as the inline code used before (Repeated Levels pooling weights by n).
+if iscell(x.AD_Data.AD_All_V{1})
+    M = x.AD_Data.AD_All_V{1}{1};
+else
+    M = cell2mat(x.AD_Data.AD_All_V);
+end
+w = mean(M) - mean(mean(M));
+n = size(M, 1);
+w = resample(w, fs, round(x.Stimuli.RPsamprate_Hz));
+end
+
+
+function m = dup_levels_mode()
+%DUP_LEVELS_MODE  'all' (default) or 'average' from root appdata
+%   APAT_abr_dup_levels (Setup "Repeated Levels", via get_measure_params).
+m = 'all';
+try
+    if isappdata(0, 'APAT_abr_dup_levels')
+        v = lower(char(getappdata(0, 'APAT_abr_dup_levels')));
+        if strcmp(v, 'average'), m = 'average'; end
+    end
+catch
 end
 end

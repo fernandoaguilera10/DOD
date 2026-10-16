@@ -1,6 +1,8 @@
-function average = avg_efr(x1, y1, y2, y3, Chins2Run, Conds2Run, all_Conds2Run, counter, colors, shapes, idx_plot_relative, idx, conds_idx, plot_type)
+function average = avg_efr(x1, y1, y2, y3, Chins2Run, Conds2Run, all_Conds2Run, counter, colors, shapes, idx_plot_relative, idx, conds_idx, plot_type, env)
 % Accumulate per-subject EFR data and return average struct.
-%   plot_type 'RAM': x1=peaks_locs_all, y1=peaks, y2=f, y3=plv_env
+%   plot_type 'RAM': x1=peaks_locs_all, y1=peaks, y2=f, y3=plv_env,
+%                    env (optional) = envelope waveforms t_env (µV), for
+%                    the Magnitude (µV) harmonic sums
 %   plot_type 'dAM': x1=trajectory_smooth, y1=dAMpower_smooth, y2=NFpower_smooth, y3=[]
 if isempty(idx_plot_relative)
     conds = length(all_Conds2Run);
@@ -8,13 +10,14 @@ else
     conds = length(all_Conds2Run)-1;
 end
 if conds < 1
-    uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
+    try, apat_run_error('error', 'Must have at least 2 conditions to do a comparison (relative mode) — no group average.', 'average'); catch, end
     return
 end
 
 switch plot_type
     case 'RAM'
-        average = avg_RAM(x1, y1, y2, y3, Chins2Run, all_Conds2Run, idx_plot_relative, idx, conds, counter);
+        if nargin < 15 || isempty(env), env = cell(size(y1)); end
+        average = avg_RAM(x1, y1, y2, y3, env, Chins2Run, all_Conds2Run, idx_plot_relative, idx, conds, counter);
     case 'dAM'
         average = avg_dAM(x1, y1, y2, Chins2Run, all_Conds2Run, idx_plot_relative, idx, conds, counter);
 end
@@ -22,7 +25,7 @@ end
 
 
 % ── RAM accumulator ───────────────────────────────────────────────────────────
-function average = avg_RAM(peaks_locs, peaks, f, plv_env, Chins2Run, all_Conds2Run, idx_plot_relative, idx, conds, counter)
+function average = avg_RAM(peaks_locs, peaks, f, plv_env, env, Chins2Run, all_Conds2Run, idx_plot_relative, idx, conds, counter)
 avg_peaks_locs{1,conds} = [];
 avg_peaks{1,conds}      = [];
 avg_plv_env{1,conds}    = [];
@@ -43,16 +46,16 @@ if isempty(idx_plot_relative)
                 all_plv_sum{rows,cols}         = NaN;
                 all_low_high_peaks{rows,cols}  = [NaN NaN];
             else
-                avg_peaks_locs{1,cols} = nanmean([avg_peaks_locs{1,cols}; peaks_locs{rows,cols}], 1);
-                avg_peaks{1,cols}      = nanmean([avg_peaks{1,cols}; p], 1);
-                mt = efr_ram_metrics(p, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o);
+                avg_peaks_locs{1,cols} = [avg_peaks_locs{1,cols}; peaks_locs{rows,cols}];
+                avg_peaks{1,cols}      = [avg_peaks{1,cols}; p];
+                mt = efr_ram_metrics(p, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o, env{rows,cols});
                 all_low_high_peaks{rows,cols} = [mt.low, mt.high];   % chosen measure
                 all_peaks{rows,cols}   = p;
                 all_plv_sum{rows,cols} = mt.total;                   % PLV, all harmonics
             end
             peaks_std{1,cols}   = safe_std(all_peaks(:,cols));
-            avg_plv_env{1,cols} = nanmean_rows([avg_plv_env{1,cols}; plv_env{rows,cols}]);
-            avg_f{1,cols}       = nanmean_rows([avg_f{1,cols};       f{rows,cols}]);
+            avg_plv_env{1,cols} = [avg_plv_env{1,cols}; plv_env{rows,cols}];
+            avg_f{1,cols}       = [avg_f{1,cols}; f{rows,cols}];
         end
     end
 else
@@ -68,22 +71,26 @@ else
                     all_low_high_peaks{rows,c_idx} = [NaN NaN];
                 else
                     diff_p = pc - pr;
-                    avg_peaks_locs{1,c_idx} = nanmean([avg_peaks_locs{1,c_idx}; peaks_locs{rows,cols}], 1);
-                    avg_peaks{1,c_idx}      = nanmean([avg_peaks{1,c_idx}; diff_p], 1);
-                    mc = efr_ram_metrics(pc, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o);
+                    avg_peaks_locs{1,c_idx} = [avg_peaks_locs{1,c_idx}; peaks_locs{rows,cols}];
+                    avg_peaks{1,c_idx}      = [avg_peaks{1,c_idx}; diff_p];
+                    mc = efr_ram_metrics(pc, peaks_locs{rows,cols}, f{rows,cols}, plv_env{rows,cols}, o, env{rows,cols});
                     mr = efr_ram_metrics(pr, peaks_locs{rows,idx_plot_relative}, f{rows,idx_plot_relative}, ...
-                        plv_env{rows,idx_plot_relative}, o);
+                        plv_env{rows,idx_plot_relative}, o, env{rows,idx_plot_relative});
                     all_low_high_peaks{rows,c_idx} = [mc.low - mr.low, mc.high - mr.high];
                     all_peaks{rows,c_idx}   = diff_p;
                     all_plv_sum{rows,c_idx} = mc.total - mr.total;
-                    avg_plv_env{1,c_idx}    = nanmean_rows([avg_plv_env{1,c_idx}; plv_env{rows,cols}-plv_env{rows,idx_plot_relative}]);
-                    avg_f{1,c_idx}          = nanmean_rows([avg_f{1,c_idx}; f{rows,cols}]);
+                    avg_plv_env{1,c_idx}    = [avg_plv_env{1,c_idx}; plv_env{rows,cols}-plv_env{rows,idx_plot_relative}];
+                    avg_f{1,c_idx}          = [avg_f{1,c_idx}; f{rows,cols}];
                 end
                 peaks_std{1,c_idx} = safe_std(all_peaks(:,c_idx));
             end
         end
     end
 end
+avg_f          = stack_mean(avg_f, true);
+avg_plv_env    = stack_mean(avg_plv_env, true);
+avg_peaks_locs = stack_mean(avg_peaks_locs, true);
+avg_peaks      = stack_mean(avg_peaks, true);
 average.f                  = avg_f;
 average.plv_env            = avg_plv_env;
 average.peaks_locs         = avg_peaks_locs;
@@ -116,9 +123,9 @@ if isempty(idx_plot_relative)
                 all_dAMpower{rows,cols}   = [];
                 all_NFpower{rows,cols}    = [];
             else
-                avg_trajectory{1,cols} = nanmean_rows([avg_trajectory{1,cols}; trajectory{rows,cols}]);
-                avg_dAMpower{1,cols}   = nanmean_rows([avg_dAMpower{1,cols};   d]);
-                avg_NFpower{1,cols}    = nanmean_rows([avg_NFpower{1,cols};    n]);
+                avg_trajectory{1,cols} = [avg_trajectory{1,cols}; trajectory{rows,cols}];
+                avg_dAMpower{1,cols}   = [avg_dAMpower{1,cols}; d];
+                avg_NFpower{1,cols}    = [avg_NFpower{1,cols}; n];
                 all_trajectory{rows,cols} = trajectory{rows,cols};
                 all_dAMpower{rows,cols}   = d;
                 all_NFpower{rows,cols}    = n;
@@ -140,9 +147,9 @@ else
                     all_dAMpower{rows,c_idx}   = [];
                     all_NFpower{rows,c_idx}    = [];
                 else
-                    avg_trajectory{1,c_idx} = nanmean_rows([avg_trajectory{1,c_idx}; trajectory{rows,cols}]);
-                    avg_dAMpower{1,c_idx}   = nanmean_rows([avg_dAMpower{1,c_idx}; dc - dr]);
-                    avg_NFpower{1,c_idx}    = nanmean_rows([avg_NFpower{1,c_idx};  nc - nr]);
+                    avg_trajectory{1,c_idx} = [avg_trajectory{1,c_idx}; trajectory{rows,cols}];
+                    avg_dAMpower{1,c_idx}   = [avg_dAMpower{1,c_idx}; dc - dr];
+                    avg_NFpower{1,c_idx}    = [avg_NFpower{1,c_idx}; nc - nr];
                     all_trajectory{rows,c_idx} = trajectory{rows,cols};
                     all_dAMpower{rows,c_idx}   = dc - dr;
                     all_NFpower{rows,c_idx}    = nc - nr;
@@ -153,6 +160,9 @@ else
         end
     end
 end
+avg_trajectory = stack_mean(avg_trajectory, true);
+avg_dAMpower   = stack_mean(avg_dAMpower, true);
+avg_NFpower    = stack_mean(avg_NFpower, true);
 average.trajectory     = avg_trajectory;
 average.dAMpower       = avg_dAMpower;
 average.NFpower        = avg_NFpower;
@@ -167,7 +177,7 @@ end
 % ── Helpers ───────────────────────────────────────────────────────────────────
 
 function s = safe_std(col_cell)
-% nanstd across a cell column, skipping empties.
+% NaN-ignoring std across a cell column, skipping empties.
 col = col_cell(:);
 ne  = find(~cellfun(@isempty, col));
 if isempty(ne), s = []; return; end
@@ -175,10 +185,21 @@ ref = size(col{ne(1)});
 for ri = 1:numel(col)
     if isempty(col{ri}), col{ri} = nan(ref); end
 end
-s = nanstd(cell2mat(col), 0, 1);
+s = std(cell2mat(col), 0, 1, 'omitmissing');
 end
 
 function out = nanmean_rows(A)
 % mean(A,1) tolerant of empty A.
-if isempty(A), out = []; else, out = nanmean(A, 1); end
+if isempty(A), out = []; else, out = mean(A, 1, 'omitmissing'); end
+end
+
+function c = stack_mean(c, omit_nan)
+% Equal-weight group mean. Each cell holds one row per subject (stacked in
+% the loop above); average them in one step so every subject counts 1/N.
+% (Replaces the old running mean([avg; new]), which weighted later subjects
+% more: a/4 + b/4 + c/2 for three subjects.)
+for k = 1:numel(c)
+    if isempty(c{k}), continue; end
+    if omit_nan, c{k} = mean(c{k}, 1, 'omitnan'); else, c{k} = mean(c{k}, 1); end
+end
 end

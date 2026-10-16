@@ -1,75 +1,109 @@
-function [average,idx] = avg_oae(f,oae_amp,oae_nf,f_band,oae_amp_band,oae_nf_band,Chins2Run,Conds2Run,all_Conds2Run,counter,colors,shapes,idx_plot_relative)
-if isempty(idx_plot_relative)
-    conds = length(all_Conds2Run);
-elseif ~isempty(idx_plot_relative)
-    conds = length(all_Conds2Run)-1;
-end
-if conds < 1
-    uiwait(msgbox('ERROR: Must have at least 2 conditions to do comparison','Conditions to Run','error'));
-    return
-end
-avg_f{1,conds} = [];
-avg_amp{1,conds} = [];
-avg_nf{1,conds} = [];
-avg_oae_band{1,conds} = [];
-avg_nf_band{1,conds} = [];
-all_oae_band{1,conds} = [];
-oae_band_std{1,conds} = [];
-idx = ~cellfun(@isempty,oae_amp);    % find if data file is present: rows = Chins2Run, cols = Conds2Run
-if isempty(idx_plot_relative)   % plot all timepoints, including baseline
-    for cols = 1:length(all_Conds2Run)
-        for rows = 1:length(Chins2Run)
-            avg_f{1,cols} = mean([avg_f{1,cols}; f{rows, cols}],1);
-            avg_amp{1,cols} = mean([avg_amp{1,cols}; oae_amp{rows, cols}],1);
-            avg_nf{1,cols} = mean([avg_nf{1,cols}; oae_nf{rows, cols}],1);
-            avg_oae_band{1,cols} = mean([avg_oae_band{1,cols}; oae_amp_band{rows, cols}],1);
-            avg_nf_band{1,cols} = mean([avg_nf_band{1,cols}; oae_nf_band{rows, cols}],1);
-            all_oae_band{rows,cols} = oae_amp_band{rows, cols};
-            oae_band_std{1,cols} = std(cell2mat(all_oae_band(:,cols)),0,1);
-            % check if data is present for a given timepoint and subject
-            if idx(rows,cols) == 1
-                % Plot individual traces with average
-                figure(counter);
-                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
-                hold on;
-                %plot(f_band, oae_amp_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','-', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-                %plot(f_band, oae_nf_band{rows, cols},'Marker',shapes(cols,:),'LineStyle','--', 'linew', 2,'Color', [colors(cols,:),0.30], 'MarkerSize', 3, 'MarkerFaceColor', colors(cols,:), 'MarkerEdgeColor', colors(cols,:),'HandleVisibility','off');
-                set(gca, 'XScale', 'log', 'FontSize', 14);
-            end
-        end
-    end
-elseif ~isempty(idx_plot_relative)
-    for cols = 1:length(all_Conds2Run)
-        for rows = 1:length(Chins2Run)
-            if cols ~= idx_plot_relative && idx(rows,cols) == 1
-                avg_f{1,cols-1} = mean([avg_f{1,cols-1}; f{rows, cols}],1);
-                avg_amp{1,cols-1} = mean([avg_amp{1,cols-1}; oae_amp{rows, cols}-oae_amp{rows, idx_plot_relative}],1);
-                avg_nf{1,cols-1} = mean([avg_nf{1,cols-1}; oae_nf{rows, cols}-oae_nf{rows, idx_plot_relative}],1);
-                avg_oae_band{1,cols-1} = mean([avg_oae_band{1,cols-1}; oae_amp_band{rows, cols}-oae_amp_band{rows, idx_plot_relative}],1);
-                avg_nf_band{1,cols-1} = mean([avg_nf_band{1,cols-1}; oae_nf_band{rows, cols}-oae_nf_band{rows, idx_plot_relative}],1);
-                all_oae_band{rows,cols-1} = oae_amp_band{rows, cols}-oae_amp_band{rows, idx_plot_relative};
-                oae_band_std{1,cols-1} = std(cell2mat(all_oae_band(:,cols-1)),0,1);
-                % check if data is present for a given timepoint and subject
-                if idx(rows,cols) == 1
-                    % Plot individual traces with average
-                    figure(counter);
-                if strcmp(get(0,'DefaultFigureVisible'),'off'), set(gcf,'Visible','off'); end
-                hold on;
-                    %plot(f{rows, cols}, oae_amp{rows, cols}-oae_amp{rows, idx_plot_relative}, '-', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
-                    %plot(f{rows, cols}, oae_nf{rows, cols}-oae_nf{rows, idx_plot_relative}, '--', 'linew', 2, 'Color', [colors(cols,:),0.25],'HandleVisibility','off');
-                    set(gca, 'XScale', 'log', 'FontSize', 14);
-                end
-            end
-        end
-    end
-end
-average.f = avg_f;
-average.oae = avg_amp;
-average.nf = avg_nf;
-average.bandF = [f_band]';
-average.bandOAE = avg_oae_band;
-average.bandNF = avg_nf_band;
-average.oae_band_std = oae_band_std;
-average.all_oae_band = all_oae_band;
+function A = avg_oae(store, scale, all_Conds2Run, idx_plot_relative, o)
+%AVG_OAE  Group data for one scale ('epl' | 'spl') from the per-subject store.
+%
+%   A = avg_oae(store, scale, all_Conds2Run, idx_plot_relative, o)
+%     store   cell {nSubjects x nConditions} of saved OAE data structs
+%   Every subject contributes one row per condition (NaN when missing), so
+%   the means are true group means (the earlier running mean weighted later
+%   subjects more). With idx_plot_relative set, each value is the subject's
+%   change from its own reference condition (subjects without the reference
+%   are left out of that condition).
+%
+%   A.cols          condition indices shown (reference removed when relative)
+%   A.cf            band centres (kHz)
+%   A.band{k}       nS x nBands values (dB, or SNR / change, see o.y_measure)
+%   A.band_nf{k}    nS x nBands band noise floor (amplitude only; [] otherwise)
+%   A.reg{k}        nS x 3 region values
+%   A.fg, A.full{k} common log frequency grid and nS x nf full-resolution
+%                   values (interpolated) for the mean curve
+%   A.n(k)          subjects with data
+%   plus the fields of the old average files (bandF, bandOAE, bandNF,
+%   oae_band_std, all_oae_band, f, oae, nf) for downstream scripts.
+if nargin < 5, o = oae_opts(); end
+[nS, nC] = size(store);
+rel = ~isempty(idx_plot_relative);
+cols = 1:nC;
+if rel, cols = setdiff(cols, idx_plot_relative); end
+[cf, ~, ~] = oae_bands(o);
+nb = numel(cf);
+fg = 2 .^ linspace(log2(o.frange(1)), log2(o.frange(2)), 512);
+snr = strcmp(o.y_measure, 'snr');
+excl = strcmp(o.gate_avg, 'exclude');
 
+% ── per subject / condition values ───────────────────────────────────────
+V  = nan(nS, nb, nC);  NF = nan(nS, nb, nC);  R = nan(nS, 3, nC);
+F  = nan(nS, numel(fg), nC);  FN = nan(nS, numel(fg), nC);
+has = false(nS, nC);
+for s = 1:nS
+    for c = 1:nC
+        D = [];
+        if ~isempty(store{s,c}), D = oae_derive(store{s,c}, scale, o); end
+        if isempty(D), continue; end
+        has(s,c) = true;
+        b = D.band;  r = D.reg;
+        if snr
+            bv = b.snr;  rv = r.snr;  full = D.oae - D.nf;
+        else
+            bv = b.oae;  rv = r.oae;  full = D.oae;
+        end
+        if excl, bv(~b.ok) = NaN;  rv(~r.ok) = NaN; end
+        V(s,:,c)  = bv;   NF(s,:,c) = b.nf;   R(s,:,c) = rv;
+        [fu, iu] = unique(D.f);
+        if numel(fu) > 1
+            F(s,:,c)  = interp1(fu, full(iu),  fg, 'linear', NaN);
+            FN(s,:,c) = interp1(fu, D.nf(iu), fg, 'linear', NaN);
+        end
+    end
+end
+
+% ── relative to reference condition ─────────────────────────────────────
+if rel
+    ref = idx_plot_relative;
+    for c = cols
+        V(:,:,c) = V(:,:,c) - V(:,:,ref);
+        R(:,:,c) = R(:,:,c) - R(:,:,ref);
+        F(:,:,c) = F(:,:,c) - F(:,:,ref);
+        has(:,c) = has(:,c) & has(:,ref);
+    end
+end
+
+% ── pack ─────────────────────────────────────────────────────────────────
+A = struct();
+A.scale = upper(scale);  A.cols = cols;  A.cf = cf;  A.fg = fg;
+A.relative = rel;  A.ref = idx_plot_relative;  A.opts = o;
+nk = numel(cols);
+A.band = cell(1,nk);  A.band_nf = cell(1,nk);  A.reg = cell(1,nk);
+A.full = cell(1,nk);  A.full_nf = cell(1,nk);  A.n = zeros(1,nk);
+for k = 1:nk
+    c = cols(k);  m = has(:,c);
+    v = V(:,:,c);   v(~m,:) = NaN;   A.band{k} = v;
+    r = R(:,:,c);   r(~m,:) = NaN;   A.reg{k}  = r;
+    f = F(:,:,c);   f(~m,:) = NaN;   A.full{k} = f;
+    if ~rel && ~snr
+        nf = NF(:,:,c);  nf(~m,:) = NaN;  A.band_nf{k} = nf;
+        fn = FN(:,:,c);  fn(~m,:) = NaN;  A.full_nf{k} = fn;
+    end
+    A.n(k) = nnz(m);
+end
+
+% Fields of the previous average files (kept for downstream scripts)
+A.bandF = cf(:);
+A.f = cell(1,nk);  A.oae = cell(1,nk);  A.nf = cell(1,nk);
+A.bandOAE = cell(1,nk);  A.bandNF = cell(1,nk);  A.oae_band_std = cell(1,nk);
+A.all_oae_band = cell(nS, nk);
+for k = 1:nk
+    if A.n(k) == 0, continue; end
+    A.f{k}       = fg;
+    A.oae{k}     = mean(A.full{k}, 1, 'omitnan');
+    A.bandOAE{k} = mean(A.band{k}, 1, 'omitnan');
+    A.oae_band_std{k} = std(A.band{k}, 0, 1, 'omitnan');
+    if ~isempty(A.band_nf{k})
+        A.nf{k}     = mean(A.full_nf{k}, 1, 'omitnan');
+        A.bandNF{k} = mean(A.band_nf{k}, 1, 'omitnan');
+    end
+    for s = 1:nS
+        if all(isnan(A.band{k}(s,:))), continue; end
+        A.all_oae_band{s,k} = A.band{k}(s,:);
+    end
+end
 end

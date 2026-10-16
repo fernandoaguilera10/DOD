@@ -1,32 +1,32 @@
 function TEanalysis(ROOTdir,datapath,outpath,subject,condition)% TEOAE Analysis
 % Author: Samantha Hauser
 % Created: May 2023
-% Last Updated: August 2, 2023
+% Last Updated: Oct 2026 — high-pass cutoff and trimmed mean from the OAE
+%   Setup panel (oae_opts); bands via oae_band_avg.
+o = oae_opts();
 % Purpose:
 % Helpful info:
 %% Import data file
 cwd = pwd;
 search_file = '*TEOAE*.mat';
-PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
-cd(PRIVdir)
 datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
 end
 cd(datapath)
-load(datafile);
+S_raw = load(datafile, 'x');  x = S_raw.x;  clear S_raw
 stim = x.TEOAEData.stim;
 cd(cwd);
 %% Analysis Parameters
 res.resp_win = stim.resp(:, (stim.StimWin+1):(stim.StimWin + stim.RespDur)); % Remove stimulus by windowing
 resp = res.resp_win; 
 if stim.doFilt
-    % High pass at 200 Hz using IIR filter
-    [b, a] = butter(4, 200 * 2 * 1e-3/stim.SamplingRate, 'high');
+    % High pass (default 200 Hz) using IIR filter
+    [b, a] = butter(4, o.te_hp * 2 * 1e-3/stim.SamplingRate, 'high');
     resp = filtfilt(b, a, res.resp_win')';
 end
-vavg_odd = trimmean(resp(1:2:end, :), 20, 1);
-vavg_even = trimmean(resp(2:2:end, :), 20, 1);
+vavg_odd = trimmean(resp(1:2:end, :), o.te_trim, 1);
+vavg_even = trimmean(resp(2:2:end, :), o.te_trim, 1);
 rampdur = 0.2e-3; %seconds
 Fs = stim.SamplingRate/2 * 1e3;
 res.vavg = rampsound((vavg_odd + vavg_even)/2, Fs, rampdur);
@@ -59,32 +59,13 @@ xlim([0.5, 16]);
 ticks = [0.5, 1, 2, 4, 8, 16];
 set(gca, 'XTick', ticks, 'FontSize', 14, 'xscale', 'log');
 ylim([-60, uplim + 5]);
-title([subject, ' | TEOAE | ', condition, ' (n = 2056)'], 'FontSize', 14, 'FontWeight', 'bold');
-%% Calculate band-average SF
-fmin = 0.5;
-fmax = 16;
-edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
-bandEdges = edges(2:2:end-1);
-centerFreqs = edges(3:2:end-2);
-teoae_w_spl = zeros(length(centerFreqs),1);
-tenf_w_spl = zeros(length(centerFreqs),1);
+title([subject, ' | TEOAE | ', condition, ' (n = ', num2str(size(resp,1)), ')'], 'FontSize', 14, 'FontWeight', 'bold');
+%% Calculate band-average TE (bands / method / SNR criterion from oae_opts)
 teoae_full_spl = db(abs(res.Resp));
 tenf_full_spl = db(abs(res.NoiseFloor));
-% resample / average to 9 center frequencies
-for z = 1:length(centerFreqs)
-    band = find( res.freq*1e-3 >= bandEdges(z) & res.freq*1e-3 < bandEdges(z+1));
-    % Do some weighting by SNR
-    % TO DO: NF from which SNR was calculated included median of 7 points
-    % nearest the target frequency
-    %SPL
-    SNR_spl = teoae_full_spl(band) - tenf_full_spl(band);
-    weight_spl = (10.^(SNR_spl./10)).^2;  
-    teoae_spl(z, 1) = mean(teoae_full_spl(band));
-    tenf_spl(z,1) = mean(tenf_full_spl(band));
-    teoae_w_spl(z,1) = sum(weight_spl.*teoae_full_spl(band))/sum(weight_spl);
-    tenf_w_spl(z,1) = sum(weight_spl.*tenf_full_spl(band))/sum(weight_spl);
-
-end
+[centerFreqs, b_lo, b_hi] = oae_bands(o);
+B_spl = oae_band_avg(res.freq*1e-3, teoae_full_spl, tenf_full_spl, b_lo, b_hi, o);
+teoae_w_spl = B_spl.oae(:);  tenf_w_spl = B_spl.nf(:);
 %% Plot band-average SF - SPL
 plot(centerFreqs, teoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
 plot(centerFreqs, tenf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
@@ -100,10 +81,13 @@ spl.centerFreq = centerFreqs;
 spl.bandOAE = teoae_w_spl;
 spl.bandNF = tenf_w_spl;
 data.spl = spl;
+data.n_trials = size(resp,1);                        % trials used (individual legend)
+data.opts = struct('hp',o.te_hp,'trim',o.te_trim);   % analysis settings used
 cd(outpath);
 fname = [subject,'_TEOAE_',condition,'_',datafile(1:end-4)];
-print(gcf,[fname,'_figure'],'-dpng','-r300');
+try, apat_save_fig(gcf, fullfile(outpath, [fname '_figure']), 'te_rec'); catch, end   % this recording's analysis figure
 close(gcf);
+data.sex = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
 save(fname,'data')
 cd(cwd);
 end

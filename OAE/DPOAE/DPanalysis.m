@@ -1,30 +1,29 @@
 function DPanalysis(ROOTdir,datapath,outpath,subject,condition)% DPOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
-% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
-%%%%%%%%% Set these parameters %%%%%%%%%%%%%%%%%%
-windowdur = .25;  %0.25;
+% Last Updated: Oct 2026 — window, frequency points and artifact threshold
+%   from the OAE Setup panel (oae_opts); bands via oae_band_avg.
+%%%%%%%%% Parameters (OAE Setup panel → oae_opts) %%%%%%%%%%%%%%%%%%
+o = oae_opts();
+windowdur = o.dp_win;   % default 0.25 s
 offsetwin = 0.0; % not finding additional delay
-npoints = 512;
+npoints = o.dp_npts;    % default 512
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Import data file
 cwd = pwd;
 search_file = '*sweptDPOAE*.mat';
-PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
-cd(PRIVdir)
 datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
 end
 cd(datapath)
-load(datafile);
+S_raw = load(datafile, 'x');  x = S_raw.x;  clear S_raw
 stim = x.sweptDPOAEData.stim;
 %% Import calibration file
 search_calib = '*calib_FPL_raw*.mat';
-cd(PRIVdir)
 calibfile = load_files(datapath,search_calib,'calib',datafile);
 cd(datapath)
-load(calibfile);
+S_cal = load(calibfile, 'x');  x = S_cal.x;  clear S_cal
 calib = x.FPLearData; clear x;
 cd(cwd);
 %% Analysis Parameters
@@ -86,7 +85,7 @@ std_oae = std(oae);
 resp_AR = DPOAEtrials;
 for j = 1:trials
     for k = 1:npoints
-        if oae(j,k) > median_oae(1,k) + 3*std_oae(1,k)
+        if oae(j,k) > median_oae(1,k) + o.dp_ar*std_oae(1,k)
             win = find( (t > (t_freq(k) - windowdur.*.1)) & ...
                 (t < (t_freq(k) + windowdur.*.1)));
             resp_AR(j,win) = NaN;
@@ -197,38 +196,14 @@ res.f.dp = freq_dp;
 dpoae_full_epl = res.dbEPL_dp;
 dpnf_full_epl = res.dbEPL_nf;
 f2 = res.f.f2/1000;
-%% Calculate band-average DP
-fmin = 0.5;
-fmax = 16;
-edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
-bandEdges = edges(2:2:end-1);
-centerFreqs = edges(3:2:end-2);
-dpoae_w_spl = zeros(length(centerFreqs),1);
-dpnf_w_spl = zeros(length(centerFreqs),1);
+%% Calculate band-average DP (bands / method / SNR criterion from oae_opts)
 dpoae_full_spl = db(abs(oae_complex).*VtoSPL);
 dpnf_full_spl = db(abs(noise_complex).*VtoSPL);
-% resample / average to 9 center frequencies
-for z = 1:length(centerFreqs)
-    band = find( f2 >= bandEdges(z) & f2 < bandEdges(z+1));
-    % Do some weighting by SNR
-    % TO DO: NF from which SNR was calculated included median of 7 points
-    % nearest the target frequency
-    %EPL
-    SNR_epl = dpoae_full_epl(band) - dpnf_full_epl(band);
-    weight_epl = (10.^(SNR_epl./10)).^2;  
-    dpoae_epl(z, 1) = mean(dpoae_full_epl(band));
-    dpnf_epl(z,1) = mean(dpnf_full_epl(band));
-    dpoae_w_epl(z,1) = sum(weight_epl.*dpoae_full_epl(band))/sum(weight_epl);
-    dpnf_w_epl(z,1) = sum(weight_epl.*dpnf_full_epl(band))/sum(weight_epl);
-    %SPL
-    SNR_spl = dpoae_full_spl(band) - dpnf_full_spl(band);
-    weight_spl = (10.^(SNR_spl./10)).^2;  
-    dpoae_spl(z, 1) = mean(dpoae_full_spl(band));
-    dpnf_spl(z,1) = mean(dpnf_full_spl(band));
-    dpoae_w_spl(z,1) = sum(weight_spl.*dpoae_full_spl(band))/sum(weight_spl);
-    dpnf_w_spl(z,1) = sum(weight_spl.*dpnf_full_spl(band))/sum(weight_spl);
-
-end
+[centerFreqs, b_lo, b_hi] = oae_bands(o);
+B_epl = oae_band_avg(f2, dpoae_full_epl, dpnf_full_epl, b_lo, b_hi, o);
+B_spl = oae_band_avg(f2, dpoae_full_spl, dpnf_full_spl, b_lo, b_hi, o);
+dpoae_w_epl = B_epl.oae(:);  dpnf_w_epl = B_epl.nf(:);
+dpoae_w_spl = B_spl.oae(:);  dpnf_w_spl = B_spl.nf(:);
 %% Plot band-average DP - SPL
 plot(centerFreqs, dpoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
 plot(centerFreqs, dpnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
@@ -243,6 +218,7 @@ epl.nf = dpnf_full_epl;
 epl.centerFreq = centerFreqs;
 epl.bandOAE = dpoae_w_epl;
 epl.bandNF = dpnf_w_epl;
+data.n_trials = numOfTrials;                         % trials used (individual legend)
 data.epl = epl; 
 % SPL
 spl.oae = db(abs(oae_complex).*VtoSPL);
@@ -253,10 +229,12 @@ spl.centerFreq = centerFreqs;
 spl.bandOAE = dpoae_w_spl;
 spl.bandNF = dpnf_w_spl;
 data.spl = spl;
+data.opts = struct('win',windowdur,'npoints',npoints,'ar_sd',o.dp_ar);   % analysis settings used
 cd(outpath);
 fname = [subject,'_DPOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
-print(gcf,[fname,'_figure'],'-dpng','-r300');
+try, apat_save_fig(gcf, fullfile(outpath, [fname '_figure']), 'dp_rec'); catch, end   % this recording's analysis figure
 close(gcf);
+data.sex = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
 save(fname,'data')
 cd(cwd);
 end

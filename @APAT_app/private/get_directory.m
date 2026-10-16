@@ -7,7 +7,7 @@ function [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,E
 DATAdir = strcat(ROOTdir,filesep,'Data');
 OUTdir = strcat(ROOTdir,filesep,'Analysis');
 CODEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,EXPname,filesep,EXPname2);
-PRIVATEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
+PRIVATEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'shared');   % shared helpers (name kept)
 % Check if directories exist
 directories = {ROOTdir, DATAdir, OUTdir, CODEdir};
 directories_name = {'ROOT','DATA','OUT','CODE'};
@@ -32,6 +32,6 @@ if counter == 0
     fprintf('\nCODE:\t %s\n',CODEdir);
 else
     fprintf('\n\n.');
-    uiwait(msgbox('ERROR: At least one directory was not found','Loaded Directories','error'));
+    try, apat_run_error('error', 'At least one directory was not found (see the Command Window).', 'directories'); catch, end
 end
 end
