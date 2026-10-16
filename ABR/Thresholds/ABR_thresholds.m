@@ -1,9 +1,18 @@
-function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND)
+function ABR_thresholds(datapath,outpath,subject,all_Conds2Run,CondIND,freq_filter,dup_mode)
 %Author (s): Andrew Sivaprakasam
 %Last Updated: 25 March 2026 - FA
 %Description: Script to estimate and process ABR thresholds based on bootstrapped
 %cross-corelation (loosely-based on Luke Shaheen ARO2024 presentation)
-close all; cwd = pwd; addpath(cwd);
+%dup_mode (optional): Repeated Levels — 'all' (default: every file is its own
+%level entry) or 'average' (files with the same rounded level at a frequency
+%are merged by pooling their sweeps before the bootstrap). Default from root
+%appdata APAT_abr_dup_levels (set by analysis_run>get_measure_params).
+cwd = pwd;
+if ~exist('dup_mode','var') || isempty(dup_mode), dup_mode = dup_levels_mode(); end
+dup_mode = lower(char(dup_mode));
+if ~strcmp(dup_mode,'average'), dup_mode = 'all'; end
+pooled   = struct('freq',{},'level',{},'files',{},'n_sweeps',{});   % 'average': merged files
+repeated = struct('freq',{},'level',{},'files',{});                 % 'all': repeated levels
 condition = strsplit(all_Conds2Run{CondIND}, filesep);
 fs = 8e3; %resampled to 8e3
 samps = 400; % ABR trials per group for bootstraping
@@ -11,11 +20,15 @@ iters = 200; % bootstrap iterations
 %% Change into directory
 if exist(datapath,"dir")
     cd(datapath);
-    %% Chceck frequencies available
+    %% Check frequencies available
     all_datafiles = {dir(fullfile(cd,'p*ABR*.mat')).name}';
     all_freqs = cellfun(@(x) erase(extractAfter(x,'ABR_'), '.mat'), all_datafiles, 'UniformOutput', false);
     all_freqs(strcmp(all_freqs,'click')) = {'0'};
     freqs = unique(str2double(all_freqs));
+    % Apply frequency filter if provided (0 = click, values in Hz)
+    if exist('freq_filter','var') && ~isempty(freq_filter)
+        freqs = freqs(ismember(freqs, freq_filter));
+    end
     %% Fitting Properties
     x = 0:0.1:15;
     maximum = 0.8;
@@ -28,12 +41,10 @@ if exist(datapath,"dir")
     sigmoid = '(a-d)./(1+exp(-b*(x-c)))+d';
     startPoints = [maximum, steep, mid, start];
     %% Load the files for a given freq
-    % abr_vis = tiledlayout(ceil(length(freqs)/3),3)
-    % fit_vis = tiledlayout(ceil(length(freqs)/3),3)
     
-    abr_vis = figure;
+    abr_vis = figure('Visible','off','Name',sprintf('ABR Waveforms | %s | %s', subject, condition{end}));
     set(abr_vis, 'Units', 'Normalized', 'OuterPosition', [0.35, 0.025, 0.65, 0.9]);
-    fit_vis = figure;
+    fit_vis = figure('Visible','off','Name',sprintf('Sigmoid Fits | %s | %s', subject, condition{end}));
     set(fit_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.45, 0.35, 0.4725]);
     
     for f = 1:length(freqs)
@@ -44,11 +55,18 @@ if exist(datapath,"dir")
         cor_err_temp = [];
         nr_flag = false;
         freqs_datafiles = all_datafiles(str2double(all_freqs) == freqs(f));
+        % Read every file of this frequency: rounded level + sweeps by polarity
+        R = struct('lev',{},'pos',{},'neg',{},'file',{});
         for d = 1:length(freqs_datafiles)
-            load(freqs_datafiles{d})
+            S_raw = load(freqs_datafiles{d}, 'x');  x = S_raw.x;  clear S_raw
             fs_orig = x.Stimuli.RPsamprate_Hz;
             all_trials  = x.AD_Data.AD_All_V{1};
-            lev(d) = x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB;
+            % Nominal level, rounded to the nearest dB (calibration max minus
+            % attenuation gives e.g. 89.7 for the 90 dB SPL step). Same rule as
+            % ABR_dtw and the EFR analyses; the sigmoid fit, threshold, plots and
+            % exports all use the rounded level.
+            R(d).lev  = round(x.Stimuli.MaxdBSPLCalib-x.Stimuli.atten_dB);
+            R(d).file = freqs_datafiles{d};
             
             %2nd dimension in run levels for some reason
             if iscell(all_trials)
@@ -65,8 +83,46 @@ if exist(datapath,"dir")
             %         all_trials = filtfilt(b,a,all_trials);
             
             %Separate into pos/negs
-            all_pos = all_trials(:,1:2:end);
-            all_neg = all_trials(:,2:2:end);
+            R(d).pos = all_trials(:,1:2:end);
+            R(d).neg = all_trials(:,2:2:end);
+        end
+        clear all_trials
+        % Repeated Levels: 'all' = one entry per file (file order, as before);
+        % 'average' = files with the same rounded level pooled into one entry
+        groups = num2cell(1:numel(R));
+        if ~isempty(R)
+            [ul, ~, gk] = unique([R.lev]);
+            for k = 1:numel(ul)
+                gi = find(gk(:)' == k);
+                if numel(gi) < 2, continue; end
+                if strcmp(dup_mode,'average')
+                    pooled(end+1) = struct('freq',freqs(f),'level',ul(k),'files',{{R(gi).file}}, ...
+                        'n_sweeps',arrayfun(@(r) size(r.pos,2)+size(r.neg,2), R(gi))); %#ok<AGROW>
+                    fprintf('  [ABR_thresholds] %s %g dB SPL: pooled %d files (%s).\n', ...
+                        freq_label(freqs(f)), ul(k), numel(gi), strjoin({R(gi).file}, ', '));
+                else
+                    repeated(end+1) = struct('freq',freqs(f),'level',ul(k),'files',{{R(gi).file}}); %#ok<AGROW>
+                end
+            end
+            if strcmp(dup_mode,'average')
+                first = arrayfun(@(k) find(gk == k, 1), 1:numel(ul));
+                [~, og] = sort(first);                    % keep file order of first appearance
+                groups = arrayfun(@(k) find(gk(:)' == k), og, 'UniformOutput', false);
+            end
+        end
+        for d = 1:numel(groups)
+            gi = groups{d};
+            lev(d) = R(gi(1)).lev;
+            if isscalar(gi)
+                all_pos = R(gi).pos;
+                all_neg = R(gi).neg;
+            else
+                % Pool the sweeps of every file at this level (same polarity
+                % split as one file); trim to the shortest record if needed
+                ns = min(arrayfun(@(r) size(r.pos,1), R(gi)));
+                all_pos = cell2mat(arrayfun(@(r) r.pos(1:ns,:), R(gi), 'UniformOutput', false));
+                all_neg = cell2mat(arrayfun(@(r) r.neg(1:ns,:), R(gi), 'UniformOutput', false));
+            end
             
             %Bootstrap - return the means of iters number of replicates (with samps number of
             %samples)
@@ -94,7 +150,7 @@ if exist(datapath,"dir")
             %Cross-correlate first half w/second half
             xcor_t = helper.xcorr_matrix(combined_1,combined_2);
             
-            wforms(:,d) = mean(combined_1+combined_2,2);
+            wforms(:,d) = real(mean(combined_1+combined_2,2));
             %points at zero lag
             midpoint = ceil(size(xcor_t,1)/2);
             cor = mean(xcor_t(midpoint,:)); %maybe can use the variability here too?
@@ -103,6 +159,7 @@ if exist(datapath,"dir")
             cor_err_temp(d) = cor_err;
             %         cor_temp2(d) = mean(mscohere(combined_1,combined_2),'all');
         end
+        clear R all_pos all_neg
         
         %sort waveforms by increasing level
         [lev,I] = sort(lev);
@@ -137,7 +194,8 @@ if exist(datapath,"dir")
             y_thresh= cor_fit.d + 0.1; % go a little above d?
 
             %invert
-            thresh(f) = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
+            thresh_raw = cor_fit.c-log((cor_fit.a-cor_fit.d)/(y_thresh-cor_fit.d)-1)/cor_fit.b;
+            thresh(f) = real(thresh_raw);
         else
             thresh(f) = NaN;
             cor_fit = zeros(1,80);
@@ -150,11 +208,24 @@ if exist(datapath,"dir")
         end
         if thresh(f) < 0, thresh(f) = 0; end
         if thresh(f) > 80,thresh(f) = 80; end
-        
+        % Save plot data so figures can be reconstructed from the .mat file
+        % without re-running the analysis (used by ABRsummary when data exists).
+        if length(lev) > 4
+            plot_data(f).cor_fit_vals = double(cor_fit(1:80));
+        else
+            plot_data(f).cor_fit_vals = zeros(1,80);
+        end
+        plot_data(f).lev     = lev;
+        plot_data(f).wforms  = wforms;
+        plot_data(f).cor     = cor_temp;
+        plot_data(f).cor_err = cor_err_temp;
+        plot_data(f).thresh  = thresh(f);
+        plot_data(f).freq    = freqs(f);
+
         clr_no = [0,0,0,.3];
         clr_yes = [0,0,0,1];
         
-        figure(abr_vis);
+        set(0,'CurrentFigure', abr_vis);
         subplot(ceil(length(freqs)/3),3,f);
         buff = 1.25*max(max(wforms))*(1:size(wforms,2));
         wform_plot = wforms+buff;
@@ -180,7 +251,7 @@ if exist(datapath,"dir")
         hold off
         set(gca,'FontSize',15);
         yticks(mean(wform_plot));
-        yticklabels(round(lev));
+        yticklabels(lev_labels(lev));     % repeated levels: '90 (1)', '90 (2)'
         ylim([0.9*min(min(wform_plot)),1.03*max(max(wform_plot))])
         ylabel('Sound Level (dB SPL)','FontWeight','bold')
         xlabel('Time (ms)','FontWeight','bold');
@@ -190,7 +261,8 @@ if exist(datapath,"dir")
             title([num2str(freqs(f)), ' Hz']);
         end
         subtitle(sprintf('Threshold: %.1f dB SPL',thresh(f)));
-        figure(fit_vis);
+        
+        set(0,'CurrentFigure', fit_vis);
         subplot(ceil(length(freqs)/3),3,f);
         hold on
         if freqs(f)==0
@@ -208,131 +280,64 @@ if exist(datapath,"dir")
         xlabel('Level (dB SPL)');
         hold off
         grid on
-        %     yline(thresh,'r--','linewidth',2);
     end
-    thr_vis = figure;
-    set(thr_vis, 'Units', 'Normalized', 'OuterPosition', [0, 0.025, 0.35, 0.425]);
-    figure(thr_vis)
-    freqs_plot = freqs/1000;
-    freqs_plot(freqs_plot == 0) = freqs_plot(2)/2;
-    plot(freqs_plot,thresh,'*-k','linewidth',2);
-    grid on;
-    xticks(freqs_plot);
-    xticklabels({'Click','0.5','1','2','4','8'});
-    set(gca,'xscale','log');
-    set(gca,'FontSize',15);
-    yticks(0:10:100);
-    ylim([0,90]);
-    title(['ABR Thresholds | ',subject,' | ',condition{2}]);
-    xlabel('Frequency (Hz)','FontWeight','bold');
-    ylabel('Threshold (dB SPL)','FontWeight','bold');
     
-    %% Check if threshold is valid (manually update)
-    threshold_flag = 0;     % option on = 1  off = 0
-    while threshold_flag == 1
-        figure(abr_vis);
-        threshold_dlg = questdlg('Would you like to manually overwrite any thresholds?', ...
-            'ABR Threshold', ...
-            'Yes','No','No');
-        if strcmp(threshold_dlg,'No')
-            threshold_flag = 0;
-        elseif strcmp(threshold_dlg,'Yes')
-            figure(abr_vis);
-            freq_options = {'Click', '500 Hz', '1000 Hz', '2000 Hz', '4000 Hz', '8000 Hz'};
-            freq_choice = listdlg('PromptString','Select frequency: ','ListString',freq_options,'SelectionMode','single','ListSize', [100 90]);
-            prompt = {sprintf('Enter new threshold (dB SPL): ')};
-            fieldsize = [1 40];
-            output = inputdlg(prompt,'ABR Threshold Overwrite',fieldsize);
-            f = freq_options{freq_choice}; new_threshold = str2num(cell2mat(output));
-            if strcmp(f,'click') || strcmp(f,'Click')
-                f = 0;
-            elseif length(f) == 6   % 500 Hz
-                f = str2num(f(1:3)); 
-            else
-                f = str2num(f(1:4)); %1-8 kHz
-            end
-            idx = find(freqs==f);
-            thresh(idx) = new_threshold;
-            % Replot
-            figure(abr_vis); clf;
-            figure(fit_vis); clf;
-            for f = 1:length(freqs)
-                lev = lev_all{1,f};
-                wform = wforms_all{1,f};
-                buff = 1.25*max(max(wform))*(1:size(wform,2));
-                wform_plot = wform+buff;
-                %bad
-                if nr_flag
-                    thresh(f) = 120;
-                end
-                if thresh(f) < 0, thresh(f) = 0; end
-                if thresh(f) > 80,thresh(f) = 80; end
-                figure(abr_vis);
-                subplot(ceil(length(freqs)/3),3,f);
-                hold on
-                if sum(lev>thresh(f))~=0
-                    plot(t,wform_plot(:,lev>=round(thresh(f),-1)),'color',clr_yes,'linewidth',2);
-                end
-                if round(thresh(f),-1) ~= 0
-                    plot(t,wform_plot(:,lev<round(thresh(f),-1)),'color',clr_no,'linewidth',2);
-                end
-                xlim([0,30])
-                hold off
-                yticks(mean(wform_plot));
-                yticklabels(round(lev));
-                ylim([0.9*min(min(wform_plot)),1.05*max(max(wform_plot))])
-                ylabel('Sound Level (dB SPL)');
-                if freqs(f)==0
-                    title('Click');
-                else
-                    title([num2str(freqs(f)), ' Hz']);
-                end
-                subtitle(sprintf('Threshold: %.1f dB SPL',thresh(f)));
-                figure(fit_vis);
-                subplot(ceil(length(freqs)/3),3,f);
-                hold on
-                if freqs(f)==0
-                    title('Click');
-                else
-                    title([num2str(freqs(f)), ' Hz']);
-                end
-                plot(1:80,cor_fit(1:80),'--k','linewidth',2);
-                errorbar(lev,cor_all{1,f},cor_err_all{1,f},'.b','linewidth',1.5,'markersize',10);
-                ylim([0,1])
-                xline(thresh(f),'r','linewidth',2);
-                xticks(0:10:100);
-                xtickangle(90);
-                xlim([0,100]);
-                xlabel('Level (dB SPL)');
-                hold off
-                grid on
-            end
-            figure(thr_vis);  clf;
-            plot(freqs,thresh,'*-k','linewidth',2);
-            grid on;
-            xticks(freqs);
-            set(gca,'xscale','log');
-            set(gca,'FontSize',15);
-            yticks(0:10:100);
-            ylim([0,100]);
-            title(['ABR-Audiogram | ',subject,' | ',condition{2}]);
-            xlabel('Frequency (Hz)')
-            ylabel('Threshold (dB SPL)');
-        end
-    end
     %% Export
     cd(outpath);
     filename = cell2mat([subject,'_',condition]);
-    print(abr_vis,[filename,'_ABRwaves.png'],'-dpng','-r300');
-    print(fit_vis,[filename,'_ABRfit.png'],'-dpng','-r300');
-    %print(thr_vis,[filename,'_ABRthresholds.png'],'-dpng','-r300');
+    drawnow;
+    % One figure per recording: the waveform stack (threshold in each
+    % subtitle). The sigmoid fits are in the .mat / CSV and the Results
+    % per-frequency view (no separate _ABRfit.png any more).
+    try, apat_save_fig(abr_vis, fullfile(outpath, [filename '_ABRwaves']), 'abr_thr_rec'); catch, end
+    % Figures are intentionally left open — analysis_run.m embeds then closes them.
     
-    abr_out.freqs = freqs';
+    abr_out.freqs      = freqs';
     abr_out.thresholds = thresh;
-    abr_out.subj = subject;
+    abr_out.subj       = subject;
+    abr_out.plot_data  = plot_data;
+    abr_out.fs         = fs;
+    abr_out.dup_levels = dup_mode;   % Repeated Levels setting used: 'all' | 'average'
+    abr_out.pooled     = pooled;     % 'average': freq, level, files pooled, sweeps per file
+    abr_out.repeated   = repeated;   % 'all': freq, level, files (each kept as its own entry)
+    abr_out.sex        = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
     save([filename,'_ABRthresholds.mat'],'abr_out');
     cd(cwd);
 else
     fprintf('No data directory found.\n');
+end
+end
+
+
+function L = lev_labels(lev)
+%LEV_LABELS  Tick labels of the level stack; a level recorded more than
+%   once is numbered in plot order ('90 (1)', '90 (2)').
+L = cell(1, numel(lev));
+for k = 1:numel(lev)
+    n = sum(lev == lev(k));
+    if n > 1
+        L{k} = sprintf('%g (%d)', round(lev(k)), sum(lev(1:k) == lev(k)));
+    else
+        L{k} = sprintf('%g', round(lev(k)));
+    end
+end
+end
+
+
+function s = freq_label(f)
+if f == 0, s = 'Click'; else, s = sprintf('%g Hz', f); end
+end
+
+
+function m = dup_levels_mode()
+%DUP_LEVELS_MODE  'all' (default) or 'average' from root appdata
+%   APAT_abr_dup_levels (Setup "Repeated Levels", via get_measure_params).
+m = 'all';
+try
+    if isappdata(0, 'APAT_abr_dup_levels')
+        v = lower(char(getappdata(0, 'APAT_abr_dup_levels')));
+        if strcmp(v, 'average'), m = 'average'; end
+    end
+catch
 end
 end

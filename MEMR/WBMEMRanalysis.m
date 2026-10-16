@@ -7,8 +7,6 @@ function WBMEMRanalysis(ROOTdir,datapath,outpath,subject,condition)% WBMEMR Anal
 %% Import data
 cwd = pwd;
 search_file = '*memr*.mat';
-PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
-cd(PRIVdir)
 datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
@@ -18,7 +16,7 @@ end
 numOfFiles = size(datafile,1);
 for i = 1:numOfFiles
     cd(datapath)
-    load(datafile);
+    S_raw = load(datafile, 'x');  x = S_raw.x;  clear S_raw
     cd(cwd);
     stim = x.MemrData.stim; 
     memr = MEMRbyLevel(stim);
@@ -37,7 +35,7 @@ for i = 1:numOfFiles
     xticks([0.25, 0.5, 1, 2, 4, 8])
     legend(num2str(memr.elicitor'), 'FontSize', 10, 'NumColumns', 2, 'location', 'best');
     xlabel('Frequency (kHz)', 'FontSize', 14, 'FontWeight', 'bold');
-    ylabel('Ear canal pressure (dB re: Baseline)', 'FontSize', 14, 'FontWeight', 'bold');
+    ylabel('\DeltaEar-Canal Level (dB re. No Elicitor)', 'FontSize', 14, 'FontWeight', 'bold');
     box off;
     power = mean(abs(memr.MEM(memr.ind,:))); 
     deltapow = power - min(power); 
@@ -45,7 +43,7 @@ for i = 1:numOfFiles
     %plot(memr.elicitor, mean(abs(memr.MEM(:, memr.ind)), 2)*5, 'ok-', 'linew', 2);
     plot(memr.elicitor, deltapow, '*k', 'linew', 1.5,'MarkerSize',8);
     xlabel('Elicitor Level (dB FPL)', 'FontSize', 14, 'FontWeight', 'bold');
-    ylabel('\Delta Absorbed Power (dB)', 'FontSize', 14, 'FontWeight', 'bold');
+    ylabel('Reflex Magnitude (dB)', 'FontSize', 14, 'FontWeight', 'bold');
     ymax = max(deltapow+.05); 
     ylim([0,ymax])
     set(gca, 'XScale', 'log', 'FontSize', 14)
@@ -70,7 +68,7 @@ for i = 1:numOfFiles
     % plot(x_fit,y_fit, 'k-', 'linew', 2);
     % plot(thresh,y_thresh,'ok','LineWidth',2,'MarkerSize',8,'MarkerFaceColor','r');
     % yline(y_thresh,'r--','LineWidth',2)
-    % text(50,2*y_thresh,sprintf('Threshold:\n%.1f dB FPL',thresh));
+    % text(50,2*y_thresh,sprintf('ART:\n%.1f dB FPL',thresh));
     %% Fitting: SIGMOID and extended elicitor axis
     xdata = memr.elicitor(:);
     ydata = deltapow(:);
@@ -119,7 +117,7 @@ for i = 1:numOfFiles
     plot(thresh, y_thresh, 'ok', 'LineWidth', 2, ...
          'MarkerSize', 8, 'MarkerFaceColor', 'r')
     yline(y_thresh,'r--','LineWidth',2)
-    text(50,2*y_thresh,sprintf('Threshold:\n%.1f dB FPL',thresh))
+    text(50,2*y_thresh,sprintf('ART:\n%.1f dB FPL',thresh))
     %% Export:
     memr.threshold = thresh;
     memr.deltapow = deltapow';
@@ -129,7 +127,9 @@ for i = 1:numOfFiles
     else
         fname = [subject,'_MEMR_WB_',condition,'_',datafile(1:5)];
     end
-    print(gcf,[fname,'_figure'],'-dpng','-r300');
+    try, apat_save_fig(gcf, fullfile(outpath, [fname '_figure']), 'memr_rec'); catch, end   % this recording's analysis figure
+    close(gcf);
+    memr.sex = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
     save(fname,'memr')
     cd(cwd);
     clear stim
@@ -151,8 +151,7 @@ end
 % %% Import data
 % cwd = pwd;
 % search_file = '*memr*.mat';
-% PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
-% cd(PRIVdir)
+% (load_files is on the path: Code Archive/shared)
 % 
 % datafile = load_files(datapath,search_file,'data');
 % if isempty(datafile)
@@ -207,7 +206,7 @@ end
 %     xticks([0.25, 0.5, 1, 2, 4, 8])
 %     legend(num2str(memr.elicitor'), 'FontSize', 10, 'NumColumns', 2, 'location', 'best');
 %     xlabel('Frequency (kHz)', 'FontSize', 14, 'FontWeight', 'bold');
-%     ylabel('Ear canal pressure (dB re: Baseline)', 'FontSize', 14, 'FontWeight', 'bold');
+%     ylabel('\DeltaEar-Canal Level (dB re. No Elicitor)', 'FontSize', 14, 'FontWeight', 'bold');
 %     box off;
 % 
 %     %% Compute deltapow
@@ -331,11 +330,11 @@ end
 %         if isfinite(thresh)
 %             plot(thresh, y_thresh, 'ok', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r')
 %             yline(y_thresh,'r--','LineWidth',2)
-%             text(50,2*y_thresh,sprintf('Threshold:\n%.1f dB FPL',thresh))
+%             text(50,2*y_thresh,sprintf('ART:\n%.1f dB FPL',thresh))
 %         end
 % 
 %         xlabel('Elicitor Level (dB FPL)', 'FontSize', 14, 'FontWeight', 'bold');
-%         ylabel('\Delta Absorbed Power (dB)', 'FontSize', 14, 'FontWeight', 'bold');
+%         ylabel('Reflex Magnitude (dB)', 'FontSize', 14, 'FontWeight', 'bold');
 %         set(gca, 'XScale', 'log', 'FontSize', 14)
 %         box off;
 % 

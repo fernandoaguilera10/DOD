@@ -1,30 +1,30 @@
 function SFanalysis(ROOTdir,datapath,outpath,subject,condition)% SFOAE swept analysis
 % Author: Samantha Hauser
 % Created: May 2023
-% Last Updated: 11 May 2024 by Fernando Aguilera de Alba
-%%% Set these parameters %%%%%%%%%%%%%
-windowdur = 0.040; % 40ms in paper
+% Last Updated: Oct 2026 — window, frequency points, artifact threshold,
+%   high-pass cutoff and noise-floor method from the OAE Setup panel
+%   (oae_opts); bands via oae_band_avg.
+%%% Parameters (OAE Setup panel → oae_opts) %%%%%%%%%%%%%
+o = oae_opts();
+windowdur = o.sf_win; % base of the frequency-dependent window (default 0.038 s; 40 ms in paper)
 offsetwin = 0.0; % 20ms in paper
-npoints = 512;
+npoints = o.sf_npts;  % default 512
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Import data file
 cwd = pwd;
 search_file = '*sweptSFOAE*.mat';
-PRIVdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'private');
-cd(PRIVdir)
 datafile = load_files(datapath,search_file,'data');
 if isempty(datafile)
     return
 end
 cd(datapath)
-load(datafile);
+S_raw = load(datafile, 'x');  x = S_raw.x;  clear S_raw
 stim = x.sweptSFOAEData.stim;
 %% Import calibration file
 search_calib = '*calib_FPL_raw*.mat';
-cd(PRIVdir)
 calibfile = load_files(datapath,search_calib,'calib',datafile);
 cd(datapath)
-load(calibfile);
+S_cal = load(calibfile, 'x');  x = S_cal.x;  clear S_cal
 calib = x.FPLearData; clear x;
 cd(cwd);
 %% Analysis Parameters
@@ -46,13 +46,13 @@ else % log sweep
     t_freq = (testfreq-f1)/stim.speed + stim.buffdur;
 end
 %duration changes w/ frequency
-durs = .038*(2.^(-0.3*t_freq)-1)/ (-0.3*log(2)) + 0.038;
+durs = o.sf_win*(2.^(-0.3*t_freq)-1)/ (-0.3*log(2)) + o.sf_win;
 %% Artifact Rejection
 % Cancel out stimulus
 SFOAEtrials = stim.ProbeBuffs + stim.SuppBuffs - stim.BothBuffs;
 trials = size(SFOAEtrials,1);
 % high pass filter the response (can also be done on ER10X hardware)
-filtcutoff = 300;
+filtcutoff = o.sf_hp;   % default 300 Hz
 b = fir1(1000, filtcutoff*2/stim.Fs, 'high');
 SFOAEtrials= filtfilt(b, 1, SFOAEtrials')';
 % Set empty matricies for next steps
@@ -83,7 +83,7 @@ std_oae = std(oae);
 resp_AR = SFOAEtrials;
 for j = 1:trials
     for k = 1:npoints
-        if oae(j,k) > median_oae(1,k) + 4*std_oae(1,k)
+        if oae(j,k) > median_oae(1,k) + o.sf_ar*std_oae(1,k)
             win = find( (t > (t_freq(k) - durs(k).*.1)) & ...
                 (t < (t_freq(k) + durs(k).*.1)));
             resp_AR(j,win) = NaN;
@@ -114,7 +114,7 @@ coeffs = zeros(npoints, 2);
 coeffs_n = zeros(npoints, 2);
 tau = zeros(npoints, 1);
 coeffs_noise = zeros(npoints,8);
-durs = .038*(2.^(-0.3*t_freq)-1)/ (-0.3*log(2)) + 0.038;
+durs = o.sf_win*(2.^(-0.3*t_freq)-1)/ (-0.3*log(2)) + o.sf_win;
 % Generate model of chirp and test against response
 for k = 1:npoints
     fprintf(1, 'Running window %d / %d\n', k, (npoints));
@@ -168,7 +168,10 @@ for i = 1:2:8
 end
 oae_complex = complex(a, b).*phasor;
 noise_complex2 = complex(a_n, b_n);
-noise_complex = mean(noise2,2);
+noise_complex = mean(noise2,2);           % noise floor: nearby frequencies
+if strcmp(o.sf_nf, 'subtraction')
+    noise_complex = noise_complex2;       % noise floor: alternate-trial subtraction
+end
 res.multiplier = stim.VoltageToPascal.* stim.PascalToLinearSPL;
 %% Plot SF - SPL
 figure;
@@ -205,38 +208,14 @@ sfnf_full_epl = res.dbEPL_nf;
 % ylabel('Amplitude (dB EPL)','FontWeight','bold')
 % legend('SFOAE', 'NF')
 % box off;
-%% Calculate band-average SF
-fmin = 0.5;
-fmax = 16;
-edges = 2 .^ linspace(log2(fmin), log2(fmax), 21);
-bandEdges = edges(2:2:end-1);
-centerFreqs = edges(3:2:end-2);
-sfoae_w_spl = zeros(length(centerFreqs),1);
-sfnf_w_spl = zeros(length(centerFreqs),1);
+%% Calculate band-average SF (bands / method / SNR criterion from oae_opts)
 sfoae_full_spl = db(abs(oae_complex).*res.multiplier);
 sfnf_full_spl = db(abs(noise_complex).*res.multiplier);
-% resample / average to 9 center frequencies
-for z = 1:length(centerFreqs)
-    band = find( testfreq/1000 >= bandEdges(z) & testfreq/1000 < bandEdges(z+1));
-    % Do some weighting by SNR
-    % TO DO: NF from which SNR was calculated included median of 7 points
-    % nearest the target frequency
-    %EPL
-    SNR_epl = sfoae_full_epl(band) - sfnf_full_epl(band);
-    weight_epl = (10.^(SNR_epl./10)).^2;  
-    sfoae_epl(z, 1) = mean(sfoae_full_epl(band));
-    sfnf_epl(z,1) = mean(sfnf_full_epl(band));
-    sfoae_w_epl(z,1) = sum(weight_epl.*sfoae_full_epl(band))/sum(weight_epl);
-    sfnf_w_epl(z,1) = sum(weight_epl.*sfnf_full_epl(band))/sum(weight_epl);
-    %SPL
-    SNR_spl = sfoae_full_spl(band) - sfnf_full_spl(band);
-    weight_spl = (10.^(SNR_spl./10)).^2;  
-    sfoae_spl(z, 1) = mean(sfoae_full_spl(band));
-    sfnf_spl(z,1) = mean(sfnf_full_spl(band));
-    sfoae_w_spl(z,1) = sum(weight_spl.*sfoae_full_spl(band))/sum(weight_spl);
-    sfnf_w_spl(z,1) = sum(weight_spl.*sfnf_full_spl(band))/sum(weight_spl);
-
-end
+[centerFreqs, b_lo, b_hi] = oae_bands(o);
+B_epl = oae_band_avg(testfreq/1000, sfoae_full_epl, sfnf_full_epl, b_lo, b_hi, o);
+B_spl = oae_band_avg(testfreq/1000, sfoae_full_spl, sfnf_full_spl, b_lo, b_hi, o);
+sfoae_w_epl = B_epl.oae(:);  sfnf_w_epl = B_epl.nf(:);
+sfoae_w_spl = B_spl.oae(:);  sfnf_w_spl = B_spl.nf(:);
 %% Plot band-average SF - SPL
 plot(centerFreqs, sfoae_w_spl, 'o', 'linew', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r','HandleVisibility','off'); % band-average DP
 plot(centerFreqs, sfnf_w_spl, 'x', 'linew', 4, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k','HandleVisibility','off'); % band-average noise floor
@@ -251,6 +230,7 @@ epl.nf = sfnf_full_epl;
 epl.centerFreq = centerFreqs;
 epl.bandOAE = sfoae_w_epl;
 epl.bandNF = sfnf_w_epl;
+data.n_trials = numOfTrials;                         % trials used (individual legend)
 data.epl = epl; 
 % SPL
 spl.f = testfreq/1000;
@@ -261,9 +241,12 @@ spl.centerFreq = centerFreqs;
 spl.bandOAE = sfoae_w_spl;
 spl.bandNF = sfnf_w_spl;
 data.spl = spl;
+data.opts = struct('win',windowdur,'npoints',npoints,'ar_sd',o.sf_ar,'hp',filtcutoff,'nf',o.sf_nf);   % analysis settings used
 cd(outpath);
 fname = [subject,'_SFOAEswept_',condition,'_',datafile(1:end-4),'_',calibfile(1:end-4)];
-print(gcf,[fname,'_figure'],'-dpng','-r300');
+try, apat_save_fig(gcf, fullfile(outpath, [fname '_figure']), 'sf_rec'); catch, end   % this recording's analysis figure
+close(gcf);
+data.sex = apat_sex('get', subject);   % chinroster Sex column ('' if unknown)
 save(fname,'data')
 cd(cwd);
 end
