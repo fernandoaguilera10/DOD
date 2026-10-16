@@ -40,7 +40,6 @@ MATLAB-based Interface for Auditory Physiology Analysis (Chinchilla)
 - Errors during unattended runs are logged to `Analysis/APAT_error_log.txt` without interrupting the analysis run.
 
 ## Tools (`tools/`, add to the path when needed)
-- `apat_tidy_outputs(ROOTdir[, true])` — move an Analysis tree from the old layout to the current one (dry run by default; never deletes).
 - `format_data` — export per-subject values from average `.mat` files.
 - `create_abr_template` — build ABR peak templates.
 
