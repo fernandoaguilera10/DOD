@@ -79,6 +79,7 @@ t_ = tic;  fit_layout(sp);  apat_timing('ind: fit_layout', toc(t_));  % margins:
 t_ = tic;  apply_shade(app, sp);  apat_timing('ind: apply_shade', toc(t_));  % Shading ON / OFF choice
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('ind: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('ind: drawnow', toc(t_));
+try, apat_timing('ind: objects in window (count)', numel(findall(app.UIFigure))); catch, end
 save_view(app, 'auto', sp, figs);                % images = these Results views (deferred by apat_save_fig)
 end
 
@@ -131,6 +132,7 @@ t_ = tic;  apply_shade(app, panel);  apat_timing('avg: apply_shade', toc(t_));  
 t_ = tic;  try, exclusions(app, 'mark', panel, meas_idx); catch, end;  apat_timing('avg: exclusions mark', toc(t_));  % ✕ = subject points excluded from the average
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('avg: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('avg: drawnow', toc(t_));
+try, apat_timing('avg: objects in window (count)', numel(findall(app.UIFigure))); catch, end
 save_view(app, 'auto', panel, figs);                       % images = these Results views (deferred by apat_save_fig)
 end
 
