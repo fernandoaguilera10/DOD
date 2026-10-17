@@ -150,6 +150,7 @@ if isfield(app.res, 'pick_ui') && all(isvalid(app.res.pick_ui))
         if numel(u) < 5, style_chip(u(2), HL); end
         set(u, 'Visible','on');
     end
+    try, bar_fit(app); catch, end                % Tracking columns of the Results bar (0 when hidden)
 end
 end
 

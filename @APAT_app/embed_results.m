@@ -27,7 +27,6 @@ end
 
 function embed_individual(app, figs, meas_idx, subject)
 ind_panel = app.res.panels{1, meas_idx};
-pos       = ind_panel.Position;
 
 % Find or create the per-subject sub-panel
 data = app.res.subj_data{meas_idx};
@@ -36,7 +35,7 @@ if isempty(si)
     si = numel(data.names) + 1;
     sp = uipanel(ind_panel,'BorderType','none', ...
         'BackgroundColor',[1 1 1], ...
-        'Position',[0 0 pos(3) pos(4)],'Visible','off');
+        'Units','normalized','Position',[0 0 1 1],'Visible','off');   % follows the card
     data.names{si}  = subject;
     data.panels{si} = sp;
     app.res.subj_data{meas_idx} = data;
@@ -147,12 +146,13 @@ function embed_figs(app, figs, parent)
 %     Two figs             → side-by-side
 %     3+ unnamed figs      → 2-column scrollable grid
 PAD = 4;
-pos = parent.Position;
-W   = pos(3);
-VH  = pos(4);
+pos = px_wh(parent);                 % pixel size (the cards / subject panels are normalized)
+W   = pos(1);
+VH  = pos(2);
 n   = numel(figs);
 fw  = W - 2*PAD;
 fh  = VH - 2*PAD;
+nrm = @(r) r ./ [W VH W VH];         % sub-panels in normalized units: they follow window resizes
 
 % Widen the plots to the full width in the (hidden) figure BEFORE copying,
 % so they appear full width at once (the right strip that used to hold the
@@ -170,7 +170,7 @@ use_stacked = n > 1 && all(~cellfun(@isempty, names));
 if use_stacked
     for i = 1:n
         vis   = ternary(i==1, 'on', 'off');
-        sub_p = uipanel(parent,'Position',[PAD PAD fw fh], ...
+        sub_p = uipanel(parent,'Units','normalized','Position',nrm([PAD PAD fw fh]), ...
             'BackgroundColor','white','Visible',vis,'Title','','Tag',names{i},'FontSize',14);
         tag_save(sub_p, figs(i));
         h_copy  = [findall(figs(i),'Type','axes'); findall(figs(i),'Type','legend')];
@@ -180,7 +180,7 @@ if use_stacked
 elseif n == 1
     ttl1 = names{1};  bt1 = 'line';
     if strcmp(get(figs(1),'Tag'),'APAT_thr_avg') || isempty(ttl1), ttl1 = ''; bt1 = 'none'; end
-    sub_p   = uipanel(parent,'Position',[PAD PAD fw fh], ...
+    sub_p   = uipanel(parent,'Units','normalized','Position',nrm([PAD PAD fw fh]), ...
         'BackgroundColor','white','Title',ttl1,'BorderType',bt1,'FontSize',14);
     tag_save(sub_p, figs(1));
     h_copy  = [findall(figs(1),'Type','axes'); findall(figs(1),'Type','legend')];
@@ -190,7 +190,7 @@ elseif n == 2
     fw2 = floor((W - 3*PAD) / 2);
     for i = 1:2
         x     = PAD + (i-1)*(fw2+PAD);
-        sub_p = uipanel(parent,'Position',[x PAD fw2 fh], ...
+        sub_p = uipanel(parent,'Units','normalized','Position',nrm([x PAD fw2 fh]), ...
             'BackgroundColor','white','Title',names{i},'FontSize',14);
         tag_save(sub_p, figs(i));
         h_copy  = [findall(figs(i),'Type','axes'); findall(figs(i),'Type','legend')];
@@ -203,7 +203,7 @@ else
     n_rows  = ceil(n/2);
     total_h = n_rows*(fh+PAD)+PAD;
     scroll  = uipanel(parent,'Scrollable','on','BorderType','none', ...
-        'BackgroundColor',[1 1 1],'Position',[0 0 W VH]);
+        'BackgroundColor',[1 1 1],'Units','normalized','Position',[0 0 1 1]);
     for i = 1:n
         col   = mod(i-1,2);  row = floor((i-1)/2);
         x     = PAD + col*(fw2+PAD);
@@ -434,8 +434,9 @@ end
 function add_abr_avg_toolbars(app, panel)
 tg = findobj(panel.Children, 'flat', 'Type','uitabgroup');
 if isempty(tg), return; end
-W = panel.Position(3);
-H = max(panel.Position(4) - 30, 300);           % tab content size (px)
+wh = px_wh(panel);
+W = wh(1);
+H = max(wh(2) - 30, 300);                       % tab content size (px)
 for tab = tg(1).Children(:)'
     if isempty(tab.Children), continue; end
     tab_panel = tab.Children(end);               % content panel created by embed
@@ -471,6 +472,23 @@ for tab = tg(1).Children(:)'
             build_peak_ctrl(app, cp, tab_panel, axs, pw, ph);
     end
 end
+end
+
+
+function wh = px_wh(h)
+%PX_WH  Pixel [width height] of a container: pixel units → its Position;
+%   normalized → the parent's pixel size × its normalized size.
+wh = [800 600];
+try
+    if isprop(h, 'Units') && strcmp(h.Units, 'normalized')
+        pw = px_wh(h.Parent);
+        wh = pw .* h.Position(3:4);
+    else
+        wh = h.Position(3:4);
+    end
+catch
+end
+wh = max(wh, [50 50]);
 end
 
 

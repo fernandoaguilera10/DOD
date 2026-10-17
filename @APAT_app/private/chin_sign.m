@@ -7,6 +7,9 @@ function chin_sign(app, action)
 %                            message twice in a row (last one kept in UIFigure
 %                            appdata 'apat_sign_last' and getpref('APAT',
 %                            'chin_last'), so also across sessions).
+%   chin_sign(app, 'fit')    size the sign to its text (wider first, then a
+%                            smaller font, width ≤ 380 px) inside the
+%                            header's right block, left of the chinchilla
 %   chin_sign(app, 'show' | 'hide')   sign + chinchilla visible / hidden
 %                            (hidden while the run status card is shown)
 %   Messages: @APAT_app/chin_messages.txt ("section: text", {name} = profile
@@ -18,6 +21,9 @@ try
     switch action
         case 'pick'
             S.label.Text = pick_message(app);
+            fit_sign(app);
+        case 'fit'
+            fit_sign(app);
         case {'show','hide'}
             v = 'off';  if strcmp(action, 'show'), v = 'on'; end
             for f = {'chin','shadow','panel','post'}
@@ -113,5 +119,62 @@ try
         if ~isempty(full), w = strsplit(full); n = w{1}; end
     end
 catch
+end
+end
+
+
+function fit_sign(app)
+% Sign box sized to the message: widths 250…380 px (never into the title),
+% mono font 12 → 9 pt (× the window font factor), first combination whose
+% wrapped text fits under the header's top edge.
+try
+    G = app.h_sign;
+    hh = 110;
+    try, hp = G.chin.Parent.Position;  hh = hp(4); catch, end   % header right block
+    cp = G.chin.Position;
+    fp = app.UIFigure.Position;
+    f  = max(0.85, min(1, min(fp(3)/1500, fp(4)/860)));
+    msg = strtrim(char(G.label.Text));
+    sg_y = round(cp(2) + 22);
+    Hmax = max(30, hh - sg_y - 6);
+    % the sign stays inside the header's right block (fixed width, right of
+    % the title column; createComponents>fig_layout keeps it at the edge)
+    Wmax = max(200, cp(1) + 6 - 8);
+    Ws  = [250 290 330 380];  Ws = Ws(Ws <= Wmax);
+    if isempty(Ws), Ws = Wmax; end
+    fss = [12 11 10 9];  fss = fss(fss <= max(9, round(12*f)));
+    pick = [];
+    for fs = fss
+        for W = Ws
+            cpl = max(8, floor((W - 26) / (fs * 0.62)));
+            H = max(40, wrap_lines(msg, cpl) * ceil(fs * 1.3) + 12);
+            if H <= Hmax, pick = [W fs H]; break; end
+        end
+        if ~isempty(pick), break; end
+    end
+    if isempty(pick), pick = [Ws(end) fss(end) Hmax]; end
+    W = pick(1);  fs = pick(2);  H = pick(3);
+    sg_x = cp(1) + 6 - W;
+    G.panel.Position  = [sg_x sg_y W H];
+    G.shadow.Position = [sg_x+3 sg_y-3 W H];
+    G.post.Position   = [sg_x+W-22 sg_y-14 4 14];
+    G.label.Position  = [8 2 W-22 H-10];
+    G.label.FontSize  = fs;
+catch
+end
+end
+
+
+function n = wrap_lines(msg, cpl)
+% lines of msg word-wrapped at cpl characters
+w = strsplit(msg);  n = 1;  L = 0;
+for k = 1:numel(w)
+    lw = numel(w{k});
+    if lw == 0, continue; end
+    if L == 0, L = lw;
+    elseif L + 1 + lw <= cpl, L = L + 1 + lw;
+    else, n = n + 1;  L = lw;
+    end
+    while L > cpl, n = n + 1;  L = L - cpl; end
 end
 end

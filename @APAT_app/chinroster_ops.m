@@ -109,31 +109,19 @@ checked = checked(:);
 n       = numel(subjs);
 app.subj_ids = subjs;
 
-% Toggle chips laid out in a grid between the panel title and the
-% bottom action strip. Styling (gold = selected) is applied by update_summary.
-pp       = app.SubjectsPanel.Position;
-inner_w  = pp(3) - 24;
-IN2      = app.layout_row2_in;
-grid_top = IN2 - 6;
-grid_bot = 6 + 28 + 12;
-gap      = 6;
-chip_w   = 76;
-n_cols   = max(1, floor((inner_w + gap) / (chip_w + gap)));
-chip_w   = floor((inner_w - (n_cols-1)*gap) / n_cols);     % stretch to fill width
-n_rows   = ceil(n / n_cols);
-chip_h   = max(18, min(28, floor((grid_top - grid_bot) / max(n_rows,1)) - gap));
-
+% Toggle chips in the Subjects section's scrollable grid (uigridlayout,
+% createComponents); cells set by private/setup_chips.m (columns from the
+% section width, rows 28 px). Styling: update_summary.
+G = getappdata(app.SubjectsPanel, 'apat_chip_grid');
+G.ColumnWidth = {'1x'};  G.RowHeight = repmat({28}, 1, n);   % one cell per chip while they are made
 app.h_subj_checks = gobjects(1, n);
 for ii = 1:n
-    row = ceil(ii / n_cols) - 1;
-    col = mod(ii - 1, n_cols);
-    x   = 12 + col * (chip_w + gap);
-    y   = grid_top - (row + 1) * (chip_h + gap) + gap;
-    app.h_subj_checks(ii) = uibutton(app.SubjectsPanel,'state', ...
+    app.h_subj_checks(ii) = uibutton(G,'state', ...
         'Text',subjs{ii},'Value',logical(checked(ii)), ...
-        'Position',[x y chip_w chip_h], 'FontSize',14,'FontWeight','bold', ...
+        'FontSize',14,'FontWeight','bold', ...
         'ValueChangedFcn',@(~,~) update_summary(app));
 end
+setup_chips(app, 'subj', true);
 update_summary(app);
 end
 
@@ -163,42 +151,34 @@ app.state.cond_colors  = pal(mod((1:n)-1, size(pal,1)) + 1, :);
 app.state.cond_markers = default_markers(n);
 if n == 0, update_summary(app); return; end
 
-pp       = app.ConditionsPanel.Position;
-inner_w  = pp(3) - 2 - 24;
-IN2      = app.layout_row2_in;
-grid_top = IN2 - 6;
-grid_bot = 4 + 18 + 2;                           % above the "n of N" / hint line
-gap      = 4;  row_h = 24;  SW = 24;  MW = 26;
-max_rows = max(1, floor((grid_top - grid_bot + gap) / (row_h + gap)));
-n_cols   = ceil(n / max_rows);
-col_w    = floor((inner_w - (n_cols-1)*8) / n_cols);
-chip_w   = max(30, col_w - SW - MW - 10);
+% rows in the Conditions section's scrollable grid (createComponents):
+% chip '1x' | swatch 26 | marker 26, cells set by private/setup_chips.m
+G = getappdata(app.ConditionsPanel, 'apat_chip_grid');
+G.RowHeight = repmat({26}, 1, n);  G.ColumnWidth = {'1x', 26, 26};
 app.h_cond_checks   = gobjects(1, n);
 app.h_cond_swatches = gobjects(1, n);
 app.h_cond_markers  = gobjects(1, n);
 for ci = 1:n
-    row = mod(ci - 1, max_rows);
-    col = floor((ci - 1) / max_rows);
     txt = labels{ci};
-    cx  = 12 + col*(col_w + 8);
-    cy  = grid_top - (row+1)*(row_h + gap) + gap;
-    app.h_cond_checks(ci) = uibutton(app.ConditionsPanel,'state', ...
+    app.h_cond_checks(ci) = uibutton(G,'state', ...
         'Text',txt,'Value',true,'HorizontalAlignment','left', ...
-        'Position',[cx cy chip_w row_h], 'FontSize',13,'FontWeight','bold', ...
+        'FontSize',13,'FontWeight','bold', ...
         'Tooltip',sprintf('Include / exclude %s', txt), ...
         'ValueChangedFcn',@(~,~) update_summary(app));
-    app.h_cond_swatches(ci) = uibutton(app.ConditionsPanel,'push','Text','', ...
+    app.h_cond_checks(ci).Layout.Row = ci;  app.h_cond_checks(ci).Layout.Column = 1;
+    app.h_cond_swatches(ci) = uibutton(G,'push','Text','', ...
         'BackgroundColor',app.state.cond_colors(ci,:), ...
         'Tooltip',sprintf('Plot colour of %s — click to change', txt), ...
-        'Position',[cx+chip_w+5 cy SW row_h], ...
         'ButtonPushedFcn',@(~,~) chinroster_ops(app,'style_open',ci));
-    app.h_cond_markers(ci) = uibutton(app.ConditionsPanel,'push', ...
+    app.h_cond_swatches(ci).Layout.Row = ci;  app.h_cond_swatches(ci).Layout.Column = 2;
+    app.h_cond_markers(ci) = uibutton(G,'push', ...
         'Text',marker_glyph(app.state.cond_markers{ci}), 'FontSize',13, ...
         'BackgroundColor',[1 1 1], 'FontColor',app.state.cond_colors(ci,:), ...
         'Tooltip',sprintf('Plot marker of %s — click to change', txt), ...
-        'Position',[cx+chip_w+5+SW+5 cy MW row_h], ...
         'ButtonPushedFcn',@(~,~) chinroster_ops(app,'style_open',ci));
+    app.h_cond_markers(ci).Layout.Row = ci;  app.h_cond_markers(ci).Layout.Column = 3;
 end
+setup_chips(app, 'conds');
 update_summary(app);
 end
 
@@ -251,17 +231,33 @@ P = style_build(app);
 if isempty(P), return; end
 P.panel.UserData = ci;
 P.title.Text = sprintf('%s STYLE', upper(app.state.cond_labels{ci}));
-% place it right of the row (Setup tab coordinates), kept inside the tab
+% place it right of the row, kept inside the tab. The popup is a child of
+% the Setup tab (not of a grid); the row's place in tab coordinates = its
+% Position + the content origins of its containers up to the tab.
 try
-    cp = app.ConditionsPanel.Position;
-    rb = app.h_cond_markers(ci).Position;
     pw = P.panel.Position(3);  ph = P.panel.Position(4);
     tp = app.SetupTab.Position;  tw = tp(3);  th = tp(4);
-    x = min(cp(1) + rb(1) + rb(3) + 10, tw - pw - 6);
-    y = max(4, min(cp(2) + rb(2) + rb(4) - ph + 30, th - ph - 6));
+    mk = app.h_cond_markers(ci);
+    o  = origin_in(mk.Parent, app.SetupTab);
+    rb = mk.Position;
+    try                                          % scrolled grid: viewport offset
+        vl = mk.Parent.ScrollableViewportLocation;
+        rb(2) = rb(2) - (vl(2) - 1);
+    catch
+    end
+    x = o(1) + rb(1) + rb(3) + 10;
+    y = o(2) + rb(2) + rb(4) - ph + 30;
+    if ~all(isfinite([x y])), error('apat:pos', 'no position'); end
+    x = max(6, min(x, tw - pw - 6));
+    y = max(4, min(y, th - ph - 6));
     P.panel.Position = [x y pw ph];
-    if isappdata(P.panel, 'apat_p0'), rmappdata(P.panel, 'apat_p0'); end   % moved at runtime
 catch
+    try                                          % fallback: centre of the tab
+        tp = app.SetupTab.Position;
+        P.panel.Position = [max(6, (tp(3)-P.panel.Position(3))/2), ...
+            max(4, (tp(4)-P.panel.Position(4))/2), P.panel.Position(3:4)];
+    catch
+    end
 end
 style_refresh(app);
 P.panel.Visible = 'on';
@@ -368,6 +364,18 @@ try
     P = app.h_cond_style;
     if isstruct(P) && isfield(P,'panel') && isgraphics(P.panel), P.panel.Visible = 'off'; end
 catch
+end
+end
+
+
+function o = origin_in(p, top)
+%ORIGIN_IN  Content origin of container P in the coordinates of container
+%   TOP (an ancestor): sum of the containers' inner offsets between them.
+o = [0 0];
+while ~isempty(p) && isgraphics(p) && ~isequal(p, top)
+    if isprop(p, 'InnerPosition'), ip = p.InnerPosition; else, ip = p.Position; end
+    o = o + ip(1:2) - 1;
+    p = p.Parent;
 end
 end
 

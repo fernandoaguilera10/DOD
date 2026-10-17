@@ -94,6 +94,12 @@ switch state
         try, chin_tick(elapsed_s()); catch, end
         R.elapsed.Text = mmss(elapsed_s());
         R.count.Text = count_txt();
+        % NO drawnow here: this runs from the spinner TIMER, which can fire
+        % while the main thread is half-way through building a graphics
+        % object (e.g. xregion in apat_xgroups). Flushing then corrupts the
+        % scene ("Error in state of SceneNode") and can hang the run. The
+        % main thread's own drawnow('limitrate') calls render these updates.
+        return
     case 'stopping'
         R.title.Text = 'Stopping…';
         R.caption.Text = 'STOPPING';

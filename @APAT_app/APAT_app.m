@@ -54,7 +54,7 @@ properties (Access = public)
     RootDirField           matlab.ui.control.EditField
     BrowseBtn              matlab.ui.control.Button
     RosterDropdown         matlab.ui.control.DropDown
-    SheetPanel             matlab.ui.container.Panel   % Experiment buttons (private/sheet_sel.m)
+    SheetPanel             matlab.ui.container.GridLayout   % Experiment buttons (grid; private/sheet_sel.m)
     SubjectsPanel          matlab.ui.container.Panel
     SelectAllBtn           matlab.ui.control.Button
     ClearSubjBtn           matlab.ui.control.Button

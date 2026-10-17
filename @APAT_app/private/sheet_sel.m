@@ -32,13 +32,16 @@ function out = sheet_sel(app, action, varargin)
 %   s   = sheet_sel(app, 'saved')               struct for launcher_last_settings
 %                                               (.file .sheets .on_screen .per)
 %   sheet_sel(app, 'style')                     restyle the buttons
+%   sheet_sel(app, 'relayout')                  no-op (kept for old callers)
 %
 %   State: app.state.sheet (on screen), .sheet_list, .sheets_sel (cellstr),
 %   .sheet_file (roster path), .sheet_chips (sheet the chips belong to),
 %   .sheet_store.(makeValidName(sheet)) = struct name / subj_off / cond_off
 %   (DEselected subject IDs / condition paths: new ones default to on),
 %   .sheet_roster.(key) = cached roster (subjects / conds_all / cond_labels).
-%   Buttons: app.h_sheet_btns in app.SheetPanel (createComponents).
+%   Buttons: app.h_sheet_btns in app.SheetPanel — a uigridlayout
+%   (createComponents): one 'fit' column per button + a '1x' filler; the
+%   grid scrolls sideways when the buttons do not fit.
 out = [];
 ensure(app);
 switch action
@@ -64,6 +67,7 @@ switch action
         out = struct('file',[fn ex], 'sheets',{selected(app)}, ...
             'on_screen',app.state.sheet, 'per',app.state.sheet_store);
     case 'style',     style(app);
+    case 'relayout'                              % (grid layout: nothing to do on resize)
 end
 end
 
@@ -158,9 +162,10 @@ function do_message(app, txt)
 clear_btns(app);
 app.state.sheet_list = {};  app.state.sheets_sel = {};
 try
-    P = app.SheetPanel.Position;
-    uilabel(app.SheetPanel, 'Text', txt, 'Tag', 'sheet_msg', 'FontSize', 13, ...
-        'FontColor', app.clr_txt2, 'Position', [0 0 P(3) P(4)]);
+    g = app.SheetPanel;
+    g.ColumnWidth = {'1x'};
+    h = uilabel(g, 'Text', txt, 'Tag', 'sheet_msg', 'FontSize', 13, 'FontColor', app.clr_txt2);
+    h.Layout.Row = 1;  h.Layout.Column = 1;
 catch
 end
 end
@@ -170,40 +175,19 @@ function build(app)
 clear_btns(app);
 L = app.state.sheet_list;  n = numel(L);
 if n == 0, return; end
-P = app.SheetPanel.Position;  W = P(3);  H = P(4);
-gap = 6;  FS = 14;
-tw = @(fs) cellfun(@(s) ceil(0.62*fs*numel(s)) + 26, L);   % bold text width estimate
-w = max(56, tw(FS));
-rows = 1;
-if sum(w) + gap*(n-1) > W                        % shrink: smaller font, then narrower
-    FS = 11;  w = max(44, tw(FS));
-    avail = W - gap*(n-1);
-    if sum(w) > avail
-        if avail / n >= 44
-            w = floor(w * avail / sum(w));
-        else
-            rows = 2;  FS = 9;                   % many sheets: two rows
-        end
-    end
-end
-if rows == 1
-    x = [0 cumsum(w(1:end-1) + gap)];  y = zeros(1, n);  h = H * ones(1, n);
-else
-    per = ceil(n / 2);  hh = floor((H - 2) / 2);
-    ww = floor((W - gap*(per-1)) / per);
-    w = ww * ones(1, n);
-    c = mod((1:n) - 1, per);  r = floor(((1:n) - 1) / per);
-    x = c * (ww + gap);  y = (1 - r) * (hh + 2);  h = hh * ones(1, n);
-end
+g = app.SheetPanel;                              % uigridlayout: 'fit' column per button
+g.ColumnWidth = [repmat({'fit'}, 1, n), {'1x'}];
+g.RowHeight   = {'1x'};
 me = @sheet_sel;                                 % handle now (callback runs from outside)
 app.h_sheet_btns = gobjects(1, n);
 for i = 1:n
-    app.h_sheet_btns(i) = uibutton(app.SheetPanel, 'state', 'Text', L{i}, ...
-        'Position', [x(i) y(i) w(i) h(i)], 'FontSize', FS, 'FontWeight', 'bold', ...
-        'UserData', L{i}, ...
+    app.h_sheet_btns(i) = uibutton(g, 'state', 'Text', L{i}, ...
+        'FontSize', 14, 'FontWeight', 'bold', 'UserData', L{i}, ...
         'Tooltip', sprintf(['%s — click to add it to the run and show its subjects / ' ...
             'conditions; click the one on screen again to remove it from the run'], L{i}), ...
         'ValueChangedFcn', @(src,~) me(app, 'toggle', src.UserData));
+    app.h_sheet_btns(i).Layout.Row = 1;
+    app.h_sheet_btns(i).Layout.Column = i;
 end
 style(app);
 end
@@ -218,9 +202,7 @@ try
         for k = 1:numel(h)
             txt = h(k).UserData;
             if ~isempty(app.state.sheet), txt = sprintf('%s %s %s', txt, char(183), app.state.sheet); end
-            h(k).Text = txt;
-            p = h(k).Position;  p(3) = ceil(numel(txt)*13*0.62) + 10;  h(k).Position = p;
-            try, rmappdata(h(k), 'apat_p0'); catch, end
+            h(k).Text = txt;                     % ('1x' column of the header strip grid)
         end
     end
 catch

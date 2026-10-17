@@ -7,8 +7,10 @@ function out = res_style(action, varargin)
 %   res_style('bar', app, btn, on)     Results-bar button: on = subtle yellow,
 %                                      dark bold text; off = light grey (clr_btn)
 %   res_style('bar_sync', app)         View + measure buttons, gold underline
-%                                      under the measure on screen, group captions
-%   res_style('underline', app)        re-place the gold underline only (bar_fit)
+%                                      under the measure on screen, group captions,
+%                                      then the bar's column widths (bar_fit)
+%   res_style('underline', app)        move the gold underline (bar grid row 3) to the
+%                                      column of the measure button on screen
 %   res_style('onoff', b)              strip ON / OFF toggle: ON green, OFF red
 %   res_style('seg', b, on)            segmented / level choice: on = subtle yellow
 %   res_style('icon', btn, idx)        small measure icon on a bar button (if a
@@ -110,6 +112,7 @@ if isfield(app.res, 'grp_caps')
     end
 end
 underline(app);
+try, bar_fit(app); catch, end                    % column widths (hidden items 0, Tracking right)
 end
 
 function underline(app)
@@ -119,14 +122,8 @@ L = app.res.meas_line;
 m = app.res.meas_idx;  if m >= 8, m = 8; end
 if m < 1 || m > numel(app.res.btns) || ~isvalid(app.res.btns(m)), L.Visible = 'off'; return; end
 b = app.res.btns(m);
-p = double(b.Position);
-h = 3;
-L.Position = [p(1)+3, p(2)+2, max(4, p(3)-6), h];
-for f = {'apat_p0','apat_bar0'}
-    if isappdata(L, f{1}), rmappdata(L, f{1}); end      % owned here, not by relayout / bar_fit
-end
+L.Layout.Column = b.Layout.Column;                % row 3 of the bar grid, under the button
 L.Visible = 'on';
-try, uistack(L, 'top'); catch, end
 end
 
 

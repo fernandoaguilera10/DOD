@@ -49,7 +49,6 @@ clr_amber = [0.97 0.72 0.22];
 clr_grey  = [0.82 0.82 0.82];
 col_w_subj = 90;
 col_w_cond = max(80, round((app.UIFigure.Position(3) - col_w_subj) / max(n_c,1)));
-tg_h       = app.StatusInnerTG.Position(4) - 28;
 
 col_names  = [{'Subject'}, labels(:)'];
 col_widths = [col_w_subj, repmat(col_w_cond, 1, n_c)];
@@ -63,11 +62,12 @@ for mi = 1:n_mod
             tbl_data{si,ci+1} = ternary(mod_data(si,ci,mi), '✓', '');
         end
     end
-    tbl = uitable(mod_tab, ...
+    tab_g = uigridlayout(mod_tab, 'RowHeight',{'1x'}, 'ColumnWidth',{'1x'}, ...
+        'Padding',[0 0 0 0]);                     % the table fills the tab at any window size
+    tbl = uitable(tab_g, ...
         'Data',tbl_data,'ColumnName',col_names, ...
         'ColumnWidth',num2cell(col_widths), ...
-        'RowName',{}, ...
-        'Position',[0 0 app.UIFigure.Position(3) tg_h]);
+        'RowName',{});
     for si = 1:n_s
         for ci = 1:n_c
             if mod_data(si,ci,mi)
