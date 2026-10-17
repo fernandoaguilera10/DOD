@@ -54,8 +54,8 @@ if isempty(idx_plot_relative)
                 all_plv_sum{rows,cols} = mt.total;                   % PLV, all harmonics
             end
             peaks_std{1,cols}   = safe_std(all_peaks(:,cols));
-            avg_plv_env{1,cols} = [avg_plv_env{1,cols}; plv_env{rows,cols}];
-            avg_f{1,cols}       = [avg_f{1,cols}; f{rows,cols}];
+            avg_plv_env{1,cols} = [avg_plv_env{1,cols}; plv_env{rows,cols}(:)'];
+            avg_f{1,cols}       = [avg_f{1,cols}; f{rows,cols}(:)'];   % rows: f is saved as a column
         end
     end
 else
@@ -79,8 +79,8 @@ else
                     all_low_high_peaks{rows,c_idx} = [mc.low - mr.low, mc.high - mr.high];
                     all_peaks{rows,c_idx}   = diff_p;
                     all_plv_sum{rows,c_idx} = mc.total - mr.total;
-                    avg_plv_env{1,c_idx}    = [avg_plv_env{1,c_idx}; plv_env{rows,cols}-plv_env{rows,idx_plot_relative}];
-                    avg_f{1,c_idx}          = [avg_f{1,c_idx}; f{rows,cols}];
+                    avg_plv_env{1,c_idx}    = [avg_plv_env{1,c_idx}; plv_env{rows,cols}(:)'-plv_env{rows,idx_plot_relative}(:)'];
+                    avg_f{1,c_idx}          = [avg_f{1,c_idx}; f{rows,cols}(:)'];
                 end
                 peaks_std{1,c_idx} = safe_std(all_peaks(:,c_idx));
             end
