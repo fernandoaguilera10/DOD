@@ -1,24 +1,20 @@
 function relayout_results(app, action)
-%RELAYOUT_RESULTS  Proportional layout when the APAT window is resized.
-%   relayout_results(app, 'changed') — UIFigure SizeChangedFcn. Debounced:
-%       the relayout runs once, 0.25 s after the last size change (not on
-%       every step of a drag).
-%   relayout_results(app)            — the relayout itself:
-%       1. every UI component with pixel units (panels, buttons, labels,
-%          fields, tab groups, uiaxes …, also those added later by the
-%          Results tab) is scaled from its layout position by the window's
-%          size relative to the size the app was built for — smaller AND
-%          larger (MATLAB's own AutoResizeChildren never shrinks below the
-%          starting size, which clipped the window). Font sizes are kept.
-%       2. bar_fit re-anchors the Results bar (right groups to the right
-%          edge, left groups compressed so nothing is clipped);
-%       3. a new layout epoch starts and the Results view on screen gets
-%          its plot margins refitted (fit_layout); other views are refitted
-%          when they are next shown; an open Plot Settings panel is
-%          re-clamped into the plot area (plot_settings 'clamp').
-%   Layout positions: appdata 'apat_p0' on each component, stored at scale
-%   1 the first time it is seen (components made after a resize were made
-%   at the current scale, appdata 'apat_cur_scale' on the UIFigure).
+%RELAYOUT_RESULTS  Work left after a window resize (Oct 16 2026: layout
+%   managers). The Setup and Data Status tabs are uigridlayout trees and the
+%   Results cards use normalized units, so MATLAB resizes them by itself;
+%   the header / tab group follow at once (createComponents>fig_layout).
+%   What is left runs here, once, 0.25 s after the last size change:
+%     1. peak editor overlay: its pixel layout scaled to the panel's size
+%        (scale_tree, from appdata 'apat_p0' at scale 1; 'apat_pe_size' =
+%        build size, 'apat_pe_scale' = current scale);
+%     2. a new layout epoch + plot margins of the Results view on screen
+%        (fit_layout; other views are refitted when next shown);
+%     3. Results bar column widths (bar_fit) and an open Plot Settings
+%        panel kept inside the plot area (plot_settings 'clamp').
+%   relayout_results(app, 'changed') — debounce (timer APAT_relayout)
+%   relayout_results(app)            — the work itself
+%   relayout_results(app, 'peak')    — step 1 only (after the peak editor
+%                                      axes are rebuilt, RunButtonPushed)
 if nargin < 2, action = 'refit'; end
 try
     if ~isvalid(app) || ~isvalid(app.UIFigure), return; end
@@ -29,7 +25,6 @@ fig = app.UIFigure;
 switch action
     case 'changed'
         if ~isappdata(fig, 'apat_design_size'), return; end    % still building
-        try, fig.Pointer = 'watch'; catch, end             % busy pointer while dragging
         try
             t = timerfind('Name','APAT_relayout');
             if isempty(t)
@@ -42,23 +37,10 @@ switch action
         catch
             relayout_results(app);                     % no timer: do it now
         end
+    case 'peak'
+        peak_scale(app);
     otherwise
-        try
-            D  = getappdata(fig, 'apat_design_size');
-            s0 = [1 1];
-            if isappdata(fig, 'apat_cur_scale'), s0 = getappdata(fig, 'apat_cur_scale'); end
-            p  = fig.Position;
-            s1 = max([0.35 0.35], p(3:4) ./ D);        % keep things usable on tiny windows
-            if ~any(abs(s1 - s0) > 1e-3), try, fig.Pointer = 'arrow'; catch, end, end
-            if any(abs(s1 - s0) > 1e-3)
-                % "Resizing…" box while the layout is rebuilt (closes itself
-                % when this function returns; shared with other busy boxes)
-                busy = busy_start(app, 'Resizing the window — please wait…'); %#ok<NASGU>
-                scale_tree(fig, s0, s1);
-                setappdata(fig, 'apat_cur_scale', s1);
-            end
-        catch
-        end
+        peak_scale(app);
         try                                            % plot margins for the new size
             e = 0;
             if isappdata(fig, 'apat_layout_epoch'), e = getappdata(fig, 'apat_layout_epoch'); end
@@ -75,11 +57,26 @@ switch action
             if ~isempty(root), fit_layout(root); end
         catch
         end
-        % Results bar: Tracking group + Save / Plot Settings buttons right-
-        % anchored, left content compressed if needed (overrides the
-        % proportional positions); open Plot Settings panel kept inside
         try, bar_fit(app); catch, end
         try, plot_settings(app, 'clamp'); catch, end
+end
+end
+
+
+function peak_scale(app)
+%PEAK_SCALE  Scale the peak editor's pixel layout to the panel's size.
+try
+    P = app.PeakEditPanel;
+    if isempty(P) || ~isgraphics(P) || ~isappdata(P, 'apat_pe_size'), return; end
+    D  = getappdata(P, 'apat_pe_size');
+    s0 = [1 1];
+    if isappdata(P, 'apat_pe_scale'), s0 = getappdata(P, 'apat_pe_scale'); end
+    pp = P.Position;
+    s1 = max([0.35 0.35], pp(3:4) ./ D);
+    if ~any(abs(s1 - s0) > 1e-3), return; end
+    scale_tree(P, s0, s1);
+    setappdata(P, 'apat_pe_scale', s1);
+catch
 end
 end
 
@@ -90,14 +87,11 @@ S0 = [s0 s0];  S1 = [s1 s1];
 kids = allchild(h);
 for c = kids(:)'
     try
-        if isprop(c, 'AutoResizeChildren') && strcmp(c.AutoResizeChildren, 'on')
-            c.AutoResizeChildren = 'off';              % one scaling rule: ours
-        end
         typ = get(c, 'Type');
         is_ax = any(strcmp(typ, {'axes','uiaxes','polaraxes','geoaxes'}));
         movable = isprop(c, 'Position') && ...
             ~any(strcmp(typ, {'uitab','uimenu','uicontextmenu','text','figure','line', ...
-            'patch','scatter','errorbar','surface','image','hggroup'}));
+            'patch','scatter','errorbar','surface','image','hggroup','uigridlayout'}));
         px = true;                                     % uibutton, uilabel … have no Units (always pixels)
         if isprop(c, 'Units'), px = strcmp(get(c, 'Units'), 'pixels'); end
         if movable && px
@@ -109,7 +103,7 @@ for c = kids(:)'
             end
             set(c, 'Position', p0 .* S1);
         end
-        if ~is_ax && ~strcmp(typ, 'legend')
+        if ~is_ax && ~strcmp(typ, 'legend') && ~strcmp(typ, 'uigridlayout')
             scale_tree(c, s0, s1);                     % containers: their children too
         end
     catch

@@ -221,7 +221,6 @@ if ~isempty(meas_idx) && ~isempty(app.res.panels)
     p_avg = app.res.panels{2, meas_idx};
     if isvalid(p_avg)
         delete(p_avg.Children);
-        pos = p_avg.Position;
         make_placeholder(p_avg, 'Analysis running…', ...
             'Average figures appear here once the last subject is processed.');
     end
@@ -342,6 +341,18 @@ if ~isempty(app.PeakEditPanel) && isvalid(app.PeakEditPanel)
     app.PeakEditAx = uiaxes(app.PeakEditPanel, 'Position', ed_pos, ...
         'BackgroundColor','white', 'Box','on');
     disableDefaultInteractivity(app.PeakEditAx);
+    % positions above are at build size: record them and scale the axes to
+    % the window as it is now (private/relayout_results 'peak')
+    try
+        sc = [1 1];
+        if isappdata(app.PeakEditPanel, 'apat_pe_scale'), sc = getappdata(app.PeakEditPanel, 'apat_pe_scale'); end
+        setappdata(app.PeakEditWfAx, 'apat_p0', wf_pos);
+        setappdata(app.PeakEditAx,   'apat_p0', ed_pos);
+        app.PeakEditWfAx.Position = wf_pos .* [sc sc];
+        app.PeakEditAx.Position   = ed_pos .* [sc sc];
+        relayout_results(app, 'peak');
+    catch
+    end
 end
 
 % ── Build cfg and run ─────────────────────────────────────────────────

@@ -480,15 +480,14 @@ for mi = 1:app.n_meas
     end
 end
 
-% Marker bar level with the measure on screen
-try
-    if isgraphics(app.h_meas_marker) && isvalid(app.h_meas_btns(m))
-        bp = app.h_meas_btns(m).Position;
-        mp = app.h_meas_marker.Position;
-        app.h_meas_marker.Position = [mp(1) bp(2) mp(3) bp(4)];
-        app.h_meas_marker.Visible  = 'on';
+% Type buttons live in one row grid per measure (all in the same cell of
+% the Measures grid): only the grid of the measure on screen is shown
+for mi = 1:app.n_meas
+    try
+        g = app.h_sub_btns{mi}(1).Parent;
+        if isa(g, 'matlab.ui.container.GridLayout'), g.Visible = ternary(mi == m, 'on', 'off'); end
+    catch
     end
-catch
 end
 
 % Description (About card) — fixed position, text only
@@ -876,29 +875,10 @@ fit_panel(app, app.res.panels{mode, meas_idx});
 app.res.panels{mode, meas_idx}.Visible = 'on';
 end
 
-function fit_panel(app, p)
-%FIT_PANEL  Make a results panel fill the Results tab under the control bar
-%   (a panel that missed a window resize could otherwise leave an empty band
-%   between the bar and the figure).
-try
-    ctrl = app.FigAvgBtn.Parent;               % Results control bar
-    cp = ctrl.Position;                        % [0 PLOT_H W CTRL_H] in the tab
-    want = [0 0 cp(3) cp(2)];
-    % white plot card between the bar and the status strip (same gaps as
-    % built in createComponents>buildResultsTab: side margin = strip x,
-    % gaps = strip y)
-    if isfield(app.res, 'status_bar') && isvalid(app.res.status_bar)
-        sp = app.res.status_bar.Position;
-        g  = sp(2);
-        y0 = sp(2) + sp(4) + g;
-        want = [sp(1) y0 sp(3) cp(2) - g - y0];
-    end
-    if isvalid(p) && strcmp(p.Units,'pixels') && any(abs(p.Position - want) > 1) && want(4) > 50
-        p.Position = want;
-        if isappdata(p, 'apat_p0'), rmappdata(p, 'apat_p0'); end   % re-read at the next window resize
-    end
-catch
-end
+function fit_panel(~, ~)
+%FIT_PANEL  (Kept for callers.) The Results cards fill the plot host in
+%   normalized units (createComponents>buildResultsTab), so they always
+%   match the window — nothing to do here.
 end
 
 function set_freq_visible(app, meas_idx)
@@ -1037,6 +1017,66 @@ if ~isempty(app.h_memr_param_panel) && isvalid(app.h_memr_param_panel)
     is_art = is_memr && app.state.subtype_idx == 1;           % ART text / exploratory text
     set(findall(app.h_memr_param_panel, 'Tag','memr_art'), 'Visible', ternary(is_art, 'on', 'off'));
     set(findall(app.h_memr_param_panel, 'Tag','memr_mx'),  'Visible', ternary(is_memr && ~is_art, 'on', 'off'));
+end
+% Parameter panels are grids of rows (createComponents>buildParamPanels):
+% blocks of other types share a cell, so hide every grid with nothing
+% visible, and collapse rows that hold nothing visible
+for P = {app.h_abr_param_panel, app.h_efr_param_panel, app.h_oae_param_panel, app.h_memr_param_panel}
+    if ~isempty(P{1}) && isvalid(P{1}) && vis_on(P{1}), grid_sync(P{1}); end
+end
+end
+
+
+function grid_sync(root)
+%GRID_SYNC  Under ROOT: every uigridlayout whose children are all hidden is
+%   hidden (deepest first, so blocks of other types sharing a cell never
+%   paint over the visible one); in the panels' row grids (appdata
+%   'apat_rows' = design row heights) rows without anything visible get
+%   height 0. Silent.
+try
+    G = findall(root, 'Type','uigridlayout');
+    if isempty(G), return; end
+    d = zeros(numel(G), 1);
+    for i = 1:numel(G)
+        p = G(i).Parent;
+        while ~isempty(p) && isgraphics(p) && ~isequal(p, root)
+            d(i) = d(i) + 1;  p = p.Parent;
+        end
+    end
+    [~, o] = sort(d, 'descend');
+    for i = o(:)'
+        g = G(i);
+        k = g.Children;
+        on = false(numel(k), 1);
+        for j = 1:numel(k), on(j) = vis_on(k(j)); end
+        if isappdata(g, 'apat_rows')
+            rh = getappdata(g, 'apat_rows');
+            used = false(1, numel(rh));
+            for j = 1:numel(k)
+                try
+                    r = k(j).Layout.Row;
+                    if on(j) && all(r <= numel(rh)), used(r) = true; end
+                catch
+                end
+            end
+            rh(~used) = {0};
+            g.RowHeight = [rh, {'1x'}];
+        else
+            if vis_on(g) ~= any(on), g.Visible = ternary(any(on), 'on', 'off'); end
+        end
+    end
+catch
+end
+end
+
+
+function tf = vis_on(h)
+%VIS_ON  Visible property as logical (char or OnOffSwitchState).
+tf = false;
+try
+    v = h.Visible;
+    if ischar(v) || isstring(v), tf = strcmp(v, 'on'); else, tf = logical(v); end
+catch
 end
 end
 

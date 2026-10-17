@@ -9,7 +9,9 @@ function setup_hover(app, evt)
 %   The button under the pointer is found from the event's HitObject when
 %   MATLAB provides it, else from the pointer position and the button
 %   rectangles (cached; re-read after a window resize, which bumps appdata
-%   'apat_layout_epoch'). Errors are left to hover_cb (reported once).
+%   'apat_layout_epoch'; buttons in grids: Position + the content origins
+%   of the containers above, uigridlayout included). Errors are left to
+%   hover_cb (reported once).
 persistent busy
 if ~isempty(busy) && busy, return; end
 if ~isvalid(app) || app.TabGroup.SelectedTab ~= app.SetupTab, return; end
@@ -73,15 +75,16 @@ if isappdata(fig, 'apat_hover_rects')
     c = getappdata(fig, 'apat_hover_rects');
     if isequal(c.key, key), R = c.R; return; end
 end
-o = inner_origin(app.MeasuresPanel);               % figure pixels of the panel's content area
+% buttons sit in grids (uigridlayout): each one's Position is relative to
+% its grid, so add up the content origins of every container above it
 R = zeros(0, 6);
 for m = 1:numel(app.h_meas_btns)
     b = app.h_meas_btns(m);
-    if isgraphics(b), R(end+1, :) = [o + b.Position(1:2) - 1, b.Position(3:4), m, 0]; end %#ok<AGROW>
+    if isgraphics(b), R(end+1, :) = [inner_origin(b.Parent) + b.Position(1:2) - 1, b.Position(3:4), m, 0]; end %#ok<AGROW>
     if numel(app.h_sub_btns) >= m
         for k = 1:numel(app.h_sub_btns{m})
             b = app.h_sub_btns{m}(k);
-            if isgraphics(b), R(end+1, :) = [o + b.Position(1:2) - 1, b.Position(3:4), m, k]; end %#ok<AGROW>
+            if isgraphics(b), R(end+1, :) = [inner_origin(b.Parent) + b.Position(1:2) - 1, b.Position(3:4), m, k]; end %#ok<AGROW>
         end
     end
 end
