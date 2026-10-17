@@ -143,8 +143,10 @@ for j = 1:numel(T)
     end
     R = struct('h',{}, 'prop',{}, 'val',{});
     try
+        t_ = tic;
         R = reveal(T(j), root, fig);
         export_one(root, T(j), file, o.dpi);
+        apat_timing('image export', toc(t_));
     catch err
         try                                          % the source figure, as before
             exportgraphics(S(j), file, 'Resolution', o.dpi);

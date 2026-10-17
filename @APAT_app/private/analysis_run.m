@@ -339,7 +339,7 @@ for ChinIND = subj_order
                 sourcepath = strcat(DATAdir, filesep, 'RAW');
                 cd(CODEdir)
                 try
-                    move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                    t_ = tic;  move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);  apat_timing('retrieve RAW', toc(t_));
                 catch ME
                     step_failed(ME, 'moving RAW files');  cd(CODEdir);
                 end
@@ -415,7 +415,7 @@ for ChinIND = subj_order
                 pre_figs_b1 = findall(0,'Type','figure');
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
 
-                b1_ok = true;
+                b1_ok = true;  t_ = tic;
                 try
                     run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
                         Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
@@ -423,6 +423,7 @@ for ChinIND = subj_order
                 catch ME
                     step_failed(ME, 'analysis');  b1_ok = false;
                 end
+                apat_timing('analysis', toc(t_));
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
                 new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
@@ -462,6 +463,7 @@ for ChinIND = subj_order
                 if use_embed, pre_figs_b3 = findall(0,'Type','figure'); end
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
 
+                t_ = tic;
                 try
                     run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
                         Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
@@ -472,6 +474,7 @@ for ChinIND = subj_order
                     step_failed(ME, ternary_s(is_last_pair, 'summary + group average', 'summary'));
                     cd(CODEdir);
                 end
+                apat_timing(ternary_s(is_last_pair, 'summary + average', 'summary'), toc(t_));
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
 
@@ -488,10 +491,10 @@ for ChinIND = subj_order
 
                     try
                         if ~isempty(ind_figs)
-                            embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});
+                            t_ = tic;  embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});  apat_timing('show individual', toc(t_));
                         end
                         if is_last_pair && ~isempty(avg_figs)
-                            embed_fns.average(avg_figs, measure_lbl);
+                            t_ = tic;  embed_fns.average(avg_figs, measure_lbl);  apat_timing('show average', toc(t_));
                         end
                     catch ME
                         step_failed(ME, 'showing results');
@@ -523,7 +526,7 @@ for ChinIND = subj_order
                 sourcepath = strcat(DATAdir, filesep, 'RAW');
                 cd(CODEdir)
                 try
-                    move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);
+                    t_ = tic;  move_files(Chins2Run, all_Conds2Run, ChinIND, CondIND, sourcepath, EXPname, DATAdir, CODEdir);  apat_timing('retrieve RAW', toc(t_));
                 catch ME
                     step_failed(ME, 'moving RAW files');  cd(CODEdir);
                 end
@@ -574,7 +577,7 @@ for ChinIND = subj_order
             end
             pre_figs_b1 = findall(0,'Type','figure');
             set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
-            b1_ok = true;
+            b1_ok = true;  t_ = tic;
             try
                 ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
                     all_Conds2Run, Conds2Run, peaks_cond_INDs, colors, shapes, ...
@@ -583,6 +586,7 @@ for ChinIND = subj_order
             catch ME
                 step_failed(ME, 'analysis (ABR peaks)');  b1_ok = false;  cd(CODEdir);
             end
+            apat_timing('analysis (all conditions)', toc(t_));
             if ~use_embed, set(0,'DefaultFigureVisible','on'); end
             new_figs_b1 = setdiff(findall(0,'Type','figure'), pre_figs_b1);
             new_figs_b1 = new_figs_b1(isvalid(new_figs_b1));
@@ -628,6 +632,7 @@ for ChinIND = subj_order
                 datapath = datapath_dir{ChinIND, CondIND};
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && (show_figs.ind || show_figs.avg)));
 
+                t_ = tic;
                 try
                     run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATEdir, ...
                         Conds2Run, Chins2Run, all_Conds2Run, ChinIND, CondIND, ...
@@ -638,6 +643,7 @@ for ChinIND = subj_order
                     step_failed(ME, ternary_s(is_last_pair, 'summary + group average', 'summary'));
                     cd(CODEdir);
                 end
+                apat_timing(ternary_s(is_last_pair, 'summary + average', 'summary'), toc(t_));
 
                 if ~use_embed, set(0,'DefaultFigureVisible','on'); end
 
@@ -662,10 +668,10 @@ for ChinIND = subj_order
 
             try
                 if ~isempty(ind_figs)
-                    embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);
+                    t_ = tic;  embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);  apat_timing('show individual', toc(t_));
                 end
                 if last_is_last_pair && ~isempty(avg_figs)
-                    embed_fns.average(avg_figs, measure_lbl);
+                    t_ = tic;  embed_fns.average(avg_figs, measure_lbl);  apat_timing('show average', toc(t_));
                 end
             catch ME
                 step_failed(ME, 'showing results');

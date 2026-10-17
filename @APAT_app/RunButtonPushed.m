@@ -470,6 +470,8 @@ setappdata(0, 'APAT_export_fmt', cfg.export_fmt);
 setappdata(0, 'APAT_plot_defaults', cfg.plot_defaults);
 rec_clean = onCleanup(@() rm_rec_policy()); %#ok<NASGU>
 try, apat_run_error('context', 'analysis',measure_lbl, 'subject','', 'condition','', 'blind',blind); catch, end
+t_run = tic;
+clr_t = onCleanup(@() log_total(t_run)); %#ok<NASGU>   % APAT_timing.csv: whole analysis
 try
     if blind
         % evalc captures all console output (subject IDs, file names) so
@@ -577,6 +579,15 @@ catch
 end
 end
 
+
+function log_total(t_run)
+%LOG_TOTAL  TOTAL row in APAT_timing.csv for one analysis (all pairs)
+try
+    apat_run_error('context', 'subject','', 'condition','');
+    apat_timing('TOTAL', toc(t_run));
+catch
+end
+end
 
 function clear_no_reanalyze(app)
 try
