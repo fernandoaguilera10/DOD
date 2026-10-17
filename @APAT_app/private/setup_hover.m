@@ -15,8 +15,19 @@ function setup_hover(app, evt)
 persistent busy
 if ~isempty(busy) && busy, return; end
 if ~isvalid(app) || app.TabGroup.SelectedTab ~= app.SetupTab, return; end
-busy = true;  cl = onCleanup(@() clear_busy()); %#ok<NASGU>
+busy = true;
+try
+    do_hover(app, evt);
+catch ME
+    busy = false;  rethrow(ME);
+end
+busy = false;
+% (no onCleanup + nested function here: its destructor could run after the
+%  workspace was gone and warn "already-destroyed variable 'busy'")
+end
 
+
+function do_hover(app, evt)
 [m, k] = from_hit(app, evt);
 if isempty(m)
     pt = app.UIFigure.CurrentPoint;
@@ -40,9 +51,6 @@ end
 app.state.measure_idx = m;
 app.state.subtype_idx = k;
 navigate_results(app, 'measures');
-    function clear_busy()
-        busy = false;
-    end
 end
 
 
