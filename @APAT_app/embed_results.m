@@ -128,7 +128,7 @@ t_ = tic;  cond_filter(app, 'apply');  apat_timing('avg: cond_filter apply', toc
 t_ = tic;  plot_settings(app, 'stash', panel);  apat_timing('avg: plot_settings stash', toc(t_));  % controls → "Plot Settings" panel (hidden)
 t_ = tic;  fit_layout(panel);  apat_timing('avg: fit_layout', toc(t_));  % margins: window edges, legends; plots use the full width
 t_ = tic;  apply_shade(app, panel);  apat_timing('avg: apply_shade', toc(t_));  % Shading ON / OFF choice
-t_ = tic;  try, exclusions(app, 'mark', panel, meas_idx); catch, end  apat_timing('avg: exclusions mark', toc(t_));  % ✕ = subject points excluded from the average
+t_ = tic;  try, exclusions(app, 'mark', panel, meas_idx); catch, end;  apat_timing('avg: exclusions mark', toc(t_));  % ✕ = subject points excluded from the average
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('avg: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('avg: drawnow', toc(t_));
 save_view(app, 'auto', panel, figs);                       % images = these Results views (deferred by apat_save_fig)
