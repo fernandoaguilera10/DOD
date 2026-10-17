@@ -43,7 +43,7 @@ end
 
 sp = app.res.subj_data{meas_idx}.panels{si};
 delete(sp.Children);
-embed_figs(app, figs, sp);
+t_ = tic;  embed_figs(app, figs, sp);  apat_timing('ind: embed_figs', toc(t_));
 
 % Attach SelectionChangedFcn to any condition tabgroup (ABR Peaks) so
 % the freq dropdown refreshes when the user switches condition tabs.
@@ -62,23 +62,23 @@ for k = 1:numel(app.res.subj_data{meas_idx}.panels)
 end
 sp.Visible = 'on';
 
-navigate_results(app, 'after_ind_embed', meas_idx, subject);
+t_ = tic;  navigate_results(app, 'after_ind_embed', meas_idx, subject);  apat_timing('ind: navigate_results after_ind_embed', toc(t_));
 if any(meas_idx == [3 4])                                      % EFR: level buttons, time window
-    add_efr_time_ctrl(app, sp);  navigate_results(app, 'efr_level_sync');
+    t_ = tic;  add_efr_time_ctrl(app, sp);  navigate_results(app, 'efr_level_sync');  apat_timing('ind: add_efr_time_ctrl', toc(t_));
 end
 if any(meas_idx == [5 6 7])                                    % OAE view controls
-    add_oae_ctrl(app, sp, 'ind');  navigate_results(app, 'oae_scale');
+    t_ = tic;  add_oae_ctrl(app, sp, 'ind');  navigate_results(app, 'oae_scale');  apat_timing('ind: add_oae_ctrl', toc(t_));
 end
 if meas_idx == 8, add_memr_ind_ctrl(app, sp); end              % MEMR: conditions + response y-limits
 if is_mx(meas_idx), add_mx_ctrl(app, sp, 'ind'); end           % MEMR exploratory views
-subject_pick(app, 'wire');                       % clickable subject points
-cond_filter(app, 'apply');                       % conditions switched off stay hidden
+t_ = tic;  subject_pick(app, 'wire');  apat_timing('ind: subject_pick wire', toc(t_));  % clickable subject points
+t_ = tic;  cond_filter(app, 'apply');  apat_timing('ind: cond_filter apply', toc(t_));  % conditions switched off stay hidden
 app.TabGroup.SelectedTab = app.ResultsTab;
-plot_settings(app, 'stash', sp);                 % controls → "Plot Settings" panel (hidden)
-fit_layout(sp);                                  % margins: window edges, legends; plots use the full width
-apply_shade(app, sp);                            % Shading ON / OFF choice
-plot_settings(app, 'sync');
-drawnow;
+t_ = tic;  plot_settings(app, 'stash', sp);  apat_timing('ind: plot_settings stash', toc(t_));  % controls → "Plot Settings" panel (hidden)
+t_ = tic;  fit_layout(sp);  apat_timing('ind: fit_layout', toc(t_));  % margins: window edges, legends; plots use the full width
+t_ = tic;  apply_shade(app, sp);  apat_timing('ind: apply_shade', toc(t_));  % Shading ON / OFF choice
+t_ = tic;  plot_settings(app, 'sync');  apat_timing('ind: plot_settings sync', toc(t_));
+t_ = tic;  drawnow;  apat_timing('ind: drawnow', toc(t_));
 save_view(app, 'auto', sp, figs);                % images = these Results views (deferred by apat_save_fig)
 end
 
@@ -88,7 +88,7 @@ end
 function embed_average(app, figs, meas_idx)
 panel = app.res.panels{2, meas_idx};
 delete(panel.Children);
-embed_figs(app, figs, panel);
+t_ = tic;  embed_figs(app, figs, panel);  apat_timing('avg: embed_figs', toc(t_));
 
 % For ABR Peaks: merge freq labels into FigFreqDD so Average mode has them
 if meas_idx == 2
@@ -107,30 +107,30 @@ if meas_idx == 2
     end
 end
 
-navigate_results(app, 'after_avg_embed', meas_idx);
+t_ = tic;  navigate_results(app, 'after_avg_embed', meas_idx);  apat_timing('avg: navigate_results after_avg_embed', toc(t_));
 app.TabGroup.SelectedTab = app.ResultsTab;
 drawnow;
-navigate_results(app, 'filter_avg');
+t_ = tic;  navigate_results(app, 'filter_avg');  apat_timing('avg: navigate_results filter_avg', toc(t_));
 if meas_idx == 2, add_abr_avg_toolbars(app, panel); end   % ABR Peaks view controls
 if meas_idx == 1, add_thr_avg_ctrl(app, panel); end       % ABR Thresholds view controls
 if meas_idx == 8                                           % MEMR view controls
-    add_thr_avg_ctrl(app, panel, 'memr_avg_ax', 'memr_subj_pts', 'Y-Axis (dB)');
+    t_ = tic;  add_thr_avg_ctrl(app, panel, 'memr_avg_ax', 'memr_subj_pts', 'Y-Axis (dB)');  apat_timing('avg: add_thr_avg_ctrl', toc(t_));
 end
 if is_mx(meas_idx), add_mx_ctrl(app, panel, 'avg'); end    % MEMR exploratory views
 if any(meas_idx == [3 4])                                      % EFR dAM / RAM view controls
-    add_efr_avg_ctrl(app, panel);  navigate_results(app, 'efr_level_sync');
+    t_ = tic;  add_efr_avg_ctrl(app, panel);  navigate_results(app, 'efr_level_sync');  apat_timing('avg: add_efr_avg_ctrl', toc(t_));
 end
 if any(meas_idx == [5 6 7])                                    % OAE view controls
-    add_oae_ctrl(app, panel, 'avg');  navigate_results(app, 'oae_scale');
+    t_ = tic;  add_oae_ctrl(app, panel, 'avg');  navigate_results(app, 'oae_scale');  apat_timing('avg: add_oae_ctrl', toc(t_));
 end
-subject_pick(app, 'wire');                                 % clickable subject points
-cond_filter(app, 'apply');                                 % conditions switched off stay hidden
-plot_settings(app, 'stash', panel);                        % controls → "Plot Settings" panel (hidden)
-fit_layout(panel);                                         % margins: window edges, legends; plots use the full width
-apply_shade(app, panel);                                   % Shading ON / OFF choice
-try, exclusions(app, 'mark', panel, meas_idx); catch, end  % ✕ = subject points excluded from the average
-plot_settings(app, 'sync');
-drawnow;
+t_ = tic;  subject_pick(app, 'wire');  apat_timing('avg: subject_pick wire', toc(t_));  % clickable subject points
+t_ = tic;  cond_filter(app, 'apply');  apat_timing('avg: cond_filter apply', toc(t_));  % conditions switched off stay hidden
+t_ = tic;  plot_settings(app, 'stash', panel);  apat_timing('avg: plot_settings stash', toc(t_));  % controls → "Plot Settings" panel (hidden)
+t_ = tic;  fit_layout(panel);  apat_timing('avg: fit_layout', toc(t_));  % margins: window edges, legends; plots use the full width
+t_ = tic;  apply_shade(app, panel);  apat_timing('avg: apply_shade', toc(t_));  % Shading ON / OFF choice
+t_ = tic;  try, exclusions(app, 'mark', panel, meas_idx); catch, end;  apat_timing('avg: exclusions mark', toc(t_));  % ✕ = subject points excluded from the average
+t_ = tic;  plot_settings(app, 'sync');  apat_timing('avg: plot_settings sync', toc(t_));
+t_ = tic;  drawnow;  apat_timing('avg: drawnow', toc(t_));
 save_view(app, 'auto', panel, figs);                       % images = these Results views (deferred by apat_save_fig)
 end
 

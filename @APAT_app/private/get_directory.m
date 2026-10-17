@@ -6,8 +6,9 @@
 function [DATAdir, OUTdir, CODEdir,PRIVATEdir] = get_directory(ROOTdir,EXPname,EXPname2)
 DATAdir = strcat(ROOTdir,filesep,'Data');
 OUTdir = strcat(ROOTdir,filesep,'Analysis');
-CODEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,EXPname,filesep,EXPname2);
-PRIVATEdir = strcat(ROOTdir,filesep,'Code Archive',filesep,'shared');   % shared helpers (name kept)
+code_root = fileparts(fileparts(fileparts(mfilename('fullpath'))));   % the code folder APAT runs from (Code Archive, or a git worktree)
+CODEdir = strcat(code_root,filesep,EXPname,filesep,EXPname2);
+PRIVATEdir = strcat(code_root,filesep,'shared');   % shared helpers (name kept)
 % Check if directories exist
 directories = {ROOTdir, DATAdir, OUTdir, CODEdir};
 directories_name = {'ROOT','DATA','OUT','CODE'};

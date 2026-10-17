@@ -46,7 +46,13 @@ function draw_spec(ax, A, colors, shapes, col_offset, rel, Chins2Run)
         c = has(j);
         [clr, shp] = cs(colors, shapes, c + col_offset);
         if ~isempty(A.plv_env{1,c}) && ~isempty(A.f{1,c})
-            plot(ax, A.f{1,c}, A.plv_env{1,c}, '-', 'LineWidth',1.5, 'Color',[clr 0.30], 'HandleVisibility','off');
+            % A.f stacks one frequency row per subject (avg_efr); plotting
+            % that matrix against the mean PLV drew one line per frequency
+            % bin (~22,000 objects, made the app slow) — one row is the axis
+            fx = A.f{1,c};  yv = A.plv_env{1,c};
+            if ~isvector(fx), fx = fx(1,:); end
+            nn = min(numel(fx), numel(yv));
+            plot(ax, fx(1:nn), yv(1:nn), '-', 'LineWidth',1.5, 'Color',[clr 0.30], 'HandleVisibility','off');
         end
         xh = (1:numel(A.peaks{1,c})) * F0 + offs(j);
         subj_pts(ax, A.all_peaks(:,c), xh, clr, shp, Chins2Run, 'off', 0.06*F0, sa);
