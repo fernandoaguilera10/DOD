@@ -239,7 +239,7 @@ avg_done     = false;                % the last pair's summary (group average) r
 filepath_idx      = zeros(length(Chins2Run), length(all_Conds2Run));
 datapath_idx      = zeros(length(Chins2Run), length(all_Conds2Run));
 subject_idx       = zeros(length(Chins2Run), length(all_Conds2Run));
-add_path_once(strcat(ROOTdir, filesep, 'Code Archive'), false);
+add_path_once(fileparts(fileparts(fileparts(mfilename('fullpath')))), false);   % the code folder APAT runs from
 add_path_once(PRIVATEdir, false);     % Code Archive/shared (load_files, apat_* helpers) — headless callers
 
 for ChinIND = 1:length(Chins2Run)
@@ -897,7 +897,7 @@ function run_summary_step(EXPname, EXPname2, filepath, datapath, OUTdir, PRIVATE
 %   Add a new case here when adding a new measure or subtype.
 switch EXPname
     case 'ABR'
-        cd(fullfile(ROOTdir, 'Code Archive', 'ABR'));
+        cd(fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))), 'ABR'));
         switch EXPname2
             case 'Thresholds'
                 ABRsummary(filepath, OUTdir, PRIVATEdir, Conds2Run, Chins2Run, all_Conds2Run, ...
