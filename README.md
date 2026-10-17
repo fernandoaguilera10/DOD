@@ -1,6 +1,6 @@
 # APAT — Auditory Physiology Analysis Toolkit
 
-**Version 1.0.0 · 16 October 2026** · MATLAB R2025b (R2023b or newer)
+**Version 1.0.1 · 17 October 2026** · MATLAB R2025b (R2023b or newer)
 
 MATLAB-based Interface for Auditory Physiology Analysis (Chinchilla)
 
@@ -14,6 +14,12 @@ MATLAB-based Interface for Auditory Physiology Analysis (Chinchilla)
 4. **MEMR** (wideband middle-ear muscle reflex): acoustic reflex threshold plus exploratory techniques (vector, growth, kinetics, spectral, absorbance, probe, quality).
 5. Aircraft carrier noise (Komrower et al., 2019)
 6. dAM stimulus generation (Parida et al. 2024)
+
+## What's new in 1.0.1
+- Faster long runs: the EFR RAM average spectrum is drawn as one line per condition (it was ~22,000 line objects, which slowed every later measure 3–4×).
+- Timing log: each run writes `Analysis/APAT_timing.csv` (seconds per step: RAW retrieval, analysis, summary, Results display, image export, total).
+- Measure code is loaded from the folder APAT is started from (not a hard-coded `Code Archive`), so a copy or git worktree runs its own code.
+- Results UI updates; no more "already-destroyed variable 'busy'" hover warning; spinner timer no longer forces a redraw mid-plot.
 
 ## Getting started
 1. Download this repository and rename it to `Code Archive/`.
