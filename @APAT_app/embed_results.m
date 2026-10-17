@@ -80,6 +80,7 @@ t_ = tic;  apply_shade(app, sp);  apat_timing('ind: apply_shade', toc(t_));  % S
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('ind: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('ind: drawnow', toc(t_));
 try, apat_timing('ind: objects in window (count)', numel(findall(app.UIFigure))); catch, end
+try, top_objs(app, sp, 'ind'); catch, end
 save_view(app, 'auto', sp, figs);                % images = these Results views (deferred by apat_save_fig)
 end
 
@@ -133,6 +134,7 @@ t_ = tic;  try, exclusions(app, 'mark', panel, meas_idx); catch, end;  apat_timi
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('avg: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('avg: drawnow', toc(t_));
 try, apat_timing('avg: objects in window (count)', numel(findall(app.UIFigure))); catch, end
+try, top_objs(app, panel, 'avg'); catch, end
 save_view(app, 'auto', panel, figs);                       % images = these Results views (deferred by apat_save_fig)
 end
 
@@ -1405,4 +1407,19 @@ for k = 1:numel(labs)
     x = sscanf(labs{k}, '%f');  if ~isempty(x), v(k) = x(1); end
 end
 [~, o] = sort(v);  out = labs(o);
+end
+
+
+function top_objs(app, p, tag)
+% Timing log: the 4 most common object kinds (Type:Tag) in the window and
+% in panel p — to find what makes the window heavy
+for w = {'window', 'panel'}
+    if strcmp(w{1}, 'window'), h = findall(app.UIFigure); else, h = findall(p); end
+    k = strcat(get(h, 'Type'), ':', get(h, 'Tag'));
+    [u, ~, j] = unique(k);  n = accumarray(j(:), 1);
+    [n, o] = sort(n, 'descend');
+    for i = 1:min(4, numel(n))
+        apat_timing(sprintf('%s: top %s objects  %s', tag, w{1}, u{o(i)}), n(i));
+    end
+end
 end
