@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+  APAT run status card (left part; Stop / Resume / Restart stay MATLAB
+  buttons on the right). Shown in a uihtml by createComponents; MATLAB
+  (private/run_status.m) only sends the state as htmlComponent.Data:
+    state  'run' | 'paused' | 'stopping' | 'done' | 'stopped' | 'error' | 'hidden'
+    tp     pause start, ms since 1970 (UTC): the clock stands still while paused
+    t0     run start, ms since 1970 (UTC)        head / meas  title parts
+    caption, step, count                         texts as MATLAB words them
+    n, total   datasets of the current analysis (n = the one in progress)
+    frac       bar at the end (done / stopped / error)
+    pt         last progress, ms since 1970 (UTC); stall_min  hang alert after
+    wait       true while MATLAB waits for the user (ABR peak editor)
+    tclr, fclr title / bar colour; bg, gold, cream, capc, track, font
+  Everything that moves is drawn here from the clock of the page, so it
+  keeps time while MATLAB is busy (MATLAB only redraws its own controls
+  when the analysis lets it): elapsed time, the bar (eases to each new
+  value and creeps on during a long dataset, by the average time per
+  dataset so far, never past the next step), the pulsing "recording" dot
+  and the chinchilla (same behaviours as before, in px per second).
+-->
+<style>
+  html, body { margin:0; padding:0; overflow:hidden; width:100%; height:100%;
+    background:#141414; font-family:-apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  #root { position:relative; width:100%; height:100%; }
+  .abs { position:absolute; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .spr { position:absolute; image-rendering:pixelated; display:none; }
+  #lane { left:11px; bottom:9px; width:190px; height:2px; }
+  #caption { left:217px; top:6px; width:270px; font-size:10px; font-weight:bold; letter-spacing:.03em; }
+  #clock { right:0; top:5px; width:80px; text-align:right; font-size:11px; font-variant-numeric:tabular-nums; }
+  #title { left:217px; top:21px; right:0; height:22px; font-size:15px; font-weight:bold;
+    display:flex; align-items:center; }
+  #title .meas { overflow:hidden; text-overflow:ellipsis; }
+  #dot { flex:none; width:9px; height:9px; margin:0 9px 0 10px; border-radius:50%;
+    background:#e5483d; display:none; animation:rec 1.4s ease-in-out infinite; }
+  @keyframes rec {
+    0%, 100% { transform:scale(.6);  opacity:.35; box-shadow:0 0 0 0 rgba(229,72,61,0); }
+    50%      { transform:scale(1.15); opacity:1;   box-shadow:0 0 8px 2px rgba(229,72,61,.6); }
+  }
+  #step { left:217px; top:47px; right:0; font-size:11px; }
+  #track { left:217px; top:69px; width:150px; height:5px; }
+  #fill { position:absolute; left:0; top:0; height:5px; width:0; }
+  #count { left:377px; top:65px; right:0; font-size:10px; }
+  #step.stall { color:#ff8a7a !important; white-space:normal; line-height:11px; font-size:10.5px; top:43px; }
+  #caption.stall { color:#ff8a7a !important; }
+  #dot.stall { animation:none; background:#e8a33a; opacity:1; transform:none; }
+  #zz { left:135px; bottom:39px; font-size:13px; font-weight:bold; color:#ebd99e; display:none; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="lane" class="abs"></div>
+  <div id="sprites"></div>
+  <div id="zz" class="abs">z Z</div>
+  <div id="caption" class="abs"></div>
+  <div id="clock" class="abs"></div>
+  <div id="title" class="abs"><span class="head"></span><span id="dot"></span><span class="meas"></span></div>
+  <div id="step" class="abs"></div>
+  <div id="track" class="abs"><div id="fill"></div></div>
+  <div id="count" class="abs"></div>
+</div>
+<script>
+var NAMES = ['chin_front','chin_happy','chin_desp','chin_phone','chin_med','chin_snack1','chin_snack2',
+  'chin_fridge','chin_fridge_open','chin_bed','chin_bed_sleep','chin_incense','chin_incense2',
+  'chin_walk1','chin_walk2','chin_walk1_l','chin_walk2_l','chin_pj1','chin_pj2','chin_pj1_l','chin_pj2_l'];
+var LANE_X = 11, LANE_Y = 11, W = 190, WW = 56;
+var IMG = {}, slot = { c:'', p:'' };
+var D = { state:'hidden' }, prevState = '';
+var chin = null, hop0 = -1, lastT = 0;
+var bar = { w:0, n:-1, total:-1, t0:0, tn:0, snap:true };
+var $ = function (id) { return document.getElementById(id); };
+
+(function makeSprites() {
+  var box = $('sprites');
+  NAMES.forEach(function (n) {
+    var im = document.createElement('img');
+    im.src = n + '.png';  im.className = 'spr';  box.appendChild(im);  IMG[n] = im;
+  });
+  ['chin_fridge','chin_fridge_open','chin_bed','chin_bed_sleep','chin_incense','chin_incense2']
+    .forEach(function (n) { IMG[n].style.zIndex = 1; });          // props behind the chinchilla
+  NAMES.forEach(function (n) { if (!IMG[n].style.zIndex) IMG[n].style.zIndex = 2; });
+})();
+
+function show(s, name, x, y) {               // sprite NAME in slot s ('c' chinchilla, 'p' prop)
+  var im = IMG[name];  if (!im) return;
+  if (slot[s] && slot[s] !== name && IMG[slot[s]]) IMG[slot[s]].style.display = 'none';
+  slot[s] = name;
+  im.style.left = (LANE_X + x) + 'px';  im.style.bottom = (LANE_Y + (y || 0)) + 'px';
+  im.style.display = 'block';
+}
+function off(s) { if (slot[s] && IMG[slot[s]]) IMG[slot[s]].style.display = 'none'; slot[s] = ''; }
+function propOff() { off('p'); $('zz').style.display = 'none'; }
+
+function newChin() {
+  return { mode:'pace', x:(W - WW) / 2, dir:1, t:0, cool:4, medded:false, dist:0, tx:0, next:'', pj:false };
+}
+
+function mmss(s) {
+  s = Math.max(0, Math.floor(s));
+  var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  var p = function (v) { return (v < 10 ? '0' : '') + v; };
+  return h > 0 ? h + ':' + p(m) + ':' + p(r) : p(m) + ':' + p(r);
+}
+
+// ── data from MATLAB ─────────────────────────────────────────────────
+function apply(d) {
+  if (!d) return;
+  D = d;
+  document.body.style.background = d.bg || '#141414';
+  $('lane').style.background = '#59544a';
+  $('caption').style.color = d.capc || '#ccc2a8';
+  $('caption').style.fontFamily = d.font || 'Menlo, monospace';
+  $('clock').style.color = d.cream || '#e0d6bd';
+  $('clock').style.fontFamily = d.font || 'Menlo, monospace';
+  $('step').style.color = d.cream || '#e0d6bd';
+  $('count').style.color = d.cream || '#e0d6bd';
+  $('zz').style.fontFamily = d.font || 'Menlo, monospace';
+  $('track').style.background = d.track || '#3d382e';
+  $('fill').style.background = d.fclr || d.gold || '#cfba91';
+  $('caption').textContent = d.caption || '';
+  $('step').textContent = d.step || '';
+  $('count').textContent = d.count || '';
+  var t = $('title');
+  t.style.color = d.tclr || d.gold || '#cfba91';
+  t.querySelector('.head').textContent = d.head || '';
+  t.querySelector('.meas').textContent = d.meas || '';
+  var live = d.state === 'run';
+  $('dot').style.display = (live && d.meas) ? 'inline-block' : 'none';
+  if (!live && d.meas) t.querySelector('.head').textContent = (d.head || '') + '\u00a0\u00a0·\u00a0\u00a0';
+
+  if (d.state !== prevState) {               // a new state: chinchilla / bar start over where needed
+    if (d.state === 'run' && (prevState === '' || prevState === 'hidden' || prevState === 'done' ||
+        prevState === 'stopped' || prevState === 'error')) {
+      chin = newChin();  bar.snap = true;  bar.n = -1;
+    }
+    if (d.state === 'done') hop0 = performance.now();
+    prevState = d.state;
+  }
+  var n = +d.n || 0, total = +d.total || 0, now = performance.now();
+  if (total !== bar.total || n < bar.n) {    // next analysis: bar starts again
+    bar.total = total;  bar.n = n;  bar.t0 = now;  bar.tn = now;  bar.snap = true;
+  } else if (n > bar.n) {
+    bar.n = n;  bar.tn = now;
+  }
+}
+
+// ── animation (page clock) ──────────────────────────────────────────
+function frame(ts) {
+  var dt = lastT ? Math.min(1, Math.max(0, (ts - lastT) / 1000)) : 0;
+  lastT = ts;
+  var st = D.state, el = 0;
+  if (D.t0) el = (Date.now() - D.t0) / 1000;
+  // elapsed time while running
+  if (st === 'paused' && D.tp) el = (D.tp - D.t0) / 1000;          // stands still while paused
+  $('clock').textContent = (st === 'run' || st === 'stopping' || st === 'paused') && D.t0 ? mmss(el) : '';
+  // hang alert: no progress for stall_min minutes (judged here, so it shows
+  // even when MATLAB cannot redraw); waiting for the user is not a hang
+  var stall = st === 'run' && !D.wait && D.pt > 0 &&
+      (Date.now() - D.pt) > (D.stall_min || 15) * 60000;
+  if (stall) {
+    var mins = Math.round((Date.now() - D.pt) / 60000);
+    $('caption').textContent = 'NO PROGRESS FOR ' + mins + ' MIN';
+    $('step').textContent = 'MATLAB may be stuck. If nothing moves: press Stop, or quit MATLAB — finished analyses are saved.';
+  } else if ($('step').classList.contains('stall')) {
+    $('caption').textContent = D.caption || '';  $('step').textContent = D.step || '';
+  }
+  $('caption').classList.toggle('stall', stall);
+  $('step').classList.toggle('stall', stall);
+  $('dot').classList.toggle('stall', stall);
+  // bar
+  var target;
+  if (st === 'run' || st === 'stopping') {
+    if (bar.total > 0 && bar.n > 0) {
+      var done = bar.n - 1;                  // datasets finished; bar.n is in progress
+      var avg = done > 0 ? (bar.tn - bar.t0) / done / 1000 : 30;
+      avg = Math.max(2, avg);
+      var c = 0.92 * (1 - Math.exp(-((ts - bar.tn) / 1000) / avg));
+      target = Math.min(1, (done + c) / bar.total);
+    } else target = 0;
+  } else if (st === 'paused') target = bar.w;                        // holds while paused
+  else target = (D.frac === undefined) ? bar.w : +D.frac;
+  if (bar.snap) { bar.w = target; bar.snap = false; }      // a new analysis: no sliding back
+  bar.w += (target - bar.w) * Math.min(1, dt * 4);
+  $('fill').style.width = (Math.max(0, Math.min(1, bar.w)) * 150).toFixed(1) + 'px';
+  // chinchilla
+  if (st === 'run' || st === 'stopping') { if (!chin) chin = newChin(); chinTick(el, dt); }
+  else if (st === 'done') hopStep(ts);
+  else if (st === 'paused') { propOff(); show('c', 'chin_phone', chin ? Math.min(chin.x, W - 52) : (W - 52) / 2, 0); }
+  else if (st === 'stopped' || st === 'error') { propOff(); show('c', 'chin_front', (W - 52) / 2, 0); }
+  requestAnimationFrame(frame);
+}
+
+function hopStep(ts) {
+  propOff();
+  var yy = [0,4,8,10,8,4,0,0,0,3,5,3,0,0,0,0,4,8,10,8,4,0,0,0];
+  var k = hop0 < 0 ? yy.length : Math.floor((ts - hop0) / 100);
+  show('c', 'chin_happy', (W - 52) / 2, k < yy.length ? yy[k] : 0);
+}
+
+function chinTick(el, dt) {
+  var s = chin;
+  var v = 16 + Math.min(32, el / 15) + 12 * (el >= 300 ? 1 : 0);   // px per second, faster with time
+  var xf = W - 36 - 54, xb = W - 68 - WW + 10, mx = (W - 52) / 2;
+  function step(dx) { s.x += dx; s.dist += Math.abs(dx); }
+  function walk(pj) {
+    var f = 1 + (Math.floor(s.dist / 10) % 2);
+    return 'chin_' + (pj ? 'pj' : 'walk') + f + (s.dir < 0 ? '_l' : '');
+  }
+  function chance(p) { return Math.random() < 1 - Math.pow(1 - p, dt / 0.25); }
+  function goTo(tx, next, pj) { s.mode = 'walk'; s.tx = Math.max(0, Math.min(W - WW, tx)); s.next = next; s.pj = pj; }
+  function back(cool) { s.mode = 'pace'; s.x = Math.max(0, Math.min(W - WW, s.x)); s.cool = cool; s.dir = -1; propOff(); }
+  switch (s.mode) {
+    case 'pace':
+      step(s.dir * v * dt);
+      if (s.x >= W - WW) { s.x = W - WW; s.dir = -1; }
+      if (s.x <= 0) { s.x = 0; s.dir = 1; }
+      show('c', walk(false), s.x, 0);  propOff();
+      s.cool -= dt;
+      if (s.cool <= 0) {
+        var pd = s.medded ? 0.0015 : 0.004;
+        if (chance(pd)) { s.mode = 'desp'; s.t = 2; }
+        else if (el >= 600 && chance(0.02)) goTo(xb, 'sleep', true);
+        else if (el >= 300 && chance(0.008)) { s.mode = 'phone'; s.t = 5; }
+        else if (el >= 180 && chance(0.006)) goTo(mx - 2, 'med', false);
+        else if (el >= 60 && chance(0.008)) goTo(xf, 'fridge_open', false);
+      }
+      break;
+    case 'walk':
+      if (s.next === 'fridge_open') show('p', 'chin_fridge', W - 28, 0);
+      else if (s.next === 'sleep') show('p', 'chin_bed', W - 68, 0);
+      else propOff();
+      var d = s.tx - s.x;
+      if (d !== 0) s.dir = d > 0 ? 1 : -1;
+      step((d > 0 ? 1 : -1) * Math.min(Math.abs(d), v * dt));
+      show('c', walk(s.pj), s.x, 0);
+      if (Math.abs(s.tx - s.x) < 0.5) {
+        s.mode = s.next;
+        s.t = s.next === 'fridge_open' ? 1.5 : s.next === 'med' ? 12 : 40;
+      }
+      break;
+    case 'fridge_open':
+      show('p', 'chin_fridge_open', W - 36, 0);  show('c', 'chin_front', s.x + 2, 0);
+      s.t -= dt;  if (s.t <= 0) { s.mode = 'snack'; s.t = 4; }
+      break;
+    case 'snack':
+      show('p', 'chin_fridge', W - 28, 0);
+      show('c', 'chin_snack' + (1 + (Math.floor(el / 0.5) % 2)), s.x, 0);
+      s.t -= dt;  if (s.t <= 0) back(10);
+      break;
+    case 'med':
+      show('c', 'chin_med', mx, 0);
+      show('p', (Math.floor(el / 0.5) % 2) ? 'chin_incense2' : 'chin_incense', Math.max(0, mx - 16), 0);
+      s.t -= dt;  if (s.t <= 0) { s.medded = true; back(10); }
+      break;
+    case 'phone':
+      s.x = Math.min(s.x, W - 52);  show('c', 'chin_phone', s.x, 0);  propOff();
+      s.t -= dt;  if (s.t <= 0) back(7.5);
+      break;
+    case 'desp':
+      s.x = Math.min(s.x, W - 52);
+      show('c', 'chin_desp', Math.max(0, s.x + 4 * (Math.floor(el / 0.12) % 2) - 2), 0);  propOff();
+      s.t -= dt;  if (s.t <= 0) back(7.5);
+      break;
+    case 'sleep':
+      off('c');  show('p', 'chin_bed_sleep', W - 70, 0);
+      var z = $('zz');  z.textContent = (Math.floor(el / 0.75) % 2) ? 'z Z' : 'z';  z.style.display = 'block';
+      s.t -= dt;  if (s.t <= 0) { s.x = W - 68 - WW; s.pj = false; back(15); }
+      break;
+    default:
+      s.mode = 'pace';
+  }
+}
+
+// uihtml calls setup(htmlComponent) once the page is loaded
+function setup(htmlComponent) {
+  htmlComponent.addEventListener('DataChanged', function () { apply(htmlComponent.Data); });
+  apply(htmlComponent.Data);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -134,6 +134,7 @@ for bi = 1:numel(ub)
     end
 end
 fig = app.UIFigure;
+done = false(1, numel(T));                           % written (apat_img_cache 'record')
 for j = 1:numel(T)
     file = [files{j} '.png'];
     try
@@ -147,15 +148,35 @@ for j = 1:numel(T)
         R = reveal(T(j), root, fig);
         export_one(root, T(j), file, o.dpi);
         apat_timing('image export', toc(t_));
+        done(j) = true;
     catch err
         try                                          % the source figure, as before
             exportgraphics(S(j), file, 'Resolution', o.dpi);
             fprintf('APAT: %s saved from its source figure (%s).\n', short_name(file), err.message);
+            done(j) = true;
         catch err2
             warning('APAT:autoSave', 'Could not save %s: %s', file, err2.message);
         end
     end
     put_back(R);
+end
+% Individual images written: remembered with this run's fingerprint, so an
+% unchanged re-run does not make them again (shared/apat_img_cache). A
+% source figure counts only when ALL its views were written.
+try
+    seen = false(1, numel(S));
+    for j0 = 1:numel(S)
+        if seen(j0), continue; end
+        f = S(j0);
+        k = find(arrayfun(@(x) x == f, S));  seen(k) = true;
+        if ~all(done(k)) || ~isappdata(f, 'apat_save_path'), continue; end
+        vk = '';  if isappdata(f, 'apat_view_key'), vk = getappdata(f, 'apat_view_key'); end
+        if isempty(regexp(char(vk), '_ind$', 'once')), continue; end     % averages: always made again
+        apat_img_cache('record', getappdata(f, 'apat_save_path'), ...
+            cellfun(@(x) [x '.png'], files(k), 'UniformOutput', false));
+    end
+    apat_img_cache('flush');
+catch
 end
 try, app.res.last_save = now; res_style('status', app); catch, end %#ok<TNOW1>
 end

@@ -21,7 +21,7 @@ end
 function do_save(app, Chins2Run_sel, Conds2Run_sel)
 ROOTdir = strtrim(app.RootDirField.Value);
 if isempty(ROOTdir), return; end
-settings_file = fullfile(ROOTdir,'Analysis','launcher_last_settings.mat');
+settings_file = apat_paths(fullfile(ROOTdir,'Analysis'), 'settings', 'launcher_last_settings.mat');
 
 s.Chins2Run     = Chins2Run_sel;
 s.Conds2Run     = Conds2Run_sel;
@@ -66,7 +66,7 @@ function do_save_excl(app)
 %DO_SAVE_EXCL  Store the Exclusions right away (keeps other settings).
 ROOTdir = strtrim(app.RootDirField.Value);
 if isempty(ROOTdir), return; end
-settings_file = fullfile(ROOTdir,'Analysis','launcher_last_settings.mat');
+settings_file = apat_paths(fullfile(ROOTdir,'Analysis'), 'settings', 'launcher_last_settings.mat');
 s = struct();
 if exist(settings_file,'file')
     try, tmp = load(settings_file,'last_settings'); s = tmp.last_settings; catch, end
@@ -81,7 +81,7 @@ function do_save_colors(app)
 %DO_SAVE_COLORS  Store condition colours right away (keeps other settings).
 ROOTdir = strtrim(app.RootDirField.Value);
 if isempty(ROOTdir), return; end
-settings_file = fullfile(ROOTdir,'Analysis','launcher_last_settings.mat');
+settings_file = apat_paths(fullfile(ROOTdir,'Analysis'), 'settings', 'launcher_last_settings.mat');
 s = struct();
 if exist(settings_file,'file')
     try, tmp = load(settings_file,'last_settings'); s = tmp.last_settings; catch, end
@@ -140,7 +140,7 @@ end
 function do_load(app)
 ROOTdir = strtrim(app.RootDirField.Value);
 if isempty(ROOTdir), return; end
-settings_file = fullfile(ROOTdir,'Analysis','launcher_last_settings.mat');
+settings_file = apat_paths(fullfile(ROOTdir,'Analysis'), 'settings', 'launcher_last_settings.mat');
 if ~exist(settings_file,'file'), return; end
 try, tmp = load(settings_file,'last_settings'); catch, return; end
 s = tmp.last_settings;

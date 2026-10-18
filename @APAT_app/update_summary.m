@@ -23,6 +23,9 @@ for c = [app.h_subj_checks(:); app.h_cond_checks(:)]'
     if ~isgraphics(c), continue; end
     setup_style(app, 'chip', c);
 end
+% selected subjects / conditions: green = analysed, orange = partly, red =
+% not yet (for the selected analyses; private/analysis_status.m)
+analysis_status(app, 'paint');
 % condition swatch / marker of an excluded condition: faded (as the design)
 try
     for ci = 1:numel(app.h_cond_checks)

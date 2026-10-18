@@ -104,6 +104,16 @@ else                                              % new Experiment: empty hosts 
         end
         app.res.subj_data{mi} = struct('names',{{}},'panels',{{}});
     end
+    % new hosts below the Results buttons / blind cover: ONE reorder for all
+    % (Oct 18 2026: 28 single moves of a large Results window at the switch
+    % to the next Experiment preceded a MATLAB crash)
+    try
+        par = P{1,1}.Parent;  ch = par.Children;
+        isnew = false(size(ch));
+        for k = 1:numel(P), isnew = isnew | (ch == P{k}); end
+        par.Children = [ch(~isnew); ch(isnew)];
+    catch
+    end
     app.res.panels  = P;
     app.res.cond_on = [];                         % its Conditions start all ON
     if ~isempty(i), app.res.exp_sets(i) = []; end
@@ -149,19 +159,15 @@ p = uipanel(base.Parent, 'BorderType','line', 'BackgroundColor',[1 1 1], ...
     'Units',base.Units, 'Position',base.Position, 'Visible','off');
 try, p.BorderColor = base.BorderColor; catch, try, p.HighlightColor = base.HighlightColor; catch, end, end
 placeholder(p, mode);
-% below the Results buttons / blind cover made after the base hosts
-try
-    uistack(p, 'bottom');
-catch
-    try, par = p.Parent;  ch = par.Children;  par.Children = [ch(ch ~= p); p]; catch, end
-end
+% (moved below the Results buttons / blind cover by activate, all at once)
 end
 
 
 function placeholder(p, mode)
 if mode == 2
     make_placeholder(p, 'No average figures yet', ...
-        'Pick subjects and a measure on the Setup tab, then press Run Analysis.');
+        ['Pick subjects and a measure on the Setup tab, then press Run Analysis ' ...
+                '(analyses that did not change since their last run load in seconds).']);
 else
     make_placeholder(p, 'No individual figures yet', ...
         'Figures for each subject appear here as the analysis runs.');

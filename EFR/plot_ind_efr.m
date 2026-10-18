@@ -179,23 +179,25 @@ if nC*nL > 8, fs = 9; end
 rowlab = {LB.low, LB.high, regexprep(LB.total, '^All Harmonics', 'All')};
 x0 = apat_table_x0(axS, rowlab, fs-1, {'00.00'}, fs, nC*nL, 0.01, 0.30, 8);
 cw = (1 - x0) / max(nC,1);  sw = cw / nL;  rh = 0.13;
+fsv = apat_table_fit('fs', axS, {'00.000'}, fs, sw, 7);   % values fit their sub-column (apat_table_fit)
 text(axS, 0.5, 0.99, 'Harmonic Sums', 'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
     'HorizontalAlignment','center', 'VerticalAlignment','top');
 text(axS, 0.5, 0.85, sprintf('Low / High: %s', LB.measure), 'FontSize',fs-2, 'Color',MUTE, ...
     'HorizontalAlignment','center', 'VerticalAlignment','middle');
 y = 0.71;
 for c = 1:nC                                       % condition headers
-    nm = S.conds(c).name;  if numel(nm) > 12, nm = [nm(1:11) '…']; end
-    text(axS, x0 + (c-0.5)*cw, y, nm, 'FontSize',fs, 'FontWeight','bold', 'Color',S.conds(c).clr, ...
+    hh = text(axS, x0 + (c-0.5)*cw, y, S.conds(c).name, 'FontSize',fs, 'FontWeight','bold', 'Color',S.conds(c).clr, ...
         'HorizontalAlignment','center', 'VerticalAlignment','middle', 'Interpreter','none');
+    apat_table_fit('text', hh, cw, 7);           % fits its column: smaller, two lines, then '…'
 end
 if nL > 1                                          % level sub-column headers
     y = y - 0.75*rh;
     for c = 1:nC
         for j = 1:nL
-            text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, sprintf('%g dB', all_levels(lv(j))), ...
+            hh = text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, sprintf('%g dB', all_levels(lv(j))), ...
                 'FontSize',fs-2, 'FontWeight','bold', 'Color',MUTE, ...
                 'HorizontalAlignment','center', 'VerticalAlignment','middle');
+            apat_table_fit('text', hh, sw, 7, 1);
         end
     end
 end
@@ -228,7 +230,7 @@ for k = 1:3
                     else, v = sprintf('%.2f', val(k)); end
                 end
             end
-            text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, v, 'FontSize',fs, 'Color',INK, ...
+            text(axS, x0 + (c-1)*cw + (j-0.5)*sw, y, v, 'FontSize',fsv, 'Color',INK, ...
                 'FontWeight',ternary_s(k==3,'bold','normal'), ...
                 'HorizontalAlignment','center', 'VerticalAlignment','middle');
         end

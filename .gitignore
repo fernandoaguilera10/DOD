@@ -46,6 +46,7 @@ dist/
 bin/
 *.log
 *.bak
+*.bak_*
 *.tmp
 
 # --- IDE & Editors ---

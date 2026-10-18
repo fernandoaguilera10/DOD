@@ -40,13 +40,11 @@ if ~exist(analysis_dir,'dir')
     app.RosterDropdown.Items = {'(Analysis folder not found)'};
     app.RosterDropdown.Value = '(Analysis folder not found)'; return
 end
-files = [dir(fullfile(analysis_dir,'*.xlsx')); dir(fullfile(analysis_dir,'*.xls'))];
-files = files(~strncmp({files.name},'._',2));
-if isempty(files)
+names = apat_paths(analysis_dir, 'rosters');    % Analysis/Roster (loose Excel files moved in)
+if isempty(names)
     app.RosterDropdown.Items = {'(no Excel files found)'};
     app.RosterDropdown.Value = '(no Excel files found)'; return
 end
-names = {files.name};
 app.RosterDropdown.Items = names;
 if ~isempty(preferred_name) && any(strcmp(names, preferred_name))
     app.RosterDropdown.Value = preferred_name;
@@ -64,7 +62,7 @@ rootdir  = strtrim(app.RootDirField.Value);
 if isempty(rootdir), return; end
 chinfile = app.RosterDropdown.Value;
 if isempty(chinfile) || chinfile(1) == '(', return; end
-filepath = fullfile(rootdir,'Analysis',chinfile);
+filepath = apat_paths(fullfile(rootdir,'Analysis'), 'roster', chinfile);
 if ~exist(filepath,'file')
     sheet_sel(app, 'message', '(file not found)');
     do_set_subj(app, {}, []);
@@ -87,6 +85,7 @@ end
 % ── Parse chinroster and refresh subjects + conditions ─────────────────
 
 function do_refresh_from(app, filepath)
+analysis_status(app, 'invalidate');             % chip colours read the results again
 [subjects, app.state.conds_all, app.state.cond_labels] = ...
     APAT_app.read_chinroster_sheet(filepath, app.state.sheet);
 do_set_subj(app, subjects, true(numel(subjects),1));

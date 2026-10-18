@@ -154,8 +154,10 @@ end
 oae_legends(fh, ax, hC, LC, keys, 0.06, 0.58);
 
 % ── frequency band average table (top right) ───────────────────────────
-% Rows: Low / Mid / High. Columns: conditions ("<cond> (dB …)"); in the
-% EPL + SPL view each condition has EPL and SPL sub-columns.
+% Rows: Low / Mid / High. Columns: conditions (name only — the unit is
+% shown once, in the title); in the EPL + SPL view each condition has EPL
+% and SPL sub-columns. Headers / values are fitted to their column
+% (apat_table_fit), so many conditions never overlap.
 axS = axes(fh, 'Position',[0.68 0.50 0.31 0.38], 'Tag','oae_table');  hold(axS,'on');
 axis(axS,'off');  xlim(axS,[0 1]);  ylim(axS,[0 1]);
 nC = numel(S.conds);  nV = numel(view);
@@ -168,23 +170,26 @@ rlab = {sprintf('Low  %g–%g kHz', r(1), r(2)), sprintf('Mid  %g–%g kHz', r(2
 x0 = apat_table_x0(axS, rlab, fs-1, {'-00.0*'}, fs, nC*nV, 0.01, 0.25, 8);
 cw = (1 - x0) / max(nC,1);  sw = cw / nV;
 rh = 0.12;
-text(axS, 0.5, 0.99, 'Frequency Band Average', 'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
+fsv = apat_table_fit('fs', axS, {'-00.0*'}, fs, sw, 8);   % values fit their sub-column
+ht = text(axS, 0.5, 0.99, sprintf('Frequency Band Average (%s)', unit_txt(view, snr)), ...
+    'FontSize',15, 'FontWeight','bold', 'Color',INK, ...
     'HorizontalAlignment','center', 'VerticalAlignment','top');
+apat_table_fit('text', ht, 1, 11, 1);
 text(axS, 0.5, 0.86, method_txt(o), 'FontSize',fs-2, 'Color',MUTE, ...
     'HorizontalAlignment','center', 'VerticalAlignment','middle', 'Interpreter','none');
-% condition headers (with units)
+% condition headers (unit in the title)
 y = 0.73;
 for c = 1:nC
-    nm = S.conds(c).name;  if numel(nm) > 12, nm = [nm(1:11) '…']; end
-    text(axS, x0 + (c-0.5)*cw, y, sprintf('%s (%s)', nm, unit_txt(view, snr)), 'FontSize',fs, ...
+    hh = text(axS, x0 + (c-0.5)*cw, y, S.conds(c).name, 'FontSize',fs, ...
         'FontWeight','bold', 'Color',S.conds(c).clr, 'HorizontalAlignment','center', ...
         'VerticalAlignment','middle', 'Interpreter','none');
+    apat_table_fit('text', hh, cw, 8);
 end
 if nV == 2                                    % EPL / SPL sub-column headers
     y = y - 0.75*rh;
     for c = 1:nC
         for si = 1:nV
-            text(axS, x0 + (c-1)*cw + (si-0.5)*sw, y, view{si}, 'FontSize',fs-2, 'Color',MUTE, ...
+            text(axS, x0 + (c-1)*cw + (si-0.5)*sw, y, view{si}, 'FontSize',min(fs-2, fsv), 'Color',MUTE, ...
                 'FontWeight','bold', 'HorizontalAlignment','center', 'VerticalAlignment','middle');
         end
     end
@@ -216,7 +221,7 @@ for k = 1:3
                     if ~d.reg.ok(k), vtxt = [vtxt '*']; tc = MUTE; flagged = true; end %#ok<AGROW>
                 end
             end
-            text(axS, x0 + (c-1)*cw + (si-0.5)*sw, y, vtxt, 'FontSize',fs, 'Color',tc, ...
+            text(axS, x0 + (c-1)*cw + (si-0.5)*sw, y, vtxt, 'FontSize',fsv, 'Color',tc, ...
                 'HorizontalAlignment','center', 'VerticalAlignment','middle');
         end
     end
@@ -254,7 +259,7 @@ if numel(view) == 2, s = 'Amplitude (dB)'; else, s = sprintf('Amplitude (dB %s)'
 end
 
 function s = unit_txt(view, snr)
-if snr, s = 'dB SNR'; elseif numel(view) == 2, s = 'dB'; else, s = ['dB ' view{1}]; end
+if snr, s = 'dB SNR'; elseif numel(view) == 2, s = 'dB EPL | dB SPL'; else, s = ['dB ' view{1}]; end
 end
 
 function s = method_txt(o)

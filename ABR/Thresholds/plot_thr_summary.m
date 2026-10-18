@@ -71,6 +71,7 @@ for r = 1:nF, rlab{r} = flab{r};  if allf(r) ~= 0, rlab{r} = [rlab{r} ' kHz']; e
 x0  = apat_table_x0(axT, [rlab {'Freq'}], fs, {'00.0*'}, fs, nC, 0.02, 0.26, 8);   % labels + 8 px before values
 cw = (1 - x0) / max(nC,1);
 rh  = min(0.075, 0.70/(nF+3));
+fsv = apat_table_fit('fs', axT, {'00.0*'}, fs, cw, 8);   % values fit their column (apat_table_fit)
 any_lim = any(arrayfun(@(C) any(C.thr >= 80), S.conds));
 
 y_title = 0.5 + (1.2 + nF + any_lim)*rh/2;     % centre the whole block
@@ -79,9 +80,9 @@ text(axT, 0.5, y_title, 'Thresholds (dB SPL)', 'FontSize',16, 'FontWeight','bold
     'Color',INK, 'HorizontalAlignment','center', 'VerticalAlignment','middle');
 text(axT, 0.02, y_hdr, 'Freq', 'FontSize',fs, 'FontWeight','bold', 'Color',MUTE, 'VerticalAlignment','middle');
 for c = 1:nC
-    nm = S.conds(c).name;  if numel(nm) > 12, nm = [nm(1:11) '…']; end
-    text(axT, x0 + (c-0.5)*cw, y_hdr, nm, 'FontSize',fs, 'FontWeight','bold', ...
+    hh = text(axT, x0 + (c-0.5)*cw, y_hdr, S.conds(c).name, 'FontSize',fs, 'FontWeight','bold', ...
         'Color',S.conds(c).clr, 'HorizontalAlignment','center', 'VerticalAlignment','middle', 'Interpreter','none');
+    apat_table_fit('text', hh, cw, 8);           % fits its column: smaller, two lines, then '…'
 end
 plot(axT, [0 1], [y_hdr-rh/2 y_hdr-rh/2], '-', 'Color',GOLD, 'LineWidth',1.2);
 for r = 1:nF
@@ -96,7 +97,7 @@ for r = 1:nF
         elseif C.thr(j) >= 80, v = sprintf('%.0f*', C.thr(j));
         else, v = sprintf('%.1f', C.thr(j));
         end
-        text(axT, x0 + (c-0.5)*cw, y, v, 'FontSize',fs, 'Color',INK, ...
+        text(axT, x0 + (c-0.5)*cw, y, v, 'FontSize',fsv, 'Color',INK, ...
             'HorizontalAlignment','center', 'VerticalAlignment','middle');
     end
 end

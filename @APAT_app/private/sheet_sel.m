@@ -131,7 +131,7 @@ function sv = saved_settings(app, filepath)
 sv = [];
 try
     root = strtrim(app.RootDirField.Value);
-    f = fullfile(root, 'Analysis', 'launcher_last_settings.mat');
+    f = apat_paths(fullfile(root, 'Analysis'), 'settings', 'launcher_last_settings.mat');
     if ~exist(f, 'file'), return; end
     t = load(f, 'last_settings');
     if ~isfield(t.last_settings, 'sheet_sel'), return; end
@@ -334,7 +334,7 @@ R.cond_colors = pal(mod((1:n)-1, size(pal,1)) + 1, :);
 d = {'v','s','d','^','o','>','p','*','x'};      % = chinroster_ops>default_markers
 R.cond_markers = d(mod((1:n)-1, numel(d)) + 1);
 try
-    f = fullfile(strtrim(app.RootDirField.Value), 'Analysis', 'launcher_last_settings.mat');
+    f = apat_paths(fullfile(strtrim(app.RootDirField.Value), 'Analysis'), 'settings', 'launcher_last_settings.mat');
     if exist(f, 'file')
         t = load(f, 'last_settings');  s = t.last_settings;
         for i = 1:n

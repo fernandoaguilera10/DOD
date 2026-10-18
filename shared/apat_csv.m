@@ -8,7 +8,7 @@ function out = apat_csv(action, varargin)
 %   Frequency_kHz, Level_dBSPL, Elicitor_dBFPL, ModFrequency_Hz; Repeat,
 %   Wave, Harmonic, Region, Scale …), then Metric (PascalCase id), Value,
 %   Units (of Value). Every column is described in
-%   Analysis/APAT_data_dictionary.csv (apat_data_dictionary, written with
+%   Analysis/Reference/APAT_data_dictionary.csv (apat_data_dictionary, written with
 %   the first CSV of a run). The row store lives in
 %   root appdata 'APAT_csv_store' for one APAT run (reset at the start of
 %   analysis_run unless cfg.csv_keep — the app keeps it across the
@@ -321,7 +321,7 @@ end
 
 
 function dictionary(file)
-% Analysis/APAT_data_dictionary.csv, once per run (the Analysis folder above file)
+% Analysis/Reference/APAT_data_dictionary.csv, once per run (the Analysis folder above file)
 try
     d = fileparts(char(file));
     for k = 1:8
@@ -332,7 +332,7 @@ try
     end
     if ~strcmpi(nm, 'Analysis'), return; end
     if isappdata(0, 'APAT_csv_dict') && strcmp(getappdata(0, 'APAT_csv_dict'), d), return; end
-    apat_data_dictionary(fullfile(d, 'APAT_data_dictionary.csv'));
+    apat_data_dictionary(apat_paths(d, 'reference', 'APAT_data_dictionary.csv'));
     setappdata(0, 'APAT_csv_dict', d);
 catch
 end

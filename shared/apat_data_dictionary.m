@@ -6,7 +6,7 @@ function varargout = apat_data_dictionary(varargin)
 %       describe each value of the Metric column (Units = units of Value).
 %   apat_data_dictionary(file)
 %       writes T to file (apat_write_csv; apat_csv writes
-%       Analysis/APAT_data_dictionary.csv with the first CSV of a run).
+%       Analysis/Reference/APAT_data_dictionary.csv with the first CSV of a run).
 %   [name, units] = apat_data_dictionary('mx', key)
 %       Metric id + units of an exploratory MEMR (mx_data) key, e.g.
 %       'V' → 'VectorChange', '%' (unknown key → key, '').

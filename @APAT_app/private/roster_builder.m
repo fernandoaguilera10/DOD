@@ -190,7 +190,7 @@ end
         fp = '';
         n  = clean_fname();
         if isempty(root) || isempty(n), return; end
-        fp = fullfile(root, 'Analysis', n);
+        fp = apat_paths(fullfile(root, 'Analysis'), 'roster', n);   % Analysis/Roster
     end
 
     function update_data_chk()
@@ -585,7 +585,7 @@ end
         end
 
         adir = fullfile(root, 'Analysis');
-        fp   = fullfile(adir, fn);
+        fp   = apat_paths(adir, 'roster', fn);           % Analysis/Roster
         exists_file = exist(fp, 'file') == 2;
         if exists_file
             shs = {};

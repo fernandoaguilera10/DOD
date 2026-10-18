@@ -51,6 +51,9 @@ switch action
     case 'efr_level_sync'   % after the EFR strips are built — do_level below
     case 'exp_overlay'      % Plot Settings EXPERIMENT buttons — rebuilt below
 end
+% Individual views parked during the run (images up to date, embed_results
+% 'park'): built now that the subject is opened
+if any(strcmp(action, {'subj','ind','meas_btn'})), unpark_shown(app); end
 % EFR (dAM / RAM): the dropdown picks the stimulus level, in both modes
 if isfield(app.res,'meas_idx') && any(app.res.meas_idx == [3 4]) && ...
         ~any(strcmp(action, {'measures'}))
@@ -342,6 +345,23 @@ else
     sel = [sel(:)' {tag}];
 end
 app.res.efr_level = sel;
+end
+
+
+function unpark_shown(app)
+%UNPARK_SHOWN  The subject chosen in the Individual view, if its view was
+%   parked (embed_results>park), is embedded now.
+try
+    if app.res.mode ~= 1, return; end
+    m = app.res.meas_idx;
+    data = app.res.subj_data{m};
+    subj = app.FigSubjDropdown.Value;
+    si = find(strcmp(data.names, subj), 1);
+    if isempty(si) || ~isvalid(data.panels{si}) || ~isappdata(data.panels{si}, 'apat_parked'), return; end
+    embed_results(app, 'unpark', m, subj);
+catch err
+    warning('APAT:unpark', 'Could not build the view of %s: %s', app.FigSubjDropdown.Value, err.message);
+end
 end
 
 

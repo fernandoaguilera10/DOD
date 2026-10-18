@@ -8,8 +8,25 @@ function embed_results(app, mode, figs, label, varargin)
 %   embed_results(app, 'avg', figs, measure_label)
 %       Called by embed_fns.average — places averaged figures into the
 %       measure's Average panel.
+%
+%   embed_results(app, 'park_files', meas_idx, subject, files)
+%       A subject's view from saved .fig files (private/res_load: saved
+%       Results): parked, built when the subject is opened.
+%
+%   embed_results(app, 'unpark', meas_idx, subject)
+%       Build a subject's Individual view that was parked during the run
+%       (navigate_results, when the subject is opened).
+%
+%   Parked views (shared/apat_img_cache): when every image of a subject's
+%   individual figures is already saved and up to date (or images are not
+%   saved), 'ind' does not embed or export them: each figure is saved to a
+%   temporary .fig ("parked", appdata 'apat_parked' on the subject panel)
+%   and embedded the first time the subject is opened — same view, built
+%   later. The temporary files go when the panel is deleted.
 
 if ~isvalid(app), return; end
+if strcmp(mode, 'unpark'), unpark(app, figs, label); return; end
+if strcmp(mode, 'park_files'), park_files(app, figs, label, varargin{1}); return; end   % res_load
 valid_figs = figs(arrayfun(@(f) isvalid(f) && ~isempty(findall(f,'Type','axes')), figs));
 if isempty(valid_figs), return; end
 
@@ -17,7 +34,11 @@ meas_idx = find(strcmp(APAT_app.measure_tab_labels(), label), 1);
 if isempty(meas_idx), return; end
 
 switch mode
-    case 'ind',  embed_individual(app, valid_figs, meas_idx, varargin{1});
+    case 'ind'
+        if apat_img_cache('fresh', valid_figs) && park(app, valid_figs, meas_idx, varargin{1})
+            return                                 % images up to date: built when opened
+        end
+        embed_individual(app, valid_figs, meas_idx, varargin{1});
     case 'avg',  embed_average(app, valid_figs, meas_idx);
 end
 end
@@ -25,23 +46,12 @@ end
 
 % ── Individual embedding ──────────────────────────────────────────────
 
-function embed_individual(app, figs, meas_idx, subject)
-ind_panel = app.res.panels{1, meas_idx};
-
-% Find or create the per-subject sub-panel
-data = app.res.subj_data{meas_idx};
-si   = find(strcmp(data.names, subject), 1);
-if isempty(si)
-    si = numel(data.names) + 1;
-    sp = uipanel(ind_panel,'BorderType','none', ...
-        'BackgroundColor',[1 1 1], ...
-        'Units','normalized','Position',[0 0 1 1],'Visible','off');   % follows the card
-    data.names{si}  = subject;
-    data.panels{si} = sp;
-    app.res.subj_data{meas_idx} = data;
-end
-
-sp = app.res.subj_data{meas_idx}.panels{si};
+function embed_individual(app, figs, meas_idx, subject, ready)
+% ready (optional): .fig files these figures came from (unpark) — kept so
+% the view can be unloaded again without saving anything
+if nargin < 5, ready = {}; end
+sp = subj_panel(app, meas_idx, subject);
+drop_parked(sp);                                 % (a parked view of an earlier pass)
 delete(sp.Children);
 t_ = tic;  embed_figs(app, figs, sp);  apat_timing('ind: embed_figs', toc(t_));
 
@@ -80,6 +90,210 @@ t_ = tic;  apply_shade(app, sp);  apat_timing('ind: apply_shade', toc(t_));  % S
 t_ = tic;  plot_settings(app, 'sync');  apat_timing('ind: plot_settings sync', toc(t_));
 t_ = tic;  drawnow;  apat_timing('ind: drawnow', toc(t_));
 save_view(app, 'auto', sp, figs);                % images = these Results views (deferred by apat_save_fig)
+% Keep the Results window light (Oct 18 2026: a full run kept ~340 subject
+% views built — every step got slower and MATLAB crashed at the next
+% Experiment): this view keeps its figures as .fig files, and every OTHER
+% built subject view is unloaded to its files (parked: rebuilt when opened).
+try
+    if isempty(ready), ready = fig_files(figs); end
+    setappdata(sp, 'apat_park_ready', ready);
+    trim_views(app, sp);
+catch err
+    warning('APAT:trim', 'Results views not unloaded: %s', err.message);
+end
+end
+
+
+function files = fig_files(figs)
+%FIG_FILES  The figures as temporary .fig files (park dir): the bytes just
+%   saved for the Results file (apat_res_store) when there are, else savefig.
+files = {};
+d = apat_img_cache('park_dir');
+L = [];
+if isappdata(0, 'APAT_res_last'), L = getappdata(0, 'APAT_res_last'); end
+for k = 1:numel(figs)
+    f = figs(k);
+    if ~isgraphics(f), continue; end
+    fn = [tempname(d) '.fig'];
+    j = [];
+    if isstruct(L) && ~isempty(L.figs), j = find(arrayfun(@(x) isgraphics(x) && x == f, L.figs), 1); end
+    if ~isempty(j)
+        fid = fopen(fn, 'w');
+        if fid < 0, error('APAT:park', 'cannot write %s', fn); end
+        fwrite(fid, L.blobs{j}, 'uint8');  fclose(fid);
+    else
+        pend = [];
+        if isappdata(f, 'apat_save_pending'), pend = getappdata(f, 'apat_save_pending'); setappdata(f, 'apat_save_pending', false); end
+        savefig(f, fn, 'compact');
+        if ~isempty(pend), setappdata(f, 'apat_save_pending', pend); end
+    end
+    files{end+1} = fn; %#ok<AGROW>
+end
+end
+
+
+function trim_views(app, keep)
+%TRIM_VIEWS  Every built subject view except KEEP (all measures, every
+%   Experiment) that has its .fig files is emptied and parked again.
+sets = {app.res.subj_data};
+try
+    for e = 1:numel(app.res.exp_sets), sets{end+1} = app.res.exp_sets(e).subj_data; end %#ok<AGROW>
+catch
+end
+for i = 1:numel(sets)
+    sd = sets{i};
+    for m = 1:numel(sd)
+        if ~isstruct(sd{m}) || ~isfield(sd{m}, 'panels'), continue; end
+        for k = 1:numel(sd{m}.panels)
+            p = sd{m}.panels{k};
+            if ~isvalid(p) || p == keep || ~isappdata(p, 'apat_park_ready') || isempty(p.Children), continue; end
+            files = getappdata(p, 'apat_park_ready');
+            rmappdata(p, 'apat_park_ready');
+            delete(p.Children);
+            setappdata(p, 'apat_parked', files);
+        end
+    end
+end
+end
+
+
+function sp = subj_panel(app, meas_idx, subject)
+%SUBJ_PANEL  The subject's panel in the measure's Individual view (created
+%   hidden the first time).
+data = app.res.subj_data{meas_idx};
+si   = find(strcmp(data.names, subject), 1);
+if isempty(si)
+    si = numel(data.names) + 1;
+    sp = uipanel(app.res.panels{1, meas_idx},'BorderType','none', ...
+        'BackgroundColor',[1 1 1], ...
+        'Units','normalized','Position',[0 0 1 1],'Visible','off');   % follows the card
+    sp.DeleteFcn = @(h, ~) drop_parked(h);       % parked .fig files go with the panel
+    data.names{si}  = subject;
+    data.panels{si} = sp;
+    app.res.subj_data{meas_idx} = data;
+end
+sp = app.res.subj_data{meas_idx}.panels{si};
+end
+
+
+% ── Parked individual views (images up to date: built when opened) ────
+
+function ok = park(app, figs, meas_idx, subject)
+%PARK  Keep a subject's individual figures as temporary .fig files instead
+%   of embedding them now. Returns false (→ embedded now) if it fails.
+ok = false;
+t_ = tic;
+files = {};
+try
+    d = apat_img_cache('park_dir');
+    L = [];                                      % bytes just saved for the Results file (apat_res_store)
+    if isappdata(0, 'APAT_res_last'), L = getappdata(0, 'APAT_res_last'); end
+    for k = 1:numel(figs)
+        f = figs(k);
+        if isappdata(f, 'apat_save_pending'), setappdata(f, 'apat_save_pending', false); end   % image is up to date
+        files{k} = [tempname(d) '.fig']; %#ok<AGROW>
+        j = [];
+        if isstruct(L) && ~isempty(L.figs), j = find(arrayfun(@(x) isgraphics(x) && x == f, L.figs), 1); end
+        if ~isempty(j)                           % same figure, already as .fig bytes: write them
+            fid = fopen(files{k}, 'w');
+            if fid < 0, error('APAT:park', 'cannot write %s', files{k}); end
+            fwrite(fid, L.blobs{j}, 'uint8');  fclose(fid);
+        else
+            savefig(f, files{k}, 'compact');
+        end
+    end
+catch err
+    warning('APAT:park', 'Individual view of %s built now (%s).', subject, err.message);
+    for k = 1:numel(files), try, delete(files{k}); catch, end, end
+    return
+end
+sp = subj_panel(app, meas_idx, subject);
+drop_parked(sp);
+delete(sp.Children);
+setappdata(sp, 'apat_parked', files);
+ok = true;
+try                                              % subject list of the view on screen
+    if app.res.meas_idx == meas_idx && app.res.mode == 1
+        names = app.res.subj_data{meas_idx}.names(:)';
+        v = app.FigSubjDropdown.Value;
+        app.FigSubjDropdown.Items = names;
+        if any(strcmp(names, v)), app.FigSubjDropdown.Value = v; else, app.FigSubjDropdown.Value = names{1}; end
+    end
+catch
+end
+apat_timing('ind: parked (image up to date)', toc(t_));
+end
+
+
+function park_files(app, meas_idx, subject, files)
+%PARK_FILES  Parked view from existing .fig files (saved Results)
+sp = subj_panel(app, meas_idx, subject);
+drop_parked(sp);
+delete(sp.Children);
+setappdata(sp, 'apat_parked', files);
+try
+    if app.res.meas_idx == meas_idx && app.res.mode == 1
+        names = app.res.subj_data{meas_idx}.names(:)';
+        v = app.FigSubjDropdown.Value;
+        app.FigSubjDropdown.Items = names;
+        if any(strcmp(names, v)), app.FigSubjDropdown.Value = v; else, app.FigSubjDropdown.Value = names{1}; end
+    end
+catch
+end
+end
+
+
+function unpark(app, meas_idx, subject)
+%UNPARK  Embed a parked subject view (it is being opened).
+data = app.res.subj_data{meas_idx};
+si = find(strcmp(data.names, subject), 1);
+if isempty(si) || ~isvalid(data.panels{si}) || ~isappdata(data.panels{si}, 'apat_parked'), return; end
+sp = data.panels{si};
+files = getappdata(sp, 'apat_parked');
+rmappdata(sp, 'apat_parked');
+figs = gobjects(0);
+for k = 1:numel(files)
+    try
+        f = openfig(files{k}, 'invisible');
+        figs(end+1) = f(1); %#ok<AGROW>
+    catch err
+        warning('APAT:park', 'Could not reopen part of %s''s view: %s', subject, err.message);
+    end
+end
+try
+    if isempty(figs)
+        delete(sp.Children);
+        make_placeholder(sp, 'View not available', ...
+            'Run this analysis again to rebuild this subject''s view (its saved images are in Analysis).');
+        for k = 1:numel(data.panels)
+            if isvalid(data.panels{k}), data.panels{k}.Visible = 'off'; end
+        end
+        sp.Visible = 'on';
+    else
+        embed_individual(app, figs, meas_idx, subject, files);   % files stay: it can be unloaded again
+        files = {};
+    end
+catch err
+    warning('APAT:park', 'Individual view of %s: %s', subject, err.message);
+end
+delete(figs(isvalid(figs)));
+for k = 1:numel(files), try, delete(files{k}); catch, end, end
+end
+
+
+function drop_parked(sp)
+%DROP_PARKED  Delete the temporary .fig files of a parked view (or of a
+%   built view that can be unloaded).
+try
+    if ~isvalid(sp), return; end
+    for key = {'apat_parked', 'apat_park_ready'}
+        if ~isappdata(sp, key{1}), continue; end
+        files = getappdata(sp, key{1});
+        rmappdata(sp, key{1});
+        for k = 1:numel(files), try, delete(files{k}); catch, end, end
+    end
+catch
+end
 end
 
 

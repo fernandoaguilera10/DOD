@@ -292,6 +292,11 @@ methods (Access = private)
     % ── Setup-tab callbacks ───────────────────────────────────────────────
 
     function StopButtonPushed(app)
+        % After a Stop / error the same button reads "Resume" (run_status 'offer')
+        if isappdata(app.UIFigure, 'apat_resume_offer') && isequal(getappdata(app.UIFigure, 'apat_resume_offer'), true)
+            ResumeOfferPushed(app, 'Resume');  return
+        end
+        setappdata(app.UIFigure, 'apat_paused', false);   % a paused run stops too
         app.abort_requested = true;
         run_status(app, 'stopping');
         % Peak editor waiting for a click → wake it up; it saves and exits
@@ -299,6 +304,45 @@ methods (Access = private)
         setappdata(app.UIFigure, 'peak_action', struct('type','abort','x',[]));
         uiresume(app.UIFigure);
         drawnow;
+    end
+
+    function PauseButtonPushed(app)
+        % Pause ↔ Resume on the run card. A pause takes effect at the next
+        % step of the run (dataset or analysis — MATLAB cannot stop a step
+        % half-way); wait_if_paused holds the run there.
+        fig = app.UIFigure;
+        if isappdata(fig, 'apat_paused') && isequal(getappdata(fig, 'apat_paused'), true)
+            setappdata(fig, 'apat_paused', false);           % Resume
+            if ~(isappdata(fig, 'apat_pause_active') && isequal(getappdata(fig, 'apat_pause_active'), true))
+                run_status(app, 'unpaused');                 % not reached yet: just cancelled
+            end
+        else
+            setappdata(fig, 'apat_paused', true);
+            run_status(app, 'pausing');
+        end
+    end
+
+    function wait_if_paused(app)
+        % Hold the run here while it is paused (update_progress / between
+        % analyses); Resume or Stop end the wait
+        if ~isvalid(app), return; end
+        fig = app.UIFigure;
+        if ~(isappdata(fig, 'apat_paused') && isequal(getappdata(fig, 'apat_paused'), true)), return; end
+        run_status(app, 'paused');
+        while isvalid(app) && isappdata(fig, 'apat_paused') && isequal(getappdata(fig, 'apat_paused'), true) ...
+                && ~app.abort_requested
+            pause(0.2);                                      % buttons stay responsive
+        end
+        if isvalid(app) && ~app.abort_requested, run_status(app, 'unpaused'); end
+    end
+
+    function ResumeOfferPushed(app, choice)
+        % Resume / Restart on the run card: the unfinished run again, without
+        % the Resume prompt (choice 'Resume' | 'Start over'; RunButtonPushed
+        % reads it from appdata 'apat_resume_choice')
+        setappdata(app.UIFigure, 'apat_resume_offer', false);
+        setappdata(app.UIFigure, 'apat_resume_choice', choice);
+        RunButtonPushed(app);
     end
 
     function ProfileDropdownChanged(app)
@@ -432,14 +476,19 @@ methods (Access = private)
         if app.abort_requested
             error('APAT:UserAbort','Analysis stopped by user.');
         end
+        wait_if_paused(app);                                 % Pause pressed: wait here
+        if app.abort_requested
+            error('APAT:UserAbort','Analysis stopped by user.');
+        end
     end
 
     function start_spinner_anim(app)
-        % chinchilla animation step + elapsed time (run_status 'tick', 0.25 s)
+        % chinchilla animation step + elapsed time (run_status 'tick', 0.1 s;
+        % motion follows elapsed time, so the period only sets how fresh it is)
         if ~isempty(app.h_spinner_timer) && isvalid(app.h_spinner_timer)
             stop(app.h_spinner_timer);  delete(app.h_spinner_timer);
         end
-        app.h_spinner_timer = timer('Name','APAT_spinner','Period',0.25, ...
+        app.h_spinner_timer = timer('Name','APAT_spinner','Period',0.1, ...
             'ExecutionMode','fixedRate','BusyMode','drop', ...
             'TimerFcn',@(~,~) spinner_tick(app));
         start(app.h_spinner_timer);

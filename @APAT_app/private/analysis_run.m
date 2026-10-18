@@ -39,7 +39,7 @@ function analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, chinro
 cwd = pwd;
 if nargin < 6 || isempty(cfg), cfg = struct(); end
 % Run-time errors never stop the run: each failing step is logged in
-% Analysis/APAT_error_log.txt with a self-closing notice (apat_run_error),
+% Analysis/Logs/APAT_error_log.txt with a self-closing notice (apat_run_error),
 % and prompts answer themselves after 30 s (APAT_prompt_timeout).
 own_err = false;
 try, own_err = apat_run_error('ensure', fullfile(ROOTdir, 'Analysis')); catch, end
@@ -148,9 +148,10 @@ end
 [filepath_searchfile, datapath_searchfile] = get_file_patterns(EXPname, EXPname2);
 
 %% ── Parse chinroster ─────────────────────────────────────────────────────
-if ~isempty(search_files(OUTdir, chinroster_filename).files)
+roster_file = apat_paths(OUTdir, 'roster', chinroster_filename);   % Analysis/Roster
+if exist(roster_file, 'file') == 2
     cd(OUTdir)
-    chinroster_temp = readcell(chinroster_filename, 'Sheet', chinroster_sheet);
+    chinroster_temp = readcell(roster_file, 'Sheet', chinroster_sheet);
     temp_idx = cellfun(@(x) any(isa(x,'missing')), chinroster_temp);
     chinroster_temp(temp_idx) = {NaN};
     % Subject sex (roster "Sex" column, right after Subject) for the data
@@ -292,6 +293,34 @@ apat_excl('set', cfg_get(cfg, 'exclude', {}), excl_ref);
 excl_clean = onCleanup(@() apat_excl('set', {})); %#ok<NASGU>
 if isappdata(0,'APAT_efr_levels'), rmappdata(0,'APAT_efr_levels'); end   % EFR level list: new per run
 
+%% ── Up-to-date individual images (shared/apat_img_cache) ───────────────
+% Individual views whose saved images match this run (same settings, same
+% result files, same code) are not embedded / exported during the run; they
+% are built when opened in Results. Only when nothing is (re)analysed.
+if use_embed
+    try
+        img_allow = ~reanalyze && ~blind && ...
+            all(filepath_idx(subject_idx == 1) == 1);       % every selected pair already has a result
+        apat_img_cache('begin', img_context(cfg, OUTdir, EXPname, measure_lbl, ...
+            chinroster_sheet, Chins2Run, all_Conds2Run, subject_idx, colors, shapes, ...
+            limits, mparams, idx_plot_relative, img_allow));
+    catch
+    end
+    img_clean = onCleanup(@() apat_img_cache('end')); %#ok<NASGU>
+    % Saved Results of this analysis (shared/apat_res_store): figures are
+    % collected as they are shown, written by run_one when it finished
+    % (not for blind runs)
+    apat_res_store('drop');
+    if ~blind
+        try
+            apat_res_store('begin', apat_res_store('file', OUTdir, measure_lbl, chinroster_sheet), ...
+                struct('label',measure_lbl, 'exp1',EXPname, 'exp2',char(EXPname2), ...
+                'sheet',char(chinroster_sheet), 'conds',{all_Conds2Run}));
+        catch
+        end
+    end
+end
+
 %% ── Main processing loop ─────────────────────────────────────────────────
 n_total = sum(sum(subject_idx));
 
@@ -416,6 +445,7 @@ for ChinIND = subj_order
                 set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
 
                 b1_ok = true;  t_ = tic;
+                apat_img_cache('deny');               % new results: images are made again
                 try
                     run_analysis_step(EXPname, EXPname2, datapath, filepath, ...
                         Chins2Run, ChinIND, all_Conds2Run, Conds2Run, CondIND, ...
@@ -491,9 +521,11 @@ for ChinIND = subj_order
 
                     try
                         if ~isempty(ind_figs)
+                            apat_res_store('add_ind', Chins2Run{ChinIND}, ind_figs);   % saved Results
                             t_ = tic;  embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, condition{end});  apat_timing('show individual', toc(t_));
                         end
                         if is_last_pair && ~isempty(avg_figs)
+                            apat_res_store('add_avg', avg_figs);
                             t_ = tic;  embed_fns.average(avg_figs, measure_lbl);  apat_timing('show average', toc(t_));
                         end
                     catch ME
@@ -578,6 +610,7 @@ for ChinIND = subj_order
             pre_figs_b1 = findall(0,'Type','figure');
             set(0, 'DefaultFigureVisible', onoff(~use_embed && show_figs.analysis));
             b1_ok = true;  t_ = tic;
+            apat_img_cache('deny');                   % new results: images are made again
             try
                 ABR_dtw(ROOTdir, CODEdir, peaks_datapaths, peaks_outpaths, Chins2Run, ChinIND, ...
                     all_Conds2Run, Conds2Run, peaks_cond_INDs, colors, shapes, ...
@@ -668,9 +701,11 @@ for ChinIND = subj_order
 
             try
                 if ~isempty(ind_figs)
+                    apat_res_store('add_ind', Chins2Run{ChinIND}, ind_figs);   % saved Results
                     t_ = tic;  embed_fns.analysis(ind_figs, measure_lbl, Chins2Run{ChinIND}, last_condition);  apat_timing('show individual', toc(t_));
                 end
                 if last_is_last_pair && ~isempty(avg_figs)
+                    apat_res_store('add_avg', avg_figs);
                     t_ = tic;  embed_fns.average(avg_figs, measure_lbl);  apat_timing('show average', toc(t_));
                 end
             catch ME
@@ -685,6 +720,7 @@ end
 cd(cwd);
 if use_embed, set(0,'DefaultFigureVisible','on'); end
 setappdata(0, 'APAT_run_finished', true);   % normal finish: cleanup_after_abort does nothing
+apat_res_store('complete');                  % saved Results may be written (run_one)
 
 % A failing dataset can leave the group average undrawn (it is made with
 % the last dataset's summary): say so once
@@ -1057,6 +1093,60 @@ end
 end
 
 
+function ctx = img_context(cfg, OUTdir, EXPname, measure_lbl, sheet, Chins2Run, ...
+        all_Conds2Run, subject_idx, colors, shapes, limits, mparams, idx_plot_relative, allow)
+%IMG_CONTEXT  Fingerprint of what this analysis' individual images are made
+%   from (apat_img_cache 'begin'): settings, result files, code.
+c = cfg;                                          % run plumbing, not picture settings:
+for f = {'embed_fns','exclude','csv_keep','reanalyze','blind','peak_ui'}
+    if isfield(c, f{1}), c = rmfield(c, f{1}); end
+end
+S = struct('cfg', plain(c), 'chins', {cellstr(Chins2Run(:)')}, 'conds', {cellstr(all_Conds2Run)}, ...
+    'subject_idx', subject_idx, 'colors', colors, 'shapes', {cellstr(shapes)}, ...
+    'limits', plain(limits), 'mparams', plain(mparams), 'rel', idx_plot_relative, ...
+    'sheet', char(sheet), 'plot', apat_plot_defaults('opts'));
+% newest result file of the run's subjects for this measure
+stamp = 0;
+for i = 1:numel(Chins2Run)
+    L = dir(fullfile(OUTdir, EXPname, Chins2Run{i}, '**', '*.mat'));
+    L = L(~startsWith({L.name}, '._'));
+    if ~isempty(L), stamp = max([stamp, L.datenum]); end
+end
+% newest code file (any code change: images made again)
+code_root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+L = dir(fullfile(code_root, '**', '*.m'));
+L = L(~startsWith({L.name}, '._'));
+code_t = 0;  if ~isempty(L), code_t = max([L.datenum]); end
+ctx = struct('file', apat_paths(OUTdir, 'settings', 'APAT_image_index.mat'), ...
+    'key', sprintf('%s|%s', measure_lbl, char(sheet)), ...
+    'sig', getByteStreamFromArray(S), ...
+    'stamp', max(stamp, code_t), 'allow', logical(allow));
+end
+
+
+function v = plain(v)
+%PLAIN  v with only data (numbers, text, logicals, cells, structs) — function
+%   handles and objects (app, graphics) removed, so the fingerprint is stable.
+if isstruct(v)
+    f = fieldnames(v);
+    for k = 1:numel(f)
+        for j = 1:numel(v)
+            x = v(j).(f{k});
+            if isa(x, 'function_handle') || (isobject(x) && ~isstring(x))   % (graphics handles are objects)
+                v(j).(f{k}) = [];
+            else
+                v(j).(f{k}) = plain(x);
+            end
+        end
+    end
+elseif iscell(v)
+    for k = 1:numel(v), v{k} = plain(v{k}); end
+elseif isa(v, 'function_handle') || (isobject(v) && ~isstring(v))
+    v = [];
+end
+end
+
+
 function v = cfg_get(s, field, default)
 % CFG_GET  Return s.field when it exists and is non-empty, otherwise default.
 if isfield(s, field) && ~isempty(s.(field))
@@ -1104,7 +1194,7 @@ end
 
 function step_failed(ME, stage)
 %STEP_FAILED  A step of one subject / condition failed: log it (notice,
-%   Analysis/APAT_error_log.txt) and go on. Stop (APAT:UserAbort) still ends the run.
+%   Analysis/Logs/APAT_error_log.txt) and go on. Stop (APAT:UserAbort) still ends the run.
 if strcmp(ME.identifier, 'APAT:UserAbort'), rethrow(ME); end
 try, apat_run_error('error', ME, stage); catch, end
 end

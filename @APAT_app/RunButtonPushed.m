@@ -6,6 +6,14 @@ function RunButtonPushed(app)
 %   user the analysis is already running. Progress, elapsed time and Stop
 %   are in the header status card (private/run_status.m).
 
+% Resume / Restart pressed on the run card (APAT_app>ResumeOfferPushed):
+% the unfinished run again without the Resume prompt
+forced = '';
+if isappdata(app.UIFigure, 'apat_resume_choice')
+    forced = char(getappdata(app.UIFigure, 'apat_resume_choice'));
+    rmappdata(app.UIFigure, 'apat_resume_choice');
+end
+
 % "Save & Update Average" (Exclusions window): only the given analyses,
 % from the saved results (no re-analysis)
 ov = [];
@@ -98,16 +106,48 @@ settings_ops(app, 'save', Chins2Run, Conds2Run);
 % (Experiment = a column / a field of `average`): the CSV row store is
 % emptied only by the first run_one of the whole run (cfg.csv_keep).
 nA = size(runs, 1);  nE = numel(sets);  nR = nA * nE;
+% ── Resume after a Stop / error (Analysis/Settings/APAT_run_checkpoint.mat) ──
+% Each finished analysis is recorded on disk. "Resume" on the run card
+% (same run: folder, roster, Experiments, subjects, conditions, analyses,
+% Reanalyze) runs the analyses already done from their SAVED results (no
+% re-analysis: Results views and averages of every analysis are rebuilt,
+% quickly — unchanged images are not made again, apat_img_cache) and the
+% unfinished ones as set up. "Restart" / Run Analysis: everything as set up.
+% "Save & Update Average" runs never use or change the checkpoint.
+use_ckpt = ~isstruct(ov);
+ck_key   = run_key(ROOTdir, app.RosterDropdown.Value, sets, runs, app.ReanalyzeCheck.Value);
+ck_file  = apat_paths(fullfile(ROOTdir, 'Analysis'), 'settings', 'APAT_run_checkpoint.mat');
+done_ck  = false(1, nR);  resuming = false;  ck_t0 = now; %#ok<TNOW1> run start (checkpoint)
+if use_ckpt
+    ck = ckpt_load(ck_file);
+    can = ~isempty(ck) && isequal(ck.key, ck_key) && numel(ck.done) == nR && any(ck.done) && ~all(ck.done);
+    if strcmp(forced, 'Resume') && ~can
+        uialert(app.UIFigure, ['This run can no longer be resumed: the Setup selection (subjects, ' ...
+            'conditions, analyses or Re-Analyze) changed since it stopped. Press Restart to run ' ...
+            'the analyses selected now from the start.'], 'Resume', 'Icon','warning');
+        setappdata(app.UIFigure, 'apat_running', false);
+        run_status(app, 'offer', false);              % Restart stays on the card
+        return
+    elseif strcmp(forced, 'Resume')
+        done_ck = logical(ck.done);  resuming = true;
+        if isfield(ck, 't0'), ck_t0 = ck.t0; end   % saved Results of that run are loaded
+    end
+    % (no question when Run Analysis is pressed: the Subject / Condition
+    % chips show what is analysed — private/analysis_status.m — and Run
+    % Analysis runs everything selected; Resume is on the run card)
+    if ~resuming, ckpt_save(ck_file, ck_key, done_ck, runs, sets, app, ck_t0); end
+end
 if ~isstruct(ov), res_exp(app, 'reset'); end      % new run: Results of earlier runs cleared
 app.abort_requested = false;
 setappdata(app.UIFigure, 'peak_abort', false);
-% Errors during the run: logged in Analysis/APAT_error_log.txt + a notice
+% Errors during the run: logged in Analysis/Logs/APAT_error_log.txt + a notice
 % that closes itself after 15 s (no modal dialog) — the run goes on
 try, apat_run_error('start', fullfile(ROOTdir, 'Analysis'), app.UIFigure); catch, end
 run_status(app, 'start', run_label(app, runs(1,1), runs(1,2)), 1, nR, sets(1).sheet);
 start_spinner_anim(app);
 drawnow;
-errs = false(1, nR);  n_done = 0;  ii = 0;
+errs = false(1, nR);  n_done = 0;  ii = 0;  first_exec = true;
+was_ck = done_ck;                                 % resumed: finished before this run
 try                                               % Results Shading starts as Setup → Output says
     po = output_opts(app, 'get');  app.res.xgroup_on = logical(po.plot.shading);
 catch
@@ -116,9 +156,27 @@ for si = 1:nE
     for ri = 1:nA
         if ~isvalid(app) || app.abort_requested, break; end
         ii = ii + 1;
+        wait_if_paused(app);                      % Pause pressed: wait before the next analysis
+        if ~isvalid(app) || app.abort_requested, break; end
         run_status(app, 'phase', run_label(app, runs(ri,1), runs(ri,2)), ii, nR, sets(si).sheet);
-        errs(ii) = run_one(app, ROOTdir, sets(si), runs(ri,1), runs(ri,2), ii == 1);
-        if isvalid(app) && ~app.abort_requested, n_done = n_done + 1; end
+        if was_ck(ii)                             % resumed: done before
+            % its saved Results (written by that run) → Results tab in seconds
+            if res_load(app, meas_label(app, runs(ri,1), runs(ri,2)), sets(si).sheet, ck_t0)
+                n_done = n_done + 1;
+                continue
+            end
+            setappdata(app.UIFigure, 'apat_no_reanalyze', true);   % else: from its saved data
+        end
+        errs(ii) = run_one(app, ROOTdir, sets(si), runs(ri,1), runs(ri,2), first_exec);
+        setappdata(app.UIFigure, 'apat_no_reanalyze', no_rean);
+        first_exec = false;
+        if isvalid(app) && ~app.abort_requested
+            n_done = n_done + 1;
+            if use_ckpt && ~errs(ii)              % finished: recorded at once
+                done_ck(ii) = true;
+                ckpt_save(ck_file, ck_key, done_ck, runs, sets, app, ck_t0);
+            end
+        end
     end
     if ~isvalid(app) || app.abort_requested, break; end
 end
@@ -128,6 +186,12 @@ if isvalid(app)
         app.PeakEditPanel.Visible = 'off';
     end
     stop_spinner_anim(app);
+    analysis_status(app, 'invalidate');           % chip colours: results read again
+    try, update_summary(app); catch, end
+    if use_ckpt && all(done_ck)                   % whole run finished: nothing to resume
+        try, if isfile(ck_file), delete(ck_file); end, catch, end
+    end
+    offer = use_ckpt && ~all(done_ck) && (app.abort_requested || any(errs));   % analyses left
     n_err = 0;  try, n_err = apat_run_error('count'); catch, end
     if app.abort_requested
         run_status(app, 'stopped', n_done, nR);    % shows what has been analysed so far
@@ -135,9 +199,64 @@ if isvalid(app)
     elseif any(errs)
         run_status(app, 'error', nnz(errs), nR, n_err);
     else
-        run_status(app, 'done', nR, nR, n_err);    % "Done · 2 errors — see APAT_error_log.txt"
+        run_status(app, 'done', nR, nR, n_err);    % "Done · 2 errors — see Analysis/Logs/APAT_error_log.txt"
+    end
+    if offer                                      % Stop → "Resume" (+ "Restart") on the card
+        run_status(app, 'offer', any(done_ck));
     end
     setappdata(app.UIFigure, 'peak_abort', false);
+end
+end
+
+
+function k = run_key(ROOTdir, roster, sets, runs, reanalyze)
+%RUN_KEY  What identifies a run for Resume: same folder, roster file,
+%   Experiments (sheets) with their subjects / conditions, analyses and
+%   Reanalyze setting. (Parameter changes are not compared: the Resume
+%   prompt shows when the unfinished run was saved.)
+k = struct('root', char(ROOTdir), 'roster', char(roster), 'runs', double(runs), ...
+    'reanalyze', logical(reanalyze), 'sheets', {{}}, 'chins', {{}}, 'conds', {{}});
+for i = 1:numel(sets)
+    k.sheets{i} = char(sets(i).sheet);
+    k.chins{i}  = cellstr(sets(i).Chins2Run);
+    k.conds{i}  = cellstr(sets(i).Conds2Run);
+end
+end
+
+
+function ck = ckpt_load(file)
+%CKPT_LOAD  Checkpoint of the last unfinished run ([] if none / unreadable).
+ck = [];
+try
+    if isfile(file)
+        L = load(file, 'ckpt');
+        if isfield(L, 'ckpt') && isfield(L.ckpt, 'key') && isfield(L.ckpt, 'done'), ck = L.ckpt; end
+    end
+catch
+end
+end
+
+
+function ckpt_save(file, key, done, runs, sets, app, t0)
+%CKPT_SAVE  Record which analyses of this run are finished. Written to a
+%   temporary file first, then moved, so a crash while saving never leaves
+%   a broken checkpoint. Never throws (the run goes on without it).
+try
+    ckpt.key   = key;
+    ckpt.done  = logical(done);
+    ckpt.t0    = t0;                              % run start: saved Results newer than this are its own
+    ckpt.saved = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'));
+    lbl = cell(1, numel(done));  nA = size(runs, 1);
+    for ii = 1:numel(done)
+        ri = mod(ii-1, nA) + 1;  si = floor((ii-1) / nA) + 1;
+        lbl{ii} = sprintf('%s | %s', sets(si).sheet, run_label(app, runs(ri,1), runs(ri,2)));
+    end
+    ckpt.labels = lbl;                            % readable list (for a look in MATLAB)
+    d = fileparts(file);  if ~isfolder(d), mkdir(d); end
+    tmp = [file(1:end-4) '_tmp.mat'];
+    save(tmp, 'ckpt');
+    movefile(tmp, file, 'f');
+catch
 end
 end
 
@@ -415,7 +534,7 @@ if strcmp(EXPname,'ABR') && strcmp(EXPname2,'Peaks') && ...
         'fig',        app.UIFigure);
     % Subject sex from the chinroster's "Sex" column (prefills the editor)
     [cfg.peak_ui.sex_ids, cfg.peak_ui.sex_vals] = roster_sex( ...
-        fullfile(ROOTdir,'Analysis',chinroster_filename), sheet);
+        apat_paths(fullfile(ROOTdir,'Analysis'), 'roster', chinroster_filename), sheet);
 else
     cfg.peak_ui = [];
 end
@@ -470,6 +589,31 @@ setappdata(0, 'APAT_export_fmt', cfg.export_fmt);
 setappdata(0, 'APAT_plot_defaults', cfg.plot_defaults);
 rec_clean = onCleanup(@() rm_rec_policy()); %#ok<NASGU>
 try, apat_run_error('context', 'analysis',measure_lbl, 'subject','', 'condition','', 'blind',blind); catch, end
+
+% ── Nothing changed since the last run? Load its saved Results (speed) ──
+% Same settings / subjects / conditions (res_fresh key), no newer result,
+% raw-data, roster or code file (stamp), every expected pair analysed, and
+% Re-Analyze OFF: the Results views come from the saved file in seconds.
+% Any problem here only means: run the analysis as usual.
+res_k = [];  res_s = 0;  ok_l = false;  info_l = '';
+roster_f = apat_paths(fullfile(ROOTdir, 'Analysis'), 'roster', chinroster_filename);
+try
+    if ~blind
+        [res_k, res_s] = res_fresh(app, EXPname, char(EXPname2), cfg, Chins2Run, Conds2Run, sheet, roster_f);
+    end
+    if ~blind && ~reanalyze && ~isempty(res_k) && ...
+            isequal(analysis_status(app, 'complete', m_sel, k_sel, sheet, Chins2Run, Conds2Run), true)
+        t_l = tic;
+        [ok_l, info_l] = res_load(app, measure_lbl, sheet, [], res_k, res_s);
+        if ok_l, try, apat_timing('saved Results loaded', toc(t_l)); catch, end, end
+    end
+catch
+    ok_l = false;
+end
+if ok_l
+    try, update_progress(app, 1, 1, sprintf('Nothing changed since %s — saved Results loaded', info_l)); catch, end
+    return                                        % (analysis_errored = false)
+end
 t_run = tic;
 clr_t = onCleanup(@() log_total(t_run)); %#ok<NASGU>   % APAT_timing.csv: whole analysis
 try
@@ -480,7 +624,17 @@ try
     else
         analysis_run(ROOTdir, Chins2Run, Conds2Run, chinroster_filename, sheet, cfg);
     end
+    % saved Results of this analysis (shared/apat_res_store): the next Run
+    % Analysis loads them when nothing changed (above); Resume too
+    if ~blind && isvalid(app) && ~app.abort_requested
+        [~, res_s] = res_fresh(app, EXPname, char(EXPname2), cfg, Chins2Run, Conds2Run, sheet, roster_f);
+        apat_res_store('commit', struct('run_conds',app.res.run_conds, ...
+            'plot_defaults',app.state.plot_defaults, 'key',res_k, 'stamp',res_s));
+    else
+        apat_res_store('drop');
+    end
 catch ME
+    apat_res_store('drop');
     analysis_errored = true;
     if isvalid(app) && ~strcmp(ME.identifier,'APAT:UserAbort')
         % no modal alert (unattended runs): logged + self-closing notice,
@@ -495,7 +649,7 @@ end
 if blind
     % Keep the hidden console output so nothing is lost
     try
-        fid = fopen(fullfile(ROOTdir,'Analysis','APAT_blind_run_log.txt'), ternary(first_run, 'w', 'a'));
+        fid = fopen(apat_paths(fullfile(ROOTdir,'Analysis'), 'logs', 'APAT_blind_run_log.txt'), ternary(first_run, 'w', 'a'));
         if fid > 0, fprintf(fid, '%s', run_log); fclose(fid); end
     catch
     end

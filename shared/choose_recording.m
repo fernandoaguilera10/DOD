@@ -21,9 +21,9 @@ function file_out = choose_recording(folder, names, pattern, kind, datafile)
 %     'previous'   (no menu item) the recording the folder's existing results
 %                  used, else Auto (Most Trials)
 %   An answer given with Manual (Ask Once) is used by every rule except
-%   Manual (Always) (Analysis/APAT_recording_choices.mat). Automatic choices
+%   Manual (Always) (Analysis/Settings/APAT_recording_choices.mat). Automatic choices
 %   are deterministic, so every analysis of a folder gets the same file.
-%   Every choice is logged once in Analysis/APAT_recording_choices_log.txt.
+%   Every choice is logged once in Analysis/Logs/APAT_recording_choices_log.txt.
 %   Note (Oct 2026 check of 66 folders): 39 earlier manual data picks were
 %   not the most complete recording (often the first file of the list).
 
@@ -63,7 +63,7 @@ kw  = keyword(pattern);
 key = [rel '|' kw];
 if is_cal && ~isempty(datafile), key = sprintf('%s|%s', key, regexprep(char(datafile), '\.mat$', '')); end
 reg_file = '';
-if ~isempty(root), reg_file = fullfile(root, 'Analysis', 'APAT_recording_choices.mat'); end
+if ~isempty(root), reg_file = apat_paths(fullfile(root, 'Analysis'), 'settings', 'APAT_recording_choices.mat'); end
 
 % 1. a file you picked yourself (Manual (Ask Once))
 C = load_reg(reg_file);
@@ -118,7 +118,7 @@ msg = sprintf('%s  %s  %s  [%s]  ->  %s  (%s)', datestr(now, 'yyyy-mm-dd HH:MM')
     strjoin(names, ', '), file_out, reason);         %#ok<TNOW1,DATST>
 if ~isempty(root)
     try
-        fid = fopen(fullfile(root, 'Analysis', 'APAT_recording_choices_log.txt'), 'a');
+        fid = fopen(apat_paths(fullfile(root, 'Analysis'), 'logs', 'APAT_recording_choices_log.txt'), 'a');
         if fid > 0, fprintf(fid, '%s\n', msg); fclose(fid); end
     catch
     end

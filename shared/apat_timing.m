@@ -1,5 +1,5 @@
 function apat_timing(step, sec)
-%APAT_TIMING  Append one timing row to Analysis/APAT_timing.csv.
+%APAT_TIMING  Append one timing row to Analysis/Logs/APAT_timing.csv.
 %   apat_timing(step, seconds)  logs how long one step of a run took.
 %   The analysis / subject / condition come from the run state kept by
 %   apat_run_error (same folder as APAT_error_log.txt); blind runs log

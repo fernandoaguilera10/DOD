@@ -1,11 +1,11 @@
 function out = apat_run_error(action, varargin)
 %APAT_RUN_ERROR  Run-time errors that must not stop an unattended run.
-%   Errors during a run are written to Analysis/APAT_error_log.txt and shown
+%   Errors during a run are written to Analysis/Logs/APAT_error_log.txt and shown
 %   in a small notice over the APAT window that closes itself after 15 s
 %   (no modal dialog); the run goes on with the next item.
 %
 %   apat_run_error('start', analysis_dir, fig)  new run: count = 0, log in
-%                              <analysis_dir>/APAT_error_log.txt, notices on
+%                              <analysis_dir>/Logs/APAT_error_log.txt, notices on
 %                              FIG (the APAT UIFigure; [] = Command Window)
 %   tf = apat_run_error('ensure', analysis_dir) start only if no run state
 %                              exists (headless analysis_run); true if started
@@ -15,6 +15,9 @@ function out = apat_run_error(action, varargin)
 %   apat_run_error('error', ME_or_msg [, stage])  log one error (+1), notice
 %   apat_run_error('auto', msg) log an automatic choice taken because a
 %                              prompt got no answer (not counted), notice
+%   apat_run_error('stall', msg) log "no progress" (hang alert, run_status):
+%                              not counted as an error, no notice (the run
+%                              card shows it)
 %   n = apat_run_error('count')  errors logged since 'start'
 %   f = apat_run_error('file')   the log file
 %   Never throws.
@@ -47,6 +50,10 @@ try
             S = state();  out = S.n;
         case 'file'
             S = state();  out = S.file;
+        case 'stall'
+            S = state();
+            write_log(S, 'STALL', 'no progress', char(varargin{1}), '');
+            fprintf(2, 'APAT: %s\n', char(varargin{1}));
         case 'error'
             ME = varargin{1};
             stage = '';  if numel(varargin) >= 2, stage = char(varargin{2}); end
@@ -75,7 +82,7 @@ end
 
 function S = new_state(d, fig)
 f = '';
-if ~isempty(d), f = fullfile(d, 'APAT_error_log.txt'); end
+if ~isempty(d), f = apat_paths(d, 'logs', 'APAT_error_log.txt'); end   % Analysis/Logs (apat_timing writes next to it)
 S = struct('file', f, 'fig', fig, 'n', 0, 'header', false, 't0', now, ... %#ok<TNOW1>
     'ctx', struct('analysis','', 'subject','', 'condition','', 'blind',false));
 end
